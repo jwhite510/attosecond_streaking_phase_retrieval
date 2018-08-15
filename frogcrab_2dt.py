@@ -2,13 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def attosecond_streak(xuv, ir, I_p):
 
-    E_xuv = np.array([0.001, 0.002, 0.003])
+
+def plot_t_cut(indexes, axis, products):
+    #index[p, tau, time]
+
+    axis.plot(products['E_xuv_m'][indexes[0], indexes[1], :], color='blue', alpha=0.5)
+    axis.plot(products['IR_d_3d'][indexes[0], indexes[1], :], color='teal', alpha=0.5)
+    axis.plot(np.real(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', alpha=0.5)
+    axis.plot(np.imag(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', linestyle='dashed', alpha=0.5)
+    axis.plot(np.real(products['e_ft'][indexes[0], indexes[1], :]), color='red', alpha=0.1)
+    axis.plot(np.imag(products['e_ft'][indexes[0], indexes[1], :]), color='red', linestyle='dashed', alpha=0.1)
+
+
+def attosecond_streak(xuv, ir, I_p):
 
     # print('xuv.F:\n', xuv.F, '\n')
     mid_index = int(len(xuv.F)/2)
-    p = (4 * np.pi * xuv.F[mid_index:])**2
+    p = (4 * np.pi * xuv.F[mid_index:])**2 / 10e51
 
     tau_m, p_m, t_m = np.meshgrid(ir.t, p, xuv.t)
 
@@ -37,6 +48,8 @@ def attosecond_streak(xuv, ir, I_p):
     d_m_numerator = p_m_2d + A_tau
     d_m_denom = ((p_m_2d + A_tau)**2 + 2*I_p)**3
     IR_d_vector = d_m_numerator / d_m_denom
+    print(IR_d_vector)
+
     # print('IR_d_vector:\n', IR_d_vector, '\n')
     IR_d_3d = np.array([IR_d_vector]).swapaxes(0, 2) * np.ones_like(t_m)
     # print('IR_delay_3d:\n', IR_d_3d, '\n')
@@ -52,12 +65,28 @@ def attosecond_streak(xuv, ir, I_p):
 
 
     product = E_xuv_m * IR_d_3d * phi_p_t_3d * e_ft
-    integrated = xuv.dt * np.sum(product, 2)
+    # product = phi_p_t_3d
+
+    integrated = 1 * np.sum(product, 2)
     S = np.abs(integrated)**2
     fig, ax = plt.subplots(2, 2, figsize=(11, 5))
     ax[0][0].set_ylabel('p')
     ax[0][0].set_xlabel('tau')
     ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
+
+
+    # print('E_xuv_m:\n', E_xuv_m, '\n')
+
+    products = {'E_xuv_m': E_xuv_m, 'IR_d_3d': IR_d_3d, 'phi_p_t_3d': phi_p_t_3d,
+                'e_ft': e_ft}
+
+    # PLOT ir_d
+    print(np.shape(IR_d_3d))
+    ax[1][0].plot(IR_d_3d[1, :, 0], color='pink')
+
+    plot_t_cut(indexes=(32, 64), axis=ax[0][1], products=products)
+    # plot_t_cut(indexes=(32, 60), axis=ax[1][1], products=products)
+
     plt.show()
 
 
@@ -95,7 +124,7 @@ ax[2].plot(xuv.t, xuv.E_t, color='orange')
 
 
 
-attosecond_streak(xuv=xuv, ir=ir, I_p=10e38)
+attosecond_streak(xuv=xuv, ir=ir, I_p=1e10)
 
 
 
