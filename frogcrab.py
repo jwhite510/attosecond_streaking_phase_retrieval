@@ -26,24 +26,31 @@ def plot_location(tau_index, p_index, axis_t, axis_p, number, product, terms, ta
     text = axis_p.text(tau[tau_index], p[p_index], number, backgroundcolor='white', alpha=0.5)
     text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
 
-    axis_t[1][number].plot(t, terms['E_xuv_delay'][p_index, tau_index, :], label='E_xuv_delay',
+    axis_t[1][number].plot(t, np.real(terms['E_xuv_delay'][p_index, tau_index, :]), label='E_xuv_delay',
                            color='blue', alpha=0.5)
+    axis_t[1][number].plot(t, np.imag(terms['E_xuv_delay'][p_index, tau_index, :]), label='E_xuv_delay',
+                           color='blue', alpha=0.5, linestyle='dashed')
 
-    axis_t[1][number].plot(t, terms['d_m'][p_index, tau_index, :], label='d_m',
+    axis_t[1][number].plot(t, np.real(terms['d_m'][p_index, tau_index, :]), label='d_m',
                            color='black', alpha=0.5)
+    axis_t[1][number].plot(t, np.imag(terms['d_m'][p_index, tau_index, :]), label='d_m',
+                           color='black', alpha=0.5, linestyle='dashed')
 
-    axis_t[1][number].plot(t, terms['exp_phi_p_t'][p_index, tau_index, :], label='exp_phi_p_t',
-                           color='green', alpha=0.5)
+    axis_t[1][number].plot(t, np.real(terms['exp_phi_p_t'][p_index, tau_index, :]), label='exp_phi_p_t',
+                           color='teal', alpha=0.5)
+    axis_t[1][number].plot(t, np.imag(terms['exp_phi_p_t'][p_index, tau_index, :]), label='exp_phi_p_t',
+                           color='teal', alpha=0.5, linestyle='dashed')
 
-    axis_t[1][number].plot(t, terms['e_ft'][p_index, tau_index, :], label='e_ft',
-                           color='red', alpha=0.5)
+    axis_t[1][number].plot(t, np.real(terms['e_ft'][p_index, tau_index, :]), label='e_ft',
+                           color='red', alpha=0.1)
+    axis_t[1][number].plot(t, np.imag(terms['e_ft'][p_index, tau_index, :]), label='e_ft',
+                           color='red', alpha=0.1, linestyle='dashed')
 
+    axis_t[1][number].text(0.1, 0.9, number,
+               transform=axis_t[1][number].transAxes, backgroundcolor='white')
 
-
-
-
-
-
+    if number == 3:
+        axis_t[1][number].legend(bbox_to_anchor=(1.1, 1.05))
 
 
 def plot_streaking_trace(t, E_irt, E_xuv, I_p, dt):
