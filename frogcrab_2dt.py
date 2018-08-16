@@ -62,6 +62,7 @@ def attosecond_streak(xuv, ir, I_p):
 
     # construct A(tau) integrals
     A_tau = -1*ir.dt*np.cumsum(E_ir_m, 0)
+    print('A_tau avg:', np.average(A_tau))
     # print('A_tau:\n', A_tau, '\n')
     A_tau_reverse_int = ir.dt * np.flip(np.cumsum(np.flip(A_tau, 0), 0), 0)
     # print('A_t_reverse_int:\n', A_tau_reverse_int, '\n')
@@ -71,6 +72,9 @@ def attosecond_streak(xuv, ir, I_p):
     # construct 3d d vector
     d_m_numerator = p_m_2d + A_tau
     d_m_denom = ((p_m_2d + A_tau)**2 + 2*I_p)**3
+    print('avg denom: ', np.average(d_m_denom))
+    print('avg numerator', np.average(d_m_numerator))
+
     IR_d_vector = d_m_numerator / d_m_denom
     # print(IR_d_vector)
 
@@ -100,43 +104,40 @@ def attosecond_streak(xuv, ir, I_p):
 
 
 
-    # view small section of IR d vector
-    _, ax = plt.subplots(1, 1)
-    ax.pcolormesh(np.transpose(IR_d_vector)[1:-1, 1:-1])
-    ax.set_title('small view')
-    # IR_d_vector[0:10, 0:10] = 10e100
+    # # view small section of IR d vector
+    # _, ax = plt.subplots(1, 1)
+    # ax.pcolormesh(np.transpose(IR_d_vector)[1:-1, 1:-1])
+    # ax.set_title('small view')
+    # # IR_d_vector[0:10, 0:10] = 10e100
 
 
 
     # plot a cross sectional view of dipole moment
-    _, ax_d = plt.subplots(1, 1)
-    ax_d.pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
-    ax_d.set_xlabel('tau')
-    ax_d.set_ylabel('p')
-    ax_d.set_title('IR_d_vector')
-
-
-    # plot a cross sectional view of dipole moment
-    _, ax_d_num = plt.subplots(1, 1)
-    ax_d_num.pcolormesh(ir.t, p, np.transpose(d_m_numerator), cmap='jet')
-    ax_d_num.set_xlabel('tau')
-    ax_d_num.set_ylabel('p')
-    ax_d_num.set_title('d_m_numerator')
-
+    _, ax_d = plt.subplots(1, 4, figsize=(18, 5))
+    ax_d[0].pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
+    ax_d[0].set_xlabel('tau')
+    ax_d[0].set_ylabel('p')
+    ax_d[0].set_title('IR_d_vector')
 
     # plot a cross sectional view of dipole moment
-    _, ax_d_denom = plt.subplots(1, 1)
-    ax_d_denom.pcolormesh(ir.t, p, np.transpose(d_m_denom), cmap='jet')
-    ax_d_denom.set_xlabel('tau')
-    ax_d_denom.set_ylabel('p')
-    ax_d_denom.set_title('d_m_denom')
+
+    ax_d[1].pcolormesh(ir.t, p, np.transpose(d_m_numerator), cmap='jet')
+    ax_d[1].set_xlabel('tau')
+    ax_d[1].set_ylabel('p')
+    ax_d[1].set_title('d_m_numerator')
+
+    # plot a cross sectional view of dipole moment
+
+    ax_d[2].pcolormesh(ir.t, p, np.transpose(d_m_denom), cmap='jet')
+    ax_d[2].set_xlabel('tau')
+    ax_d[2].set_ylabel('p')
+    ax_d[2].set_title('d_m_denom')
 
     # plot a cross sectional view of A tau
-    _, ax_A_tau = plt.subplots(1, 1)
-    ax_A_tau.pcolormesh(ir.t, p, np.transpose(A_tau), cmap='jet')
-    ax_A_tau.set_xlabel('tau')
-    ax_A_tau.set_ylabel('p')
-    ax_A_tau.set_title('A_tau')
+    ax_d[3].pcolormesh(ir.t, p, np.transpose(A_tau), cmap='jet')
+    ax_d[3].set_xlabel('tau')
+    ax_d[3].set_ylabel('p')
+    ax_d[3].set_title('A_tau')
 
 
     # plot a cross sectional view of quantum phase term
@@ -163,14 +164,7 @@ def attosecond_streak(xuv, ir, I_p):
     ax_E_XUV.set_xlabel('time')
     ax_E_XUV.set_ylabel('tau')
 
-
-
-
-
-
     fig, ax = plt.subplots(2, 4, figsize=(11, 5))
-
-
 
     # print('E_xuv_m:\n', E_xuv_m, '\n')
 
@@ -219,9 +213,9 @@ class Field():
 
 
 
-xuv = Field(N=128, w0=1e18, FWHM=10e-18, tmax=30e-18)
-ir = Field(N=128, w0=3e14, FWHM=70e-15, tmax=100e-15)
-ir.E_t = 6e21 * ir.E_t
+xuv = Field(N=128, w0=1e18, FWHM=10e-18, tmax=60e-18)
+ir = Field(N=128, w0=2e14, FWHM=70e-15, tmax=100e-15)
+ir.E_t = 1e22 * ir.E_t
 
 # ir.E_t = np.array([1, 2, 3, 4])
 # ir.dt = 1
@@ -235,7 +229,7 @@ ir.E_t = 6e21 * ir.E_t
 
 
 
-attosecond_streak(xuv=xuv, ir=ir, I_p=1e10)
+attosecond_streak(xuv=xuv, ir=ir, I_p=0)
 
 
 
