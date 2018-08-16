@@ -4,27 +4,47 @@ import matplotlib.pyplot as plt
 
 
 
-def plot_t_cut(indexes, axis, products):
+def plot_t_cut(indexes, axis, products, number, product, axis_p, tau, p):
     #index[p, tau, time]
-    axis.plot(products['E_xuv_m'][indexes[0], indexes[1], :], color='blue', alpha=0.5)
-    axis.plot(products['IR_d_3d'][indexes[0], indexes[1], :], color='teal', alpha=0.5)
-    axis.plot(np.real(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', alpha=0.5)
-    axis.plot(np.imag(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', linestyle='dashed', alpha=0.5)
-    axis.plot(np.real(products['e_ft'][indexes[0], indexes[1], :]), color='red', alpha=0.1)
-    axis.plot(np.imag(products['e_ft'][indexes[0], indexes[1], :]), color='red', linestyle='dashed', alpha=0.1)
 
+    axis[0][number].plot(np.real(product[indexes[0], indexes[1], :]), color='blue')
+    axis[0][number].plot(np.imag(product[indexes[0], indexes[1], :]), color='red')
+
+    # integrate and list number
+    integral = np.abs(xuv.dt * np.sum(product[indexes[0], indexes[1], :]))**2
+    axis[0][number].text(0.1, 1.1, 'integral: {}'.format(integral), transform=axis[0][number].transAxes)
+
+    axis[1][number].plot(products['E_xuv_m'][indexes[0], indexes[1], :], color='blue', alpha=0.5, label='E_xuv_m')
+    axis[1][number].plot(products['IR_d_3d'][indexes[0], indexes[1], :], color='teal', alpha=0.5, label='IR_d_3d')
+    axis[1][number].plot(np.real(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', alpha=0.5, label='phi_p_t_3d')
+    axis[1][number].plot(np.imag(products['phi_p_t_3d'][indexes[0], indexes[1], :]), color='orange', linestyle='dashed', alpha=0.5)
+    axis[1][number].plot(np.real(products['e_ft'][indexes[0], indexes[1], :]), color='red', alpha=0.5, label='e_ft')
+    axis[1][number].plot(np.imag(products['e_ft'][indexes[0], indexes[1], :]), color='red', linestyle='dashed', alpha=0.5)
+    if number == 3:
+        axis[1][number].legend(bbox_to_anchor=(1, 0.8))
+
+    # label the plots with corresponding numbers in the streaking trace and time axes traces
+    for vertplot in [0, 1]:
+        text = axis[vertplot][number].text(0.1, 0.9, number, transform=axis[vertplot][number].transAxes)
+        text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
+    text = axis_p.text(tau[indexes[1]], p[indexes[0]], number, backgroundcolor='white', alpha=0.5)
+    text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
+    S[indexes[0], indexes[1]] = 0
 
 def attosecond_streak(xuv, ir, I_p):
 
     # print('xuv.F:\n', xuv.F, '\n')
     mid_index = int(len(xuv.F)/2)
-    p = (4 * np.pi * xuv.F[mid_index:])**2
-    p = (p / 10e51)
-    p = np.linspace(0, 1e6, 40)
+
+    p = (2*(2*np.pi * xuv.F[mid_index+1:] - I_p))**0.5
+
     # print(p)
     # print(p[3]-p[2])
     # print(p[5]-p[4])
-
+    tau = ir.t
+    global tau_m
+    global p_m
     tau_m, p_m, t_m = np.meshgrid(ir.t, p, xuv.t)
 
     E_xuv_m = np.ones_like(t_m) * xuv.E_t.reshape(1, 1, -1)
@@ -54,6 +74,9 @@ def attosecond_streak(xuv, ir, I_p):
     IR_d_vector = d_m_numerator / d_m_denom
     # print(IR_d_vector)
 
+
+    # print(IR_d_vector)
+
     # print('IR_d_vector:\n', IR_d_vector, '\n')
     IR_d_3d = np.array([IR_d_vector]).swapaxes(0, 2) * np.ones_like(t_m)
     # print('IR_delay_3d:\n', IR_d_3d, '\n')
@@ -67,16 +90,86 @@ def attosecond_streak(xuv, ir, I_p):
     # construct exp(i (p^2/2 + I_p)t)
     e_ft = np.exp(1j * ((p_m**2)/2 + I_p) * t_m)
 
-
     product = E_xuv_m * IR_d_3d * phi_p_t_3d * e_ft
     # product = phi_p_t_3d
 
     integrated = xuv.dt * np.sum(product, 2)
+    global S
     S = np.abs(integrated)**2
-    fig, ax = plt.subplots(2, 2, figsize=(11, 5))
-    ax[0][0].set_ylabel('p')
-    ax[0][0].set_xlabel('tau')
-    ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
+
+
+
+
+    # view small section of IR d vector
+    _, ax = plt.subplots(1, 1)
+    ax.pcolormesh(np.transpose(IR_d_vector)[1:-1, 1:-1])
+    ax.set_title('small view')
+    # IR_d_vector[0:10, 0:10] = 10e100
+
+
+
+    # plot a cross sectional view of dipole moment
+    _, ax_d = plt.subplots(1, 1)
+    ax_d.pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
+    ax_d.set_xlabel('tau')
+    ax_d.set_ylabel('p')
+    ax_d.set_title('IR_d_vector')
+
+
+    # plot a cross sectional view of dipole moment
+    _, ax_d_num = plt.subplots(1, 1)
+    ax_d_num.pcolormesh(ir.t, p, np.transpose(d_m_numerator), cmap='jet')
+    ax_d_num.set_xlabel('tau')
+    ax_d_num.set_ylabel('p')
+    ax_d_num.set_title('d_m_numerator')
+
+
+    # plot a cross sectional view of dipole moment
+    _, ax_d_denom = plt.subplots(1, 1)
+    ax_d_denom.pcolormesh(ir.t, p, np.transpose(d_m_denom), cmap='jet')
+    ax_d_denom.set_xlabel('tau')
+    ax_d_denom.set_ylabel('p')
+    ax_d_denom.set_title('d_m_denom')
+
+    # plot a cross sectional view of A tau
+    _, ax_A_tau = plt.subplots(1, 1)
+    ax_A_tau.pcolormesh(ir.t, p, np.transpose(A_tau), cmap='jet')
+    ax_A_tau.set_xlabel('tau')
+    ax_A_tau.set_ylabel('p')
+    ax_A_tau.set_title('A_tau')
+
+
+    # plot a cross sectional view of quantum phase term
+    _, ax_p_t = plt.subplots(1, 1)
+    ax_p_t.pcolormesh(ir.t, p, np.real(np.transpose(phi_p_t)), cmap='jet')
+    ax_p_t.set_xlabel('tau')
+    ax_p_t.set_ylabel('p')
+    ax_p_t.set_title('phi_p_t')
+
+    # plot the fourier transform matrix
+    _, ax_e_ft = plt.subplots(1, 2, figsize=(10, 5))
+    ax_e_ft[0].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.real(e_ft[:, 0, :]))
+    ax_e_ft[1].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.imag(e_ft[:, 0, :]))
+    ax_e_ft[0].set_title('real e_ft')
+    ax_e_ft[1].set_title('imag e_ft')
+    for i in [0, 1]:
+        ax_e_ft[i].set_xlabel('time')
+        ax_e_ft[i].set_ylabel('p')
+
+
+    # plot Exuv(t-tau)
+    _, ax_E_XUV = plt.subplots(1)
+    ax_E_XUV.pcolormesh(t_m[0, 0, :], tau_m[0, :, 0], E_xuv_m[0, :, :])
+    ax_E_XUV.set_xlabel('time')
+    ax_E_XUV.set_ylabel('tau')
+
+
+
+
+
+
+    fig, ax = plt.subplots(2, 4, figsize=(11, 5))
+
 
 
     # print('E_xuv_m:\n', E_xuv_m, '\n')
@@ -86,10 +179,23 @@ def attosecond_streak(xuv, ir, I_p):
 
     # PLOT ir_d
     # print(np.shape(IR_d_3d))
-    ax[1][0].plot(IR_d_3d[1, :, 0], color='pink')
+    ax[1][0].plot(IR_d_3d[1, :, 0], color='blue')
+    text = ax[1][0].text(0.1, 0.9, 'IR_d_3d', transform=ax[1][0].transAxes, color='blue')
+    text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
+    #indexes=(p, tau)
+    plot_t_cut(indexes=(0, 3), axis=ax, products=products, number=1, product=product, axis_p=ax[0][0],
+               tau=tau, p=p)
 
-    plot_t_cut(indexes=(32, 64), axis=ax[0][1], products=products)
-    # plot_t_cut(indexes=(32, 60), axis=ax[1][1], products=products)
+    plot_t_cut(indexes=(1, 3), axis=ax, products=products, number=2, product=product, axis_p=ax[0][0],
+               tau=tau, p=p)
+
+    plot_t_cut(indexes=(2, 3), axis=ax, products=products, number=3, product=product, axis_p=ax[0][0],
+               tau=tau, p=p)
+
+
+    ax[0][0].set_ylabel('p')
+    ax[0][0].set_xlabel('tau')
+    ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
 
     plt.show()
 
@@ -115,23 +221,21 @@ class Field():
 
 xuv = Field(N=128, w0=1e18, FWHM=10e-18, tmax=30e-18)
 ir = Field(N=128, w0=3e14, FWHM=70e-15, tmax=100e-15)
-ir.E_t = ir.E_t * 10e18
+ir.E_t = 6e21 * ir.E_t
 
 # ir.E_t = np.array([1, 2, 3, 4])
 # ir.dt = 1
 
-fig, ax = plt.subplots(3, 1)
-ax[0].plot(ir.t, ir.E_t, color='blue')
-ax[1].plot(xuv.t, xuv.E_t, color='orange')
+# fig, ax = plt.subplots(3, 1)
+# ax[0].plot(ir.t, ir.E_t, color='blue')
+# ax[1].plot(xuv.t, xuv.E_t, color='orange')
+#
+# ax[2].plot(ir.t, ir.E_t, color='blue')
+# ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
 
-ax[2].plot(ir.t, ir.E_t, color='blue')
-ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
 
 
-
-attosecond_streak(xuv=xuv, ir=ir, I_p=20e10)
-#s
-
+attosecond_streak(xuv=xuv, ir=ir, I_p=1e10)
 
 
 
