@@ -130,6 +130,7 @@ ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
 
 
 attosecond_streak(xuv=xuv, ir=ir, I_p=20e10)
+#s
 
 
 
