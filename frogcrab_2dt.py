@@ -71,7 +71,7 @@ def attosecond_streak(xuv, ir, I_p):
     product = E_xuv_m * IR_d_3d * phi_p_t_3d * e_ft
     # product = phi_p_t_3d
 
-    integrated = 1 * np.sum(product, 2)
+    integrated = xuv.dt * np.sum(product, 2)
     S = np.abs(integrated)**2
     fig, ax = plt.subplots(2, 2, figsize=(11, 5))
     ax[0][0].set_ylabel('p')
