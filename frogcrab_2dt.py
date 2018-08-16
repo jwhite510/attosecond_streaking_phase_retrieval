@@ -32,7 +32,7 @@ def plot_t_cut(indexes, axis, products, number, product, axis_p, tau, p):
     text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
     S[indexes[0], indexes[1]] = 0
 
-def attosecond_streak(xuv, ir, I_p):
+def attosecond_streak(xuv, ir, I_p, plot):
 
     # print('xuv.F:\n', xuv.F, '\n')
     mid_index = int(len(xuv.F)/2)
@@ -113,85 +113,88 @@ def attosecond_streak(xuv, ir, I_p):
 
 
     # plot a cross sectional view of dipole moment
-    _, ax_d = plt.subplots(1, 4, figsize=(18, 5))
-    ax_d[0].pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
-    ax_d[0].set_xlabel('tau')
-    ax_d[0].set_ylabel('p')
-    ax_d[0].set_title('IR_d_vector')
+    if plot==True:
+        _, ax_d = plt.subplots(1, 4, figsize=(18, 5))
+        ax_d[0].pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
+        ax_d[0].set_xlabel('tau')
+        ax_d[0].set_ylabel('p')
+        ax_d[0].set_title('IR_d_vector')
 
-    # plot a cross sectional view of dipole moment
+        # plot a cross sectional view of dipole moment
 
-    ax_d[1].pcolormesh(ir.t, p, np.transpose(d_m_numerator), cmap='jet')
-    ax_d[1].set_xlabel('tau')
-    ax_d[1].set_ylabel('p')
-    ax_d[1].set_title('d_m_numerator')
+        ax_d[1].pcolormesh(ir.t, p, np.transpose(d_m_numerator), cmap='jet')
+        ax_d[1].set_xlabel('tau')
+        ax_d[1].set_ylabel('p')
+        ax_d[1].set_title('d_m_numerator')
 
-    # plot a cross sectional view of dipole moment
+        # plot a cross sectional view of dipole moment
 
-    ax_d[2].pcolormesh(ir.t, p, np.transpose(d_m_denom), cmap='jet')
-    ax_d[2].set_xlabel('tau')
-    ax_d[2].set_ylabel('p')
-    ax_d[2].set_title('d_m_denom')
+        ax_d[2].pcolormesh(ir.t, p, np.transpose(d_m_denom), cmap='jet')
+        ax_d[2].set_xlabel('tau')
+        ax_d[2].set_ylabel('p')
+        ax_d[2].set_title('d_m_denom')
 
-    # plot a cross sectional view of A tau
-    ax_d[3].pcolormesh(ir.t, p, np.transpose(A_tau), cmap='jet')
-    ax_d[3].set_xlabel('tau')
-    ax_d[3].set_ylabel('p')
-    ax_d[3].set_title('A_tau')
-
-
-    # plot a cross sectional view of quantum phase term
-    _, ax_p_t = plt.subplots(1, 1)
-    ax_p_t.pcolormesh(ir.t, p, np.real(np.transpose(phi_p_t)), cmap='jet')
-    ax_p_t.set_xlabel('tau')
-    ax_p_t.set_ylabel('p')
-    ax_p_t.set_title('phi_p_t')
-
-    # plot the fourier transform matrix
-    _, ax_e_ft = plt.subplots(1, 2, figsize=(10, 5))
-    ax_e_ft[0].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.real(e_ft[:, 0, :]))
-    ax_e_ft[1].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.imag(e_ft[:, 0, :]))
-    ax_e_ft[0].set_title('real e_ft')
-    ax_e_ft[1].set_title('imag e_ft')
-    for i in [0, 1]:
-        ax_e_ft[i].set_xlabel('time')
-        ax_e_ft[i].set_ylabel('p')
+        # plot a cross sectional view of A tau
+        ax_d[3].pcolormesh(ir.t, p, np.transpose(A_tau), cmap='jet')
+        ax_d[3].set_xlabel('tau')
+        ax_d[3].set_ylabel('p')
+        ax_d[3].set_title('A_tau')
 
 
-    # plot Exuv(t-tau)
-    _, ax_E_XUV = plt.subplots(1)
-    ax_E_XUV.pcolormesh(t_m[0, 0, :], tau_m[0, :, 0], E_xuv_m[0, :, :])
-    ax_E_XUV.set_xlabel('time')
-    ax_E_XUV.set_ylabel('tau')
+        # plot a cross sectional view of quantum phase term
+        _, ax_p_t = plt.subplots(1, 1)
+        ax_p_t.pcolormesh(ir.t, p, np.real(np.transpose(phi_p_t)), cmap='jet')
+        ax_p_t.set_xlabel('tau')
+        ax_p_t.set_ylabel('p')
+        ax_p_t.set_title('phi_p_t')
 
-    fig, ax = plt.subplots(2, 4, figsize=(11, 5))
-
-    # print('E_xuv_m:\n', E_xuv_m, '\n')
-
-    products = {'E_xuv_m': E_xuv_m, 'IR_d_3d': IR_d_3d, 'phi_p_t_3d': phi_p_t_3d,
-                'e_ft': e_ft}
-
-    # PLOT ir_d
-    # print(np.shape(IR_d_3d))
-    ax[1][0].plot(IR_d_3d[1, :, 0], color='blue')
-    text = ax[1][0].text(0.1, 0.9, 'IR_d_3d', transform=ax[1][0].transAxes, color='blue')
-    text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
-    #indexes=(p, tau)
-    plot_t_cut(indexes=(0, 3), axis=ax, products=products, number=1, product=product, axis_p=ax[0][0],
-               tau=tau, p=p)
-
-    plot_t_cut(indexes=(1, 3), axis=ax, products=products, number=2, product=product, axis_p=ax[0][0],
-               tau=tau, p=p)
-
-    plot_t_cut(indexes=(2, 3), axis=ax, products=products, number=3, product=product, axis_p=ax[0][0],
-               tau=tau, p=p)
+        # plot the fourier transform matrix
+        _, ax_e_ft = plt.subplots(1, 2, figsize=(10, 5))
+        ax_e_ft[0].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.real(e_ft[:, 0, :]))
+        ax_e_ft[1].pcolormesh(t_m[0, 0, :],p_m[:, 0, 0], np.imag(e_ft[:, 0, :]))
+        ax_e_ft[0].set_title('real e_ft')
+        ax_e_ft[1].set_title('imag e_ft')
+        for i in [0, 1]:
+            ax_e_ft[i].set_xlabel('time')
+            ax_e_ft[i].set_ylabel('p')
 
 
-    ax[0][0].set_ylabel('p')
-    ax[0][0].set_xlabel('tau')
-    ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
+        # plot Exuv(t-tau)
+        _, ax_E_XUV = plt.subplots(1)
+        ax_E_XUV.pcolormesh(t_m[0, 0, :], tau_m[0, :, 0], E_xuv_m[0, :, :])
+        ax_E_XUV.set_xlabel('time')
+        ax_E_XUV.set_ylabel('tau')
 
-    plt.show()
+        fig, ax = plt.subplots(2, 4, figsize=(11, 5))
+
+        # print('E_xuv_m:\n', E_xuv_m, '\n')
+
+        products = {'E_xuv_m': E_xuv_m, 'IR_d_3d': IR_d_3d, 'phi_p_t_3d': phi_p_t_3d,
+                    'e_ft': e_ft}
+
+        # PLOT ir_d
+        # print(np.shape(IR_d_3d))
+        ax[1][0].plot(IR_d_3d[1, :, 0], color='blue')
+        text = ax[1][0].text(0.1, 0.9, 'IR_d_3d', transform=ax[1][0].transAxes, color='blue')
+        text.set_bbox(dict(facecolor='white', alpha=0.5, edgecolor='black'))
+        #indexes=(p, tau)
+        plot_t_cut(indexes=(0, 3), axis=ax, products=products, number=1, product=product, axis_p=ax[0][0],
+                   tau=tau, p=p)
+
+        plot_t_cut(indexes=(1, 3), axis=ax, products=products, number=2, product=product, axis_p=ax[0][0],
+                   tau=tau, p=p)
+
+        plot_t_cut(indexes=(2, 3), axis=ax, products=products, number=3, product=product, axis_p=ax[0][0],
+                   tau=tau, p=p)
+
+
+        ax[0][0].set_ylabel('p')
+        ax[0][0].set_xlabel('tau')
+        ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
+
+    return ir.t, p, S
+
+
 
 
 
@@ -220,23 +223,19 @@ ir.E_t = 1e22 * ir.E_t
 # ir.E_t = np.array([1, 2, 3, 4])
 # ir.dt = 1
 
-# fig, ax = plt.subplots(3, 1)
-# ax[0].plot(ir.t, ir.E_t, color='blue')
-# ax[1].plot(xuv.t, xuv.E_t, color='orange')
-#
-# ax[2].plot(ir.t, ir.E_t, color='blue')
-# ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
+fig, ax = plt.subplots(4, 1, figsize=(5, 10))
+ax[0].plot(ir.t, ir.E_t, color='blue')
+ax[1].plot(xuv.t, xuv.E_t, color='orange')
+
+ax[2].plot(ir.t, ir.E_t, color='blue')
+ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
+
+tau, p, S = attosecond_streak(xuv=xuv, ir=ir, I_p=12e15, plot=True)
+ax[3].pcolormesh(tau, p, S, cmap='jet')
 
 
 
-attosecond_streak(xuv=xuv, ir=ir, I_p=0)
-
-
-
-
-
-
-
+plt.show()
 
 
 
