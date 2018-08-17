@@ -258,18 +258,19 @@ ir.E_t = 1e23 * ir.E_t
 # ir.E_t = np.array([1, 2, 3, 4])
 # ir.dt = 1
 
-fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+fig, ax = plt.subplots(2, 2, figsize=(6, 6))
+plt.subplots_adjust(left=0.07, right=0.97)
 ax[0][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
 ax[0][0].set_xlabel('time [Femtoseconds]')
 ax[0][0].set_title('IR field')
-ax[0][0].text(0.1, 0.8, 'FWHM:'+ str(ir.fwhm/1e-15) +'[fs]\n$\omega_0$: '+ str(ir.w0/1e15) + r'$\cdot 10^{15} \frac{rad}{s}$',
-              transform=ax[0][0].transAxes)
+ax[0][0].text(0.6, 0.8, 'FWHM:'+ str(ir.fwhm/1e-15) +'[fs]\n$\omega_0$: '+ str(ir.w0/1e15) + r'$\cdot 10^{15} \frac{rad}{s}$',
+              transform=ax[0][0].transAxes, backgroundcolor='white')
 
 ax[0][1].plot(xuv.t/1e-18, xuv.E_t, color='orange')
 ax[0][1].set_xlabel('time [Attoseconds]')
 ax[0][1].set_title('Attosecond Pulse')
-ax[0][1].text(0.1, 0.8, 'FWHM:'+ str(xuv.fwhm/1e-18) +'[As]\n$\omega_0$: '+ str(xuv.w0/1e18) + r'$\cdot 10^{18} \frac{rad}{s}$',
-              transform=ax[0][1].transAxes)
+ax[0][1].text(0.6, 0.8, 'FWHM:'+ str(xuv.fwhm/1e-18) +'[As]\n$\omega_0$: '+ str(xuv.w0/1e18) + r'$\cdot 10^{18} \frac{rad}{s}$',
+              transform=ax[0][1].transAxes, backgroundcolor='white')
 
 
 ax[1][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
