@@ -4,6 +4,34 @@ import matplotlib.pyplot as plt
 
 
 
+
+
+
+def test_dipole_moment(p, ir, I_p):
+
+    print('max p : ', np.max(p))
+    p = np.linspace(0, np.max(p), 100)
+    p_m_2d, tau_m_2d= np.meshgrid(p, ir.t)
+    E_ir_m = np.ones_like(tau_m_2d) * ir.E_t.reshape(-1, 1)
+    A_tau = -1*ir.dt*np.cumsum(E_ir_m, 0)
+    d_m_numerator = p_m_2d + A_tau
+    d_m_denom = ((p_m_2d + A_tau)**2 + 2*I_p)**3
+    IR_d_vector = d_m_numerator / d_m_denom
+
+    _, ax_d = plt.subplots(1, 1)
+    ax_d.pcolormesh(ir.t, p, np.transpose(IR_d_vector), cmap='jet')
+    ax_d.set_xlabel('tau')
+    ax_d.set_ylabel('p')
+    ax_d.set_title('test IR_d_vector')
+
+
+
+
+
+
+
+
+
 def plot_t_cut(indexes, axis, products, number, product, axis_p, tau, p):
     #index[p, tau, time]
 
@@ -37,7 +65,9 @@ def attosecond_streak(xuv, ir, I_p, plot):
     # print('xuv.F:\n', xuv.F, '\n')
     mid_index = int(len(xuv.F)/2)
 
-    p = (2*(2*np.pi * xuv.F[mid_index+1:] - I_p))**0.5
+    # p = (2*(2*np.pi * xuv.F[mid_index+1:] - I_p))**0.5
+    p = (4 * np.pi * xuv.F[mid_index+1:])**0.5
+
 
     # print(p)
     # print(p[3]-p[2])
@@ -59,7 +89,6 @@ def attosecond_streak(xuv, ir, I_p, plot):
     # print('E_ir_m:\n', E_ir_m, '\n')
     # print('tau_m_2d:\n', tau_m_2d, '\n')
     # print('p_m_2d:\n', p_m_2d, '\n')
-
     # construct A(tau) integrals
     A_tau = -1*ir.dt*np.cumsum(E_ir_m, 0)
     print('A_tau avg:', np.average(A_tau))
@@ -77,13 +106,15 @@ def attosecond_streak(xuv, ir, I_p, plot):
 
     IR_d_vector = d_m_numerator / d_m_denom
     # print(IR_d_vector)
-
-
     # print(IR_d_vector)
-
     # print('IR_d_vector:\n', IR_d_vector, '\n')
     IR_d_3d = np.array([IR_d_vector]).swapaxes(0, 2) * np.ones_like(t_m)
     # print('IR_delay_3d:\n', IR_d_3d, '\n')
+
+
+    test_dipole_moment(p, ir, I_p)
+    # plt.show()
+    # exit(0)
 
     # construct 3d exp(-i phi(p, t))
     phi_p_t = p_m_2d * A_tau_reverse_int + 0.5 * A_tau_reverse_int_square
@@ -92,10 +123,11 @@ def attosecond_streak(xuv, ir, I_p, plot):
     # print('phi_p_t_3d:\n', phi_p_t_3d, '\n')
 
     # construct exp(i (p^2/2 + I_p)t)
-    e_ft = np.exp(1j * ((p_m**2)/2 + I_p) * t_m)
+    e_ft = np.exp(1j * ((p_m**2)/2) * t_m)
 
-    product = E_xuv_m * IR_d_3d * phi_p_t_3d * e_ft
-    # product = phi_p_t_3d
+    product = E_xuv_m * IR_d_3d  * phi_p_t_3d * e_ft
+
+    # product =  IR_d_3d  * phi_p_t_3d
 
     integrated = xuv.dt * np.sum(product, 2)
     global S
@@ -216,23 +248,28 @@ class Field():
 
 
 
-xuv = Field(N=128, w0=1e18, FWHM=10e-18, tmax=60e-18)
-ir = Field(N=128, w0=2e14, FWHM=70e-15, tmax=100e-15)
-ir.E_t = 1e22 * ir.E_t
+xuv = Field(N=128, w0=4e17, FWHM=10e-18, tmax=50e-18)
+ir = Field(N=128, w0=1.5e14, FWHM=70e-15, tmax=100e-15)
+ir.E_t = 1e23 * ir.E_t
 
 # ir.E_t = np.array([1, 2, 3, 4])
 # ir.dt = 1
 
-fig, ax = plt.subplots(4, 1, figsize=(5, 10))
-ax[0].plot(ir.t, ir.E_t, color='blue')
-ax[1].plot(xuv.t, xuv.E_t, color='orange')
+fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+ax[0][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
+ax[0][0].set_xlabel('time [Femtoseconds]')
 
-ax[2].plot(ir.t, ir.E_t, color='blue')
-ax[2].plot(xuv.t, xuv.E_t*np.max(ir.E_t), color='orange')
+ax[0][1].plot(xuv.t/1e-18, xuv.E_t, color='orange')
+ax[0][1].set_xlabel('time [Attoseconds]')
 
-tau, p, S = attosecond_streak(xuv=xuv, ir=ir, I_p=12e15, plot=True)
-ax[3].pcolormesh(tau, p, S, cmap='jet')
+ax[1][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
+ax[1][0].plot(xuv.t/1e-15, xuv.E_t, color='orange')
+ax[1][0].set_xlabel('time [Femtoseconds]')
 
+tau, p, S = attosecond_streak(xuv=xuv, ir=ir, I_p=0.8e18, plot=False)
+ax[1][1].pcolormesh(tau/1e-15, p, S, cmap='jet')
+ax[1][1].set_xlabel('delay [Femtoseconds]')
+ax[1][1].set_ylabel('momentum')
 
 
 plt.show()
