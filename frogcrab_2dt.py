@@ -237,6 +237,9 @@ class Field():
 
     def __init__(self, N, w0, FWHM, tmax):
 
+        self.fwhm = FWHM
+        self.w0 = w0
+
 
         self.dt = (2*tmax) / N
         self.t = self.dt * np.arange(-N/2, N/2, 1)
@@ -258,9 +261,16 @@ ir.E_t = 1e23 * ir.E_t
 fig, ax = plt.subplots(2, 2, figsize=(10, 10))
 ax[0][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
 ax[0][0].set_xlabel('time [Femtoseconds]')
+ax[0][0].set_title('IR field')
+ax[0][0].text(0.1, 0.8, 'FWHM:'+ str(ir.fwhm/1e-15) +'[fs]\n$\omega_0$: '+ str(ir.w0/1e15) + r'$\cdot 10^{15} \frac{rad}{s}$',
+              transform=ax[0][0].transAxes)
 
 ax[0][1].plot(xuv.t/1e-18, xuv.E_t, color='orange')
 ax[0][1].set_xlabel('time [Attoseconds]')
+ax[0][1].set_title('Attosecond Pulse')
+ax[0][1].text(0.1, 0.8, 'FWHM:'+ str(xuv.fwhm/1e-18) +'[As]\n$\omega_0$: '+ str(xuv.w0/1e18) + r'$\cdot 10^{18} \frac{rad}{s}$',
+              transform=ax[0][1].transAxes)
+
 
 ax[1][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
 ax[1][0].plot(xuv.t/1e-15, xuv.E_t, color='orange')
