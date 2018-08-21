@@ -14,6 +14,7 @@ class XUV_Field():
     def __init__(self, N):
 
         # define parameters in SI units
+        self.N = N
         self.en0 = 150 * sc.eV # central energy
         self.den0 = 75 * sc.eV #energy fwhm
         self.f0 = self.en0/sc.h # carrier frequency
@@ -53,7 +54,7 @@ class XUV_Field():
 class IR_Field():
 
     def __init__(self, N):
-
+        self.N = N
         # calculate parameters in SI units
         self.lam0 = 1.7 * um    # central wavelength
         self.f0 = sc.c/self.lam0    # carrier frequency
@@ -122,21 +123,18 @@ def plot_t_cut(indexes, axis, products, number, product, axis_p, tau, p, S):
 
 def attosecond_streak(xuv, ir, plot):
 
-    mid_index = int(len(xuv.F)/2)
+    tau = ir.tmat
 
-    tau = ir.t
+    # construct energy axis
+    e_vec = (2 * xuv.en0)/xuv.N * np.arange(0, xuv.N, 1)
 
-    # p = (4 * np.pi * xuv.F[mid_index+1:])**0.5
+    tau_m, e_m, t_m = np.meshgrid(ir.tmat, e_vec, xuv.tmat)
 
-    p = 2 * np.pi * xuv.F[mid_index+1:]
-
-    tau_m, p_m, t_m = np.meshgrid(ir.t, p, xuv.t)
-
-    E_xuv_m = np.ones_like(t_m) * xuv.E_t.reshape(1, 1, -1)
+    E_xuv_m = np.ones_like(t_m) * xuv.Et.reshape(1, 1, -1)
 
      # construct 2-d grid for delay and momentum from IR pulse
-    p_m_2d, tau_m_2d= np.meshgrid(p, ir.t)
-    E_ir_m = np.ones_like(tau_m_2d) * ir.E_t.reshape(-1, 1)
+    e_vec_2d, tau_m_2d= np.meshgrid(e_vec, ir.tmat)
+    E_ir_m = np.ones_like(tau_m_2d) * ir.Et.reshape(-1, 1)
 
     # construct A integrals
     A_tau = -1*ir.dt*np.cumsum(E_ir_m, 0)
@@ -144,7 +142,7 @@ def attosecond_streak(xuv, ir, plot):
     A_tau_reverse_int_square = ir.dt * np.flip(np.cumsum(np.flip(A_tau**2, 0), 0), 0)
 
     # construct 3d exp(-i phi(p, t))
-    phi_p_t = p_m_2d * A_tau_reverse_int + 0.5 * A_tau_reverse_int_square
+    phi_p_t = np.sqrt(2 * e_vec_2d) * A_tau_reverse_int + 0.5 * A_tau_reverse_int_square
 
     phi_p_t_exp = np.exp(-1j * phi_p_t)
 
@@ -153,10 +151,10 @@ def attosecond_streak(xuv, ir, plot):
 
     # construct exp(i (p^2/2 + I_p)t)
     # e_ft = np.exp(1j * ((p_m**2)/2) * t_m)
-    e_ft = np.exp(1j * p_m * t_m)
+    e_ft = np.exp(1j * e_m * t_m)
 
-    # product = E_xuv_m * phi_p_t_3d * e_ft
-    product = E_xuv_m * e_ft
+    product = E_xuv_m * phi_p_t_3d * e_ft
+    # product = E_xuv_m * e_ft
 
     fig, ax = plt.subplots(2, 3)
 
@@ -186,11 +184,11 @@ def attosecond_streak(xuv, ir, plot):
         # phi_p_t_exp[50, :] = 0
 
 
-        ax[0][0].pcolormesh(ir.t, p, np.transpose(np.real(phi_p_t_exp)))
+        ax[0][0].pcolormesh(ir.tmat, e_vec, np.transpose(np.real(phi_p_t_exp)))
         ax[0][0].set_xlabel('tau')
-        ax[0][0].set_ylabel('p')
+        ax[0][0].set_ylabel('e_vec')
         ax[0][0].text(0.1, 0.9, 'real phi_p_t', transform=ax[0][0].transAxes, backgroundcolor='white')
-        ax[1][0].pcolormesh(ir.t, p, np.transpose(np.imag(phi_p_t_exp)))
+        ax[1][0].pcolormesh(ir.tmat, e_vec, np.transpose(np.imag(phi_p_t_exp)))
 
 
 
@@ -200,55 +198,53 @@ def attosecond_streak(xuv, ir, plot):
         products = {'E_xuv_m': E_xuv_m, 'phi_p_t_3d': phi_p_t_3d,
                     'e_ft': e_ft}
 
-        plot_t_cut(indexes=(50, 50), axis=ax, products=products, number=1, product=product, axis_p=ax[0][0],
-                   tau=tau, p=p, S=S)
+        # plot_t_cut(indexes=(50, 50), axis=ax, products=products, number=1, product=product, axis_p=ax[0][0],
+        #            tau=tau, p=p, S=S)
+        #
+        # plot_t_cut(indexes=(50, 100), axis=ax, products=products, number=2, product=product, axis_p=ax[0][0],
+        #            tau=tau, p=p, S=S)
+        #
+        # plot_t_cut(indexes=(50, 120), axis=ax, products=products, number=3, product=product, axis_p=ax[0][0],
+        #            tau=tau, p=p, S=S)
 
-        plot_t_cut(indexes=(50, 100), axis=ax, products=products, number=2, product=product, axis_p=ax[0][0],
-                   tau=tau, p=p, S=S)
-
-        plot_t_cut(indexes=(50, 120), axis=ax, products=products, number=3, product=product, axis_p=ax[0][0],
-                   tau=tau, p=p, S=S)
-
-        ax[0][0].set_ylabel('p')
+        ax[0][0].set_ylabel('e_vec')
         ax[0][0].set_xlabel('tau')
-        ax[0][0].pcolormesh(ir.t, p, S, cmap='jet')
+        ax[0][0].pcolormesh(ir.tmat, e_vec, S, cmap='jet')
 
-    return ir.t, p, S
-
-
+    return ir.tmat, e_vec, S
 
 
 
 
-xuv = XUV_Field(N=2**8)
-# ir = IR_Field(N=128)
-
-exit(0)
 
 
-ir.E_t = ir.E_t
+xuv = XUV_Field(N=128)
+ir = IR_Field(N=128)
+
+
+
 
 
 fig, ax = plt.subplots(2, 2, figsize=(6, 6))
 plt.subplots_adjust(left=0.07, right=0.97)
-ax[0][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
+ax[0][0].plot(ir.tmat, ir.Et, color='blue')
 ax[0][0].set_xlabel('time [Femtoseconds]')
 ax[0][0].set_title('IR field')
-ax[0][0].text(0.6, 0.8, 'FWHM:'+ str(ir.fwhm/1e-15) +'[fs]\n$\omega_0$: '+ str(ir.w0/1e15) + r'$\cdot 10^{15} \frac{rad}{s}$',
-              transform=ax[0][0].transAxes, backgroundcolor='white')
+# ax[0][0].text(0.6, 0.8, 'FWHM:'+ str(ir.fwhm/1e-15) +'[fs]\n$\omega_0$: '+ str(ir.w0/1e15) + r'$\cdot 10^{15} \frac{rad}{s}$',
+#               transform=ax[0][0].transAxes, backgroundcolor='white')
 
-ax[0][1].plot(xuv.t/1e-18, xuv.E_t, color='orange')
+ax[0][1].plot(xuv.tmat, xuv.Et, color='orange')
 ax[0][1].set_xlabel('time [Attoseconds]')
 ax[0][1].set_title('Attosecond Pulse')
-ax[0][1].text(0.6, 0.8, 'FWHM:'+ str(xuv.fwhm/1e-18) +'[As]\n$\omega_0$: '+ str(xuv.w0/1e18) + r'$\cdot 10^{18} \frac{rad}{s}$',
-              transform=ax[0][1].transAxes, backgroundcolor='white')
+# ax[0][1].text(0.6, 0.8, 'FWHM:'+ str(xuv.fwhm/1e-18) +'[As]\n$\omega_0$: '+ str(xuv.w0/1e18) + r'$\cdot 10^{18} \frac{rad}{s}$',
+#               transform=ax[0][1].transAxes, backgroundcolor='white')
 
-ax[1][0].plot(ir.t/1e-15, ir.E_t/np.max(ir.E_t), color='blue')
-ax[1][0].plot(xuv.t/1e-15, xuv.E_t, color='orange')
+ax[1][0].plot(ir.tmat, ir.Et, color='blue')
+ax[1][0].plot(xuv.tmat, xuv.Et, color='orange')
 ax[1][0].set_xlabel('time [Femtoseconds]')
 
 tau, p, S = attosecond_streak(xuv=xuv, ir=ir, plot=True)
-ax[1][1].pcolormesh(tau/1e-15, p, S, cmap='jet')
+ax[1][1].pcolormesh(tau, p, S, cmap='jet')
 ax[1][1].set_xlabel('delay [Femtoseconds]')
 ax[1][1].set_ylabel('momentum')
 
