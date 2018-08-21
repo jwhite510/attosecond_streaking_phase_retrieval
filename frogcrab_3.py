@@ -151,7 +151,7 @@ def attosecond_streak(xuv, ir, plot):
 
     # construct exp(i (p^2/2 + I_p)t)
     # e_ft = np.exp(1j * ((p_m**2)/2) * t_m)
-    e_ft = np.exp(1j * e_m * t_m)
+    e_ft = np.exp(-1j * e_m * t_m)
 
     product = E_xuv_m * phi_p_t_3d * e_ft
     # product = E_xuv_m * e_ft
