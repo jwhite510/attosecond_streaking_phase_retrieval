@@ -94,14 +94,48 @@ class IR_Field():
         self.Et = self.E0 * np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2) * np.cos(2 * np.pi * self.f0 * self.tmat)
 
 
-xuv = XUV_Field(N=128)
-ir = IR_Field(N=128)
+xuv = XUV_Field(N=8)
+ir = IR_Field(N=8)
 
 
-# construct energy axis
-e_vec = (2 * xuv.en0)/xuv.N * np.arange(0, xuv.N, 1)
 
-
+# set up the IR delay axis
 taumat = ir.tmat
-fmat = ir.fmat
+fmat = np.roll(ir.fmat, int(len(ir.fmat)/2))
+dtau = ir.dt
+
+
+# set up the XUV time axis
+nt = len(xuv.tmat)
+tmat = xuv.tmat
+dt = xuv.dt
+
+# construct the XUV spectral axis
+enmat = (2 * xuv.en0)/nt * np.arange(0, xuv.N, 1)
+
+
+# compute the IR fields vector potential
+At = dtau * np.cumsum(ir.Et)
+
+# Compute the integral of the driving IR field vector potential
+Bt = dtau * np.cumsum(At)
+
+# compute the phase gate
+Ct = -Bt[-1] + np.real(np.fft.ifft(np.fft.fft(Bt) * np.exp(-2j * np.pi * fmat * tmat)))
+
+# compute the electron field
+xuv.Et = np.array([1, 2, 3,4 ,5, 6, 7, 8])
+Etx = np.array(xuv.Et).reshape(1, -1) * np.ones((nt, nt))
+
+print(np.shape(Etx))
+print(Etx)
+
+
+
+
+
+
+
+
+
 
