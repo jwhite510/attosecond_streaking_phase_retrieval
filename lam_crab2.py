@@ -94,8 +94,18 @@ class IR_Field():
         self.Et = self.E0 * np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2) * np.cos(2 * np.pi * self.f0 * self.tmat)
 
 
+class Med():
+
+    def __init__(self):
+
+        self.Ip = 24.587 * sc.electron_volt
+        self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]
+
+
+
 xuv = XUV_Field(N=2**9)
 ir = IR_Field(N=256)
+med = Med()
 
 
 # set up the IR delay axis
@@ -110,7 +120,7 @@ tmat = xuv.tmat
 dt = xuv.dt
 
 # construct the XUV spectral axis
-enmat = (2 * xuv.en0)/nt * np.arange(0, xuv.N, 1)
+enmat = (2 * xuv.en0)/nt * np.arange(0, xuv.N, 1).reshape(1, 1, -1)
 
 # compute the IR fields vector potential
 At = -dtau * np.cumsum(ir.Et)
@@ -123,22 +133,14 @@ Bt = dtau * np.cumsum(At)
 thing = np.exp(-2j * np.pi * np.transpose(np.outer(tmat, fmat)))
 Ct = -Bt[-1] + np.transpose(np.real(np.fft.ifft(np.fft.fft(Bt, axis=0).reshape(-1, 1) * thing, axis=0)))
 
+# compute the electron field
+Etx = xuv.Et.reshape(-1, 1)
+thing2 = (enmat + med.Ip) * tmat.reshape(-1, 1, 1)
+## .................
 
-# plt.pcolormesh(np.real(Ct))
-# plt.show()
+print(np.shape(thing2))
 
-# print(np.outer(tmat, fmat))
 
-# fmat = np.array([1, 2, 3, 4])
-# tmat = np.array([1, 2, 3, 4, 5, 6, 7, 8])
-
-# print(np.shape(fmat))
-# print(np.shape(tmat))
-
-# thing = np.transpose(np.outer(tmat, fmat))
-
-# print(np.shape(thing))
-# print(thing)
 
 
 
