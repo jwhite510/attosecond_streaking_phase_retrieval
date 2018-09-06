@@ -62,10 +62,10 @@ class IR_Field():
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 12 * fs # pulse duration
         self.ncyc = self.t0/self.T0
-        self.I0 = 2e12 * W/cm**2
+        self.I0 = 1e13 * W/cm**2
 
         # compute ponderomotive energy
-        self.Up = (np.e**2 * self.I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * self.f0)**2)
+        self.Up = (sc.elementary_charge**2 * self.I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * self.f0)**2)
 
         # discretize time matrix
         self.tmax = 8 * self.t0
@@ -94,9 +94,8 @@ class IR_Field():
         self.Et = self.E0 * np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2) * np.cos(2 * np.pi * self.f0 * self.tmat)
 
 
-xuv = XUV_Field(N=8)
-ir = IR_Field(N=8)
-
+xuv = XUV_Field(N=2**9)
+ir = IR_Field(N=256)
 
 
 # set up the IR delay axis
@@ -113,18 +112,45 @@ dt = xuv.dt
 # construct the XUV spectral axis
 enmat = (2 * xuv.en0)/nt * np.arange(0, xuv.N, 1)
 
-
 # compute the IR fields vector potential
-At = dtau * np.cumsum(ir.Et)
+At = -dtau * np.cumsum(ir.Et)
 
 # Compute the integral of the driving IR field vector potential
 Bt = dtau * np.cumsum(At)
 
+
 # compute the phase gate
-Ct = -Bt[-1] + np.real(np.fft.ifft(np.fft.fft(Bt) * np.exp(-2j * np.pi * fmat * tmat)))
+thing = np.exp(-2j * np.pi * np.transpose(np.outer(tmat, fmat)))
+Ct = -Bt[-1] + np.transpose(np.real(np.fft.ifft(np.fft.fft(Bt, axis=0).reshape(-1, 1) * thing, axis=0)))
+
+
+# plt.pcolormesh(np.real(Ct))
+# plt.show()
+
+# print(np.outer(tmat, fmat))
+
+# fmat = np.array([1, 2, 3, 4])
+# tmat = np.array([1, 2, 3, 4, 5, 6, 7, 8])
+
+# print(np.shape(fmat))
+# print(np.shape(tmat))
+
+# thing = np.transpose(np.outer(tmat, fmat))
+
+# print(np.shape(thing))
+# print(thing)
+
+
+
+exit(0)
+
+
+
+
+
 
 # compute the electron field
-xuv.Et = np.array([1, 2, 3,4 ,5, 6, 7, 8])
+xuv.Et = np.array([1, 2, 3, 4 ,5, 6, 7, 8])
 Etx = np.array(xuv.Et).reshape(1, -1) * np.ones((nt, nt))
 
 print(np.shape(Etx))
