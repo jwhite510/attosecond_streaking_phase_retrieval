@@ -24,7 +24,7 @@ class XUV_Field():
         self.gdd = 1000 * atts**2 # gdd
 
         #discretize
-        self.tmax = 30 * self.t0
+        self.tmax = 25 * self.t0
         self.dt = self.tmax / N
         self.tmat = self.dt * np.arange(-N/2, N/2, 1)
 
@@ -49,7 +49,9 @@ class XUV_Field():
         self.Et = np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2 ) * np.exp(2j * np.pi * self.f0 * self.tmat)
 
         # add GDD to streaking XUV field
-        self.Et = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et))) * (np.exp(0.5j * self.gdd * (2 * np.pi)**2) * self.fmat))))
+        Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
+        Ef_prop = Ef * np.exp(0.5j * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
+        self.Et = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_prop)))
 
 
 class IR_Field():
@@ -128,18 +130,17 @@ At = -dtau * np.cumsum(ir.Et)
 # Compute the integral of the driving IR field vector potential
 Bt = dtau * np.cumsum(At)
 
-
 # compute the phase gate
 thing = np.exp(-2j * np.pi * np.transpose(np.outer(tmat, fmat)))
 Ct = -Bt[-1] + np.transpose(np.real(np.fft.ifft(np.fft.fft(Bt, axis=0).reshape(-1, 1) * thing, axis=0)))
 
 # compute the electron field
-Etx = xuv.Et.reshape(-1, 1)
+Etx = xuv.Et.reshape(-1, 1, 1)
 thing2 = (enmat + med.Ip) * tmat.reshape(-1, 1, 1)
-## .................
+Dt = Etx * np.exp(-1j * thing2)
 
-print(np.shape(thing2))
-
+# streaking trace
+intg = np.exp(1j * np.sqrt())
 
 
 
