@@ -21,7 +21,8 @@ class XUV_Field():
         self.f0 = self.en0/sc.h # carrier frequency
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 2 * sc.h * np.log(2) / (np.pi * self.den0) # pulse duration
-        self.gdd = 1000 * atts**2 # gdd
+        self.gdd = 0 * atts**2 # gdd
+        self.gdd_si = self.gdd / atts**2
 
         #discretize
         self.tmax = 25 * self.t0
@@ -140,25 +141,18 @@ thing2 = (enmat + med.Ip) * tmat.reshape(-1, 1, 1)
 Dt = Etx * np.exp(-1j * thing2)
 
 # streaking trace
-intg = np.exp(1j * np.sqrt())
+intg = np.exp(1j * np.sqrt(2 * enmat) * np.expand_dims(Ct, axis=2)) * Dt
+
+St = np.transpose(dt * np.sum(intg, axis=0))
 
 
 
+fig, ax = plt.subplots(1, 1, figsize=(13, 5))
+ax.pcolormesh(np.abs(St)**2)
+ax.text(0.1, 0.8, 'gdd: {} $as^2$'.format(str(xuv.gdd_si)), transform=ax.transAxes, backgroundcolor='white')
 
-exit(0)
-
-
-
-
-
-
-# compute the electron field
-xuv.Et = np.array([1, 2, 3, 4 ,5, 6, 7, 8])
-Etx = np.array(xuv.Et).reshape(1, -1) * np.ones((nt, nt))
-
-print(np.shape(Etx))
-print(Etx)
-
+plt.savefig('./streakingtrace{}'.format(str(int(xuv.gdd_si))))
+plt.show()
 
 
 
