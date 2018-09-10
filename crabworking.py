@@ -21,8 +21,10 @@ class XUV_Field():
         self.f0 = self.en0/sc.h # carrier frequency
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 2 * sc.h * np.log(2) / (np.pi * self.den0) # pulse duration
-        self.gdd = 50 * atts**2 # gdd
+        self.gdd = 1000 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
+        self.tod = 0 * atts**3 # TOD
+        self.tod_si = self.tod / atts**3
 
         #discretize
         self.tmax = 25 * self.t0
@@ -51,7 +53,21 @@ class XUV_Field():
 
         # add GDD to streaking XUV field
         Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
-        Ef_prop = Ef * np.exp(0.5j * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
+        Ef_prop = Ef * np.exp(1j * 0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
+        plt.figure(98)
+        plt.plot(0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
+
+        # add TOD to streaking XUV field
+        plt.figure(99)
+        plt.plot(0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
+        plt.figure(100)
+        plt.plot(np.real(Ef_prop), color='blue')
+        plt.plot(np.imag(Ef_prop), color='red')
+        Ef_prop = Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
+        plt.figure(101)
+        plt.plot(np.real(Ef_prop), color='blue')
+        plt.plot(np.imag(Ef_prop), color='red')
+
         self.Et = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_prop)))
 
 
@@ -106,7 +122,7 @@ class Med():
 
 
 
-xuv = XUV_Field(N=2**9)
+xuv = XUV_Field(N=256)
 ir = IR_Field(N=256)
 med = Med()
 
@@ -159,8 +175,19 @@ product = Exuv * ftexp * phi_g
 
 integral = np.sum(product, axis=0)
 
+fig, ax = plt.subplots(2, 2, figsize=(13, 9))
+ax[0][0].plot(ir.tmat, ir.Et, color='red')
+ax[0][1].plot(xuv.tmat, np.real(xuv.Et), color='orange')
 
-plt.pcolormesh(np.transpose(np.abs(integral)**2))
+ax[1][0].plot(ir.tmat, ir.Et, color='red')
+ax[1][0].plot(xuv.tmat, np.real(xuv.Et), color='orange')
+
+ax[1][1].text(0.05, 0.9, 'GDD: {} $as^2$'.format(xuv.gdd_si), transform=ax[1][1].transAxes,
+              backgroundcolor='white')
+ax[1][1].text(0.05, 0.8, 'TOD: {} $as^3$'.format(xuv.tod_si), transform=ax[1][1].transAxes,
+              backgroundcolor='white')
+
+ax[1][1].pcolormesh(ir.tmat, np.squeeze(enmat), np.transpose(np.abs(integral)**2))
 plt.show()
 
 
