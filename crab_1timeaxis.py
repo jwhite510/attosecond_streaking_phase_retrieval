@@ -179,21 +179,6 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    exit(0)
-
 N = 2**13
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
