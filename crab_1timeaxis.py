@@ -155,6 +155,22 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
     # combine terms
     product = xuv_time_shifted * p_A_int_mat * e_fft
 
+    ## plotting for visualizing matrixes
+
+    # plt.figure(1)
+    # plt.pcolormesh(np.real(xuv_time_shifted[0, :, :]))
+    #
+    # plt.figure(2)
+    # print(p_slice[0])
+    # plt.pcolormesh(np.real(p_A_int_mat[20, :, :]))
+    #
+    # plt.figure(3)
+    # plt.pcolormesh(np.real(e_fft[:, 0, :]))
+    #
+    #
+    # plt.ioff()
+    # plt.show()
+
     # integrate
     integral = product.sum(axis=2)
 
@@ -178,7 +194,7 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
     exit(0)
 
-N = 2**15
+N = 2**13
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
 med = Med()
@@ -215,7 +231,7 @@ A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t)))
 items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip}
 
 
-split = 512
+split = 64
 image = np.zeros((split, split))
 
 tauspan = int(len(tvec)/split)
@@ -244,11 +260,13 @@ for p_index in range(split):
                   time=tvec, frequency_whole=fvec, items=items)
 
         point = np.average(integral)
+        print('coords: ({},{}) pixel value: {}'.format(p_index, tau_index, point))
 
         image[p_index, tau_index] = point
-
-        print('finished')
-        plt.pcolormesh(image)
+        # print(image)
+        # print('finished')
+        plt.pcolormesh(image, vmin=np.min(image), vmax=np.max(image))
+        plt.show()
         plt.pause(0.001)
 
 
