@@ -178,18 +178,6 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
     exit(0)
 
-
-
-
-
-
-
-
-
-
-
-
-
 N = 2**15
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
@@ -227,31 +215,42 @@ A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t)))
 items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip}
 
 
-print(np.shape(tauvec))
-print(np.shape(p_vec))
-print(len(tauvec)/512)
-print(len(p_vec)/512)
-
-
 split = 512
-image = np.zeros((512, 512))
+image = np.zeros((split, split))
 
-# index_im = (0, 0)
-# index_alg = (0:32, 0:64)
-
-# index_im = (0, 1)
-# index_alg = (0:32, 65:128)
+tauspan = int(len(tvec)/split)
+pspan = int(len(p_vec)/split)
 
 
-
-integral = calculate(tau_slice=tauvec[0:64], p_slice=p_vec[0:32],
-          time=tvec, frequency_whole=fvec, items=items)
-
-point = np.average(integral)
+print('tauspan: ', tauspan)
+print('pspan: ', pspan)
 
 
+p_index = 0
+tau_index = 0
+
+plt.ion()
+for p_index in range(split):
+    for tau_index in range(split):
+
+        taumin_index = tauspan * tau_index
+        taumax_index = tauspan * (tau_index+1) - 1
+
+        pmin_index = pspan * p_index
+        pmax_index = pspan * (p_index+1) - 1
+
+        integral = calculate(tau_slice=tauvec[taumin_index:taumax_index],
+                             p_slice=p_vec[pmin_index:pmax_index],
+                  time=tvec, frequency_whole=fvec, items=items)
+
+        point = np.average(integral)
+
+        image[p_index, tau_index] = point
+
+        print('finished')
+        plt.pcolormesh(image)
+        plt.pause(0.001)
+
+
+plt.ioff()
 plt.show()
-
-
-
-exit(0)
