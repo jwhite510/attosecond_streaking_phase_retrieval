@@ -22,7 +22,7 @@ class XUV_Field():
         self.f0 = 80e15
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 20e-18 # pulse duration
-        self.gdd = 0 * atts**2 # gdd
+        self.gdd = 500 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
         self.tod = 0 * atts**3 # TOD
         self.tod_si = self.tod / atts**3
@@ -186,23 +186,25 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
 
 # N = 2**13
-N = 2**13
+N = 2**15
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
 med = Med()
 
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(xuv.tmat, np.real(xuv.Et), color='blue')
-# axtwin = ax.twinx()
-# axtwin.plot(ir.tmat, ir.Et, color='orange')
-#
-#
-# fig2, ax2 = plt.subplots(1, 1)
-# ax2.plot(xuv.tmat, np.real(xuv.Et), color='blue')
-# axtwin = ax2.twinx()
-# axtwin.plot(ir.tmat, ir.Et, color='orange')
-# ax2.set_xlim(-8, 8)
+fig, ax = plt.subplots(1, 1)
+ax.plot(xuv.tmat, np.real(xuv.Et), color='blue')
+axtwin = ax.twinx()
+axtwin.plot(ir.tmat, ir.Et, color='orange')
+
+
+fig2, ax2 = plt.subplots(1, 1)
+ax2.plot(xuv.tmat, np.real(xuv.Et), color='blue')
+axtwin = ax2.twinx()
+axtwin.plot(ir.tmat, ir.Et, color='orange')
+ax2.set_xlim(-8, 8)
+
+# plt.show()
 
 # construct delay axis
 N = ir.N
@@ -242,7 +244,7 @@ plt.ion()
 # print(np.shape(image))
 
 
-calc_step_size = 150
+calc_step_size = 50
 
 tauvec_index_min = 0
 tauvec_index_max = calc_step_size
@@ -270,6 +272,7 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
 
         image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
 
+        plt.figure(993)
         plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
                        vmax=np.max(image[:, 10:-10]))
 
