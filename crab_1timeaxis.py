@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as sc
 import pickle
+import time
+
 
 
 # SI units for defining parameters
@@ -22,7 +24,7 @@ class XUV_Field():
         self.f0 = 80e15
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 20e-18 # pulse duration
-        self.gdd = 500 * atts**2 # gdd
+        self.gdd = 0 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
         self.tod = 0 * atts**3 # TOD
         self.tod_si = self.tod / atts**3
@@ -215,7 +217,7 @@ fvec = df * np.arange(-N/2, N/2, 1)
 
 
 # frequency and time vectors
-frequency_positive = 15 * fvec[int(len(fvec)/2):]
+frequency_positive = 7 * fvec[int(len(fvec)/2):]
 
 p_vec = np.sqrt(2 * frequency_positive)
 
@@ -267,6 +269,9 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         # print('tau values: ', tauvec[tauvec_index_min:tauvec_index_max])
         # print('p_vec values: ', p_vec[p_vec_index_min:p_vec_index_max])
         # print('------')
+
+
+        timestart = time.time()
         integral = calculate(tau_slice=tauvec[tauvec_index_min:tauvec_index_max],
                              p_slice=p_vec[p_vec_index_min:p_vec_index_max],
                              time=tvec, frequency_whole=fvec, items=items)
@@ -276,10 +281,20 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
 
         plt.figure(993)
+        plt.clf()
         plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
                        vmax=np.max(image[:, 10:-10]))
 
         plt.pause(0.001)
+
+        timefinish = time.time()
+
+        print('elapsed time: ', (timefinish - timestart))
+
+
+
+
+
         # exit(0)
 
         p_vec_index_min += int(calc_step_size/2)
