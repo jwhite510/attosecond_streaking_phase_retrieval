@@ -186,7 +186,7 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
 
 # N = 2**13
-N = 2**15
+N = 2**14
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
 med = Med()
@@ -244,10 +244,13 @@ plt.ion()
 # print(np.shape(image))
 
 
-calc_step_size = 50
+calc_step_size = 60
 
 tauvec_index_min = 0
 tauvec_index_max = calc_step_size
+
+totalintegrations = len(tauvec) * len(p_vec)
+integration_number = 1
 
 while tauvec_index_max < (len(tauvec) + calc_step_size):
 
@@ -264,12 +267,12 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         # print('tau values: ', tauvec[tauvec_index_min:tauvec_index_max])
         # print('p_vec values: ', p_vec[p_vec_index_min:p_vec_index_max])
         # print('------')
-        print('integrating')
         integral = calculate(tau_slice=tauvec[tauvec_index_min:tauvec_index_max],
                              p_slice=p_vec[p_vec_index_min:p_vec_index_max],
                              time=tvec, frequency_whole=fvec, items=items)
 
-
+        print('integrating {}%'.format(integration_number / totalintegrations))
+        integration_number += 1
         image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
 
         plt.figure(993)
