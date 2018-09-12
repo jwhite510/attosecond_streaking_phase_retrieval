@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as sc
+import pickle
 
 
 # SI units for defining parameters
@@ -100,13 +101,18 @@ class IR_Field():
         # convert units to AU
         self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
         self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
+        self.df = self.df * sc.physical_constants['atomic unit of time'][0]
+
         self.T0 = self.T0 / sc.physical_constants['atomic unit of time'][0]
         self.Up = self.Up / sc.physical_constants['atomic unit of energy'][0]
         self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
         self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
         self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
+        print('self.fmat: ', self.fmat)
         self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
 
+
+        print('df1', self.df)
         # calculate driving amplitude in AU
         self.E0 = np.sqrt(4 * self.Up * (2 * np.pi * self.f0)**2)
 
@@ -179,6 +185,7 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
 
 
+# N = 2**13
 N = 2**13
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
@@ -200,11 +207,14 @@ med = Med()
 # construct delay axis
 N = ir.N
 df = 1 / (ir.dt * N)
+
 dt = ir.dt
 fvec = df * np.arange(-N/2, N/2, 1)
 
+
 # frequency and time vectors
-frequency_positive = fvec[int(len(fvec)/2):]
+frequency_positive = 15 * fvec[int(len(fvec)/2):]
+
 p_vec = np.sqrt(2 * frequency_positive)
 
 tvec =  ir.tmat
@@ -216,44 +226,80 @@ A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t)))
 items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip}
 
 
-split = 64
-image = np.zeros((split, split))
+# # skip over some indexes to reduce tau and momentum values
+# print(np.shape(tauvec))
+# print(np.shape(p_vec))
 
-tauspan = int(len(tvec)/split)
-pspan = int(len(p_vec)/split)
+skip = 15
+tauvec = tauvec[::skip]
+p_vec = p_vec[::skip]
 
+# print(np.shape(tauvec))
+# print(np.shape(p_vec))
 
-print('tauspan: ', tauspan)
-print('pspan: ', pspan)
-
-
-p_index = 0
-tau_index = 0
-
+image = np.zeros((len(p_vec),len(tauvec)))
 plt.ion()
-for p_index in range(split):
-    for tau_index in range(split):
+# print(np.shape(image))
 
-        taumin_index = tauspan * tau_index
-        taumax_index = tauspan * (tau_index+1) - 1
 
-        pmin_index = pspan * p_index
-        pmax_index = pspan * (p_index+1) - 1
+calc_step_size = 150
 
-        integral = calculate(tau_slice=tauvec[taumin_index:taumax_index],
-                             p_slice=p_vec[pmin_index:pmax_index],
-                  time=tvec, frequency_whole=fvec, items=items)
+tauvec_index_min = 0
+tauvec_index_max = calc_step_size
 
-        point = np.average(integral)
-        print('coords: ({},{}) pixel value: {}'.format(p_index, tau_index, point))
+while tauvec_index_max < (len(tauvec) + calc_step_size):
 
-        image[p_index, tau_index] = point
-        # print(image)
-        # print('finished')
-        plt.pcolormesh(image, vmin=np.min(image), vmax=np.max(image))
-        plt.show()
+    # print('min: ', tauvec_index_min)
+    # print('max: ', tauvec_index_max)
+    # print('------')
+    # calculate for each momentum step
+    p_vec_index_min = 0
+    p_vec_index_max = int(calc_step_size/2)
+
+    while p_vec_index_max < (len(p_vec) + calc_step_size/2):
+        # print('min: ', p_vec_index_min)
+        # print('max: ', p_vec_index_max)
+        # print('tau values: ', tauvec[tauvec_index_min:tauvec_index_max])
+        # print('p_vec values: ', p_vec[p_vec_index_min:p_vec_index_max])
+        # print('------')
+        print('integrating')
+        integral = calculate(tau_slice=tauvec[tauvec_index_min:tauvec_index_max],
+                             p_slice=p_vec[p_vec_index_min:p_vec_index_max],
+                             time=tvec, frequency_whole=fvec, items=items)
+
+
+        image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
+
+        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
+                       vmax=np.max(image[:, 10:-10]))
+
         plt.pause(0.001)
+        # exit(0)
+
+        p_vec_index_min += int(calc_step_size/2)
+        p_vec_index_max += int(calc_step_size/2)
+
+
+    tauvec_index_min += calc_step_size
+    tauvec_index_max += calc_step_size
+
+
 
 
 plt.ioff()
+plt.figure(3)
+plt.pcolormesh(image)
 plt.show()
+with open('image.pickle', 'wb') as file:
+    pickle.dump(image, file)
+    print('pickled')
+
+
+
+
+
+
+
+
+
+
