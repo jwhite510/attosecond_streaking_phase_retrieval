@@ -26,7 +26,7 @@ class XUV_Field():
         self.t0 = 20e-18 # pulse duration
         self.gdd = 0 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
-        self.tod = 0 * atts**3 # TOD
+        self.tod = 2000 * atts**3 # TOD
         self.tod_si = self.tod / atts**3
 
         #discretize
@@ -280,12 +280,7 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         integration_number += 1
         image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
 
-        plt.figure(993)
-        plt.clf()
-        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
-                       vmax=np.max(image[:, 10:-10]))
 
-        plt.pause(0.001)
 
         timefinish = time.time()
 
@@ -299,6 +294,14 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
 
         p_vec_index_min += int(calc_step_size/2)
         p_vec_index_max += int(calc_step_size/2)
+
+    plt.figure(993)
+    plt.clf()
+    plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
+                   vmax=np.max(image[:, 10:-10]))
+
+    plt.pause(0.001)
+
 
 
     tauvec_index_min += calc_step_size
