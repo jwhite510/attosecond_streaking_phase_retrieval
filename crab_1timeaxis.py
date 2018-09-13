@@ -283,18 +283,17 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         integration_number += 1
         image[p_vec_index_min:p_vec_index_max, tauvec_index_min:tauvec_index_max] = integral
 
-
+        plt.figure(993)
+        plt.clf()
+        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
+                       vmax=np.max(image[:, 10:-10]))
+        plt.pause(0.001)
 
         timefinish = time.time()
 
         print('elapsed time: ', (timefinish - timestart))
 
-        plt.figure(993)
-        plt.clf()
-        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
-                       vmax=np.max(image[:, 10:-10]))
 
-        plt.pause(0.001)
 
 
 
