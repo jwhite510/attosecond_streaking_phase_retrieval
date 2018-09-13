@@ -188,7 +188,7 @@ def calculate(tau_slice, p_slice, time, frequency_whole, items):
 
 
 # N = 2**13
-N = 2**14
+N = 2**16
 xuv = XUV_Field(N=N, tmax=60e-15)
 ir = IR_Field(N=N, tmax=60e-15)
 med = Med()
@@ -204,7 +204,7 @@ fig2, ax2 = plt.subplots(1, 1)
 ax2.plot(xuv.tmat, np.real(xuv.Et), color='blue')
 axtwin = ax2.twinx()
 axtwin.plot(ir.tmat, ir.Et, color='orange')
-ax2.set_xlim(-8, 8)
+ax2.set_xlim(-10, 10)
 
 # plt.show()
 
@@ -217,7 +217,7 @@ fvec = df * np.arange(-N/2, N/2, 1)
 
 
 # frequency and time vectors
-frequency_positive = 7 * fvec[int(len(fvec)/2):]
+frequency_positive = 2 * fvec[int(len(fvec)/2):]
 
 p_vec = np.sqrt(2 * frequency_positive)
 
@@ -226,7 +226,7 @@ tauvec = tvec[:]
 
 # calculate At
 A_t = -1 * dt * np.cumsum(ir.Et)
-A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t)))
+A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t, axis=0)), axis=0)
 items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip}
 
 
@@ -234,19 +234,22 @@ items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip}
 # print(np.shape(tauvec))
 # print(np.shape(p_vec))
 
-skip = 15
+skip = 120
 tauvec = tauvec[::skip]
 p_vec = p_vec[::skip]
 
-# print(np.shape(tauvec))
-# print(np.shape(p_vec))
+print(np.shape(tauvec))
+print(np.shape(p_vec))
 
 image = np.zeros((len(p_vec),len(tauvec)))
+
+print('image shape: ', np.shape(image))
+
 plt.ion()
-# print(np.shape(image))
 
 
-calc_step_size = 60
+
+calc_step_size = 40
 
 tauvec_index_min = 0
 tauvec_index_max = calc_step_size
@@ -286,7 +289,12 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
 
         print('elapsed time: ', (timefinish - timestart))
 
+        plt.figure(993)
+        plt.clf()
+        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
+                       vmax=np.max(image[:, 10:-10]))
 
+        plt.pause(0.001)
 
 
 
@@ -295,12 +303,7 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
         p_vec_index_min += int(calc_step_size/2)
         p_vec_index_max += int(calc_step_size/2)
 
-    plt.figure(993)
-    plt.clf()
-    plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
-                   vmax=np.max(image[:, 10:-10]))
 
-    plt.pause(0.001)
 
 
 
@@ -313,10 +316,31 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
 plt.ioff()
 plt.figure(3)
 plt.pcolormesh(image)
-plt.show()
-with open('image.pickle', 'wb') as file:
+
+fig, ax = plt.subplots(2, 2, figsize=(10, 7))
+ax[1][1].pcolormesh(image, cmap='jet')
+
+ax[1][0].plot(xuv.tmat, np.real(xuv.Et), color='blue')
+ax[1][0].plot(ir.tmat, ir.Et, color='orange')
+
+ax[0][1].plot(xuv.tmat, np.real(xuv.Et), color='blue')
+ax[0][1].set_xlim(-10, 10)
+ax[0][1].text(0.05, 0.9, 'GDD: {} '.format(xuv.gdd_si)+'$atts^2$' , transform=ax[0][1].transAxes)
+ax[0][1].text(0.05, 0.8, 'TOD: {} '.format(xuv.tod_si)+'$atts^3$' , transform=ax[0][1].transAxes)
+
+ax[0][0].plot(ir.tmat, ir.Et, color='orange')
+
+plt.savefig('tod{}gdd{}.png'.format(xuv.tod_si, xuv.gdd_si))
+
+with open('tod{}gdd{}.pickle'.format(xuv.tod_si, xuv.gdd_si), 'wb') as file:
     pickle.dump(image, file)
     print('pickled')
+
+
+
+
+plt.show()
+
 
 
 
