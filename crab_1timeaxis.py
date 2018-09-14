@@ -26,7 +26,7 @@ class XUV_Field():
         self.t0 = 20e-18 # pulse duration
         self.gdd = 0 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
-        self.tod = 2000 * atts**3 # TOD
+        self.tod = -2000 * atts**3 # TOD
         self.tod_si = self.tod / atts**3
 
         #discretize
@@ -217,7 +217,8 @@ fvec = df * np.arange(-N/2, N/2, 1)
 
 
 # frequency and time vectors
-frequency_positive = 2 * fvec[int(len(fvec)/2):]
+f_scale = 2
+frequency_positive = f_scale * fvec[int(len(fvec)/2):]
 
 p_vec = np.sqrt(2 * frequency_positive)
 
@@ -285,8 +286,8 @@ while tauvec_index_max < (len(tauvec) + calc_step_size):
 
         plt.figure(993)
         plt.clf()
-        plt.pcolormesh(image[:, 10:-10], vmin=np.min(image[:, 10:-10]),
-                       vmax=np.max(image[:, 10:-10]))
+        plt.pcolormesh(tauvec, p_vec, image, vmin=np.min(image),
+                       vmax=np.max(image))
         plt.pause(0.001)
 
         timefinish = time.time()
@@ -317,7 +318,7 @@ plt.figure(3)
 plt.pcolormesh(image)
 
 fig, ax = plt.subplots(2, 2, figsize=(10, 7))
-ax[1][1].pcolormesh(image, cmap='jet')
+ax[1][1].pcolormesh(tauvec, p_vec, image, cmap='jet')
 
 ax[1][0].plot(xuv.tmat, np.real(xuv.Et), color='blue')
 ax[1][0].plot(ir.tmat, ir.Et, color='orange')
@@ -329,9 +330,9 @@ ax[0][1].text(0.05, 0.8, 'TOD: {} '.format(xuv.tod_si)+'$atts^3$' , transform=ax
 
 ax[0][0].plot(ir.tmat, ir.Et, color='orange')
 
-plt.savefig('tod{}gdd{}.png'.format(xuv.tod_si, xuv.gdd_si))
+plt.savefig('tod{}gdd{}fsc{}.png'.format(xuv.tod_si, xuv.gdd_si, f_scale))
 
-with open('tod{}gdd{}.pickle'.format(xuv.tod_si, xuv.gdd_si), 'wb') as file:
+with open('tod{}gdd{}fsc{}.pickle'.format(xuv.tod_si, xuv.gdd_si, f_scale), 'wb') as file:
     pickle.dump(image, file)
     print('pickled')
 
