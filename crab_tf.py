@@ -14,7 +14,7 @@ atts = 1e-18
 
 class XUV_Field():
 
-    def __init__(self, N, tmax):
+    def __init__(self, N, tmax, gdd, tod):
 
         # define parameters in SI units
         self.N = N
@@ -23,10 +23,13 @@ class XUV_Field():
         self.f0 = 80e15
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 20e-18 # pulse duration
-        self.gdd = -500 * atts**2 # gdd
+        self.gdd = gdd * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
-        self.tod = 0 * atts**3 # TOD
+        self.tod = tod * atts**3 # TOD
         self.tod_si = self.tod / atts**3
+
+        # number of central time steps to integrate
+        self.span = 256
 
         #discretize
         self.tmax = tmax
@@ -132,7 +135,7 @@ class Med():
 
 N = 2**16
 tmax = 60e-15
-xuv = XUV_Field(N=N, tmax=tmax)
+xuv = XUV_Field(N=N, tmax=tmax, gdd=-500, tod=0)
 ir = IR_Field(N=N, tmax=tmax)
 med = Med()
 
@@ -145,7 +148,7 @@ fvec = df * np.arange(-N/2, N/2, 1)
 
 
 # construct the delay vector and momentum vector for plotting
-span = 256
+span = xuv.span
 tvec =  ir.tmat
 p_vec = np.linspace(3, 6.5, 200)
 tauvec = np.arange(-22000, 22000, 250)
