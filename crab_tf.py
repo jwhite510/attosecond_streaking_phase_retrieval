@@ -208,7 +208,12 @@ with tf.Session() as sess:
 
     init.run()
 
+
+    time1 = time.time()
     strace = sess.run(image, feed_dict={xuv_input: xuv_integral_space.reshape(1, -1, 1)})
+    time2 = time.time()
+    duration = time2 - time1
+    print("duration: ", duration)
 
 
     fig, ax = plt.subplots(2, 2)
@@ -217,41 +222,4 @@ with tf.Session() as sess:
 
 
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
