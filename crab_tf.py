@@ -23,9 +23,9 @@ class XUV_Field():
         self.f0 = 80e15
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 20e-18 # pulse duration
-        self.gdd = 0 * atts**2 # gdd
+        self.gdd = -500 * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
-        self.tod = -2000 * atts**3 # TOD
+        self.tod = 0 * atts**3 # TOD
         self.tod_si = self.tod / atts**3
 
         #discretize
@@ -144,15 +144,10 @@ dt = ir.dt
 fvec = df * np.arange(-N/2, N/2, 1)
 
 
-# construct frequency vector for plotting
-f_scale = 2
-frequency_positive = f_scale * fvec[int(len(fvec)/2):]
-
 # construct the delay vector and momentum vector for plotting
 span = 256
 tvec =  ir.tmat
-
-p_vec = np.linspace(2, 7, 200)
+p_vec = np.linspace(3, 6.5, 200)
 tauvec = np.arange(-22000, 22000, 250)
 
 # calculate At
@@ -162,8 +157,7 @@ A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t, axis=0)), axis=0)
 # vectors used for calculation
 items = {'A_t_integ': A_t_integ, 'Exuv': xuv.Et, 'Ip': med.Ip, 't': tvec}
 
-
-
+# find the time/vectors at the various delay steps
 middle_index = int(len(xuv.Et) / 2)
 lower = middle_index-int(span/2)
 upper = middle_index+int(span/2)
@@ -173,11 +167,7 @@ A_integrals = np.array([np.take(items['A_t_integ'], indexes)])
 t_vals = np.array([np.take(items['t'], indexes)])
 
 xuv_integral_space = xuv.Et[lower:upper]
-
-
-# plt.figure(4)
-# plt.plot(np.real(xuv.Et[lower:upper]))
-# plt.show()
+xuv_int_t = xuv.tmat[lower:upper]
 
 
 p = p_vec.reshape(-1, 1, 1)
@@ -203,23 +193,41 @@ integral = tf.constant(dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
 image = tf.square(tf.abs(integral))
 
 
-init = tf.global_variables_initializer()
-with tf.Session() as sess:
 
-    init.run()
+if __name__ == '__main__':
 
+    plot = True
+    save = True
 
-    time1 = time.time()
-    strace = sess.run(image, feed_dict={xuv_input: xuv_integral_space.reshape(1, -1, 1)})
-    time2 = time.time()
-    duration = time2 - time1
-    print("duration: ", duration)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
 
+        init.run()
 
-    fig, ax = plt.subplots(2, 2)
-    ax[1][1].pcolormesh(strace, cmap='jet')
-    ax[0][0].plot(np.real(xuv_integral_space))
+        time1 = time.time()
+        strace = sess.run(image, feed_dict={xuv_input: xuv_integral_space.reshape(1, -1, 1)})
+        time2 = time.time()
+        duration = time2 - time1
+        print("duration: ", duration)
 
+        if plot:
+            fig, ax = plt.subplots(2, 2)
+            ax[1][1].pcolormesh(tauvec, p_vec, strace, cmap='jet')
+            ax[0][0].plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
+            ax[0][1].plot(ir.tmat, ir.Et, color='orange')
 
-plt.show()
+            ax[1][0].plot(ir.tmat, ir.Et, color='orange')
+            axtwin = ax[1][0].twinx()
+            axtwin.plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
+            if save:
+                plt.figure(10)
+                plt.pcolormesh(tauvec, p_vec, strace, cmap='jet')
+                plt.text(0.1, 0.92, 'GDD: {}'.format(xuv.gdd_si)+' $as^2$',
+                         transform=plt.gca().transAxes, backgroundcolor='white')
+                plt.text(0.1, 0.85, 'TOD: {}'.format(xuv.tod_si)+' $as^3$',
+                         transform=plt.gca().transAxes, backgroundcolor='white')
+                plt.savefig('./tracegdd{}tod{}.png'.format(int(xuv.gdd_si), int(xuv.tod_si)))
+
+            plt.show()
+
 
