@@ -149,14 +149,11 @@ f_scale = 2
 frequency_positive = f_scale * fvec[int(len(fvec)/2):]
 
 # construct the delay vector and momentum vector for plotting
-span = 300
-trim = 20
-skip = 120
-p_vec = np.sqrt(2 * frequency_positive)
+span = 256
 tvec =  ir.tmat
-tauvec = ir.tmat_indexes[int(trim*span):-int(trim*span)]
-tauvec = tauvec[::skip]
-p_vec = p_vec[::skip]
+
+p_vec = np.linspace(2, 7, 200)
+tauvec = np.arange(-22000, 22000, 250)
 
 # calculate At
 A_t = -1 * dt * np.cumsum(ir.Et)
@@ -175,9 +172,12 @@ indexes = indexes_zero_delay.reshape(-1, 1) + tauvec.reshape(1, -1)
 A_integrals = np.array([np.take(items['A_t_integ'], indexes)])
 t_vals = np.array([np.take(items['t'], indexes)])
 
-plt.figure(4)
-plt.plot(np.real(xuv.Et[lower:upper]))
-plt.show()
+xuv_integral_space = xuv.Et[lower:upper]
+
+
+# plt.figure(4)
+# plt.plot(np.real(xuv.Et[lower:upper]))
+# plt.show()
 
 
 p = p_vec.reshape(-1, 1, 1)
@@ -189,11 +189,10 @@ e_fft = np.exp(-1j * (K + items['Ip']) * t_vals)
 
 # convert values to tensorflow
 xuv_input = tf.placeholder(tf.complex64, [1, span, 1])
-
 p_A_int_mat_tf = tf.constant(p_A_int_mat, dtype=tf.complex64)
-
 e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
 
+# free memory
 del p_A_int_mat
 del e_fft
 
@@ -203,17 +202,21 @@ integral = tf.constant(dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
 
 image = tf.square(tf.abs(integral))
 
-init = tf.global_variables_initializer()
 
+init = tf.global_variables_initializer()
 with tf.Session() as sess:
 
     init.run()
 
-    strace = sess.run(image, feed_dict={xuv_input: xuv.Et[lower:upper].reshape(1, -1, 1)})
+    strace = sess.run(image, feed_dict={xuv_input: xuv_integral_space.reshape(1, -1, 1)})
 
-    plt.figure(1)
-    plt.pcolormesh(strace, cmap='jet')
-    plt.show()
+
+    fig, ax = plt.subplots(2, 2)
+    ax[1][1].pcolormesh(strace, cmap='jet')
+    ax[0][0].plot(np.real(xuv_integral_space))
+
+
+plt.show()
 
 
 
