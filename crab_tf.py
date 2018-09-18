@@ -29,7 +29,7 @@ class XUV_Field():
         self.tod_si = self.tod / atts**3
 
         # number of central time steps to integrate
-        self.span = 256
+        self.span = 512
 
         #discretize
         self.tmax = tmax
