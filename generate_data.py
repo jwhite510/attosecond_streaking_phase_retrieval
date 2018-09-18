@@ -1,6 +1,8 @@
 from crab_tf import *
 import tensorflow as tf
 from scipy.interpolate import interp1d
+import tables
+import time
 
 
 class XUV_Field_rand_phase(XUV_Field):
@@ -65,27 +67,83 @@ class XUV_Field_rand_phase(XUV_Field):
 xuv_test = XUV_Field(N=N, tmax=tmax, gdd=500, tod=0).Et[lower:upper]
 
 
+# create hdf5 file
+hdf5_file = tables.open_file('attstrace.hdf5', mode='w')
+frog_image_f = hdf5_file.create_earray(hdf5_file.root,
+                                       'trace', tables.Float16Atom(), shape=(0, len(p_vec) * len(tauvec)))
+E_real_f = hdf5_file.create_earray(hdf5_file.root,
+                                   'xuv_real', tables.Float16Atom(), shape=(0, len(xuv_test)))
+E_imag_f = hdf5_file.create_earray(hdf5_file.root,
+                                   'xuv_imag', tables.Float16Atom(), shape=(0, len(xuv_test)))
+hdf5_file.close()
 
+fig, ax = plt.subplots(2, 1)
+n_samples = 15
 plt.ion()
-
+plotting = True
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
 
     init.run()
 
-    xuv_rand = XUV_Field_rand_phase(phase_amplitude=3, phase_nodes=120, plot=False).Et_cropped_t_phase
-
-    strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
-
-    plt.figure(10)
-    plt.pcolormesh(tauvec, p_vec, strace, cmap='jet')
-
-    plt.figure(11)
-    plt.plot(np.real(xuv_rand), color='blue')
-    plt.plot(np.imag(xuv_rand), color='red')
-
-    plt.show()
 
 
+    # open the hdf5 file
+    hdf5_file = tables.open_file('attstrace.hdf5', mode='a')
+
+    for i in range(n_samples):
+
+        print('generating sample {} of {}'.format(i+1, n_samples))
+
+        # generate a random xuv pulse
+        xuv_rand = XUV_Field_rand_phase(phase_amplitude=3, phase_nodes=120, plot=False).Et_cropped_t_phase
+
+        # generate the FROG trace
+        time1 = time.time()
+        strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+        time2 = time.time()
+        duration = time2 - time1
+        print('duration: {} s'.format(round(duration, 4)))
+
+        # divide the xuv into real and imaginary
+        xuv_real = np.real(xuv_rand)
+        xuv_imag = np.imag(xuv_rand)
+
+        # append the hdf5 file
+        hdf5_file.root.xuv_real.append(xuv_real.reshape(1, -1))
+        hdf5_file.root.xuv_imag.append(xuv_imag.reshape(1, -1))
+        hdf5_file.root.trace.append(strace.reshape(1, -1))
+
+        if plotting:
+            plt.cla()
+            ax[0].pcolormesh(strace, cmap='jet')
+            ax[1].plot(np.abs(xuv_rand), color='black', linestyle='dashed', alpha=0.5)
+            ax[1].plot(xuv_real, color='blue')
+            ax[1].plot(xuv_imag, color='red')
+            plt.pause(0.001)
+
+
+    hdf5_file.close()
+
+
+# test open the file
+hdf5_file = tables.open_file('attstrace.hdf5', mode='r')
+
+index = 0
+
+xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
+
+
+plt.ioff()
+plt.cla()
+ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
+ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
+ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+ax[1].plot(np.real(xuv), color='blue')
+ax[1].plot(np.imag(xuv), color='red')
+
+hdf5_file.close()
+
+plt.show()
 
 
