@@ -78,7 +78,7 @@ E_imag_f = hdf5_file.create_earray(hdf5_file.root,
 hdf5_file.close()
 
 fig, ax = plt.subplots(2, 1)
-n_samples = 15
+n_samples = 1000
 plt.ion()
 plotting = True
 init = tf.global_variables_initializer()
@@ -86,24 +86,36 @@ with tf.Session() as sess:
 
     init.run()
 
-
-
     # open the hdf5 file
     hdf5_file = tables.open_file('attstrace.hdf5', mode='a')
 
     for i in range(n_samples):
 
-        print('generating sample {} of {}'.format(i+1, n_samples))
-
         # generate a random xuv pulse
         xuv_rand = XUV_Field_rand_phase(phase_amplitude=3, phase_nodes=120, plot=False).Et_cropped_t_phase
 
-        # generate the FROG trace
-        time1 = time.time()
-        strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
-        time2 = time.time()
-        duration = time2 - time1
-        print('duration: {} s'.format(round(duration, 4)))
+        if i % 10 == 0:
+            print('generating sample {} of {}'.format(i + 1, n_samples))
+            # generate the FROG trace
+            time1 = time.time()
+            strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+            time2 = time.time()
+            duration = time2 - time1
+            print('duration: {} s'.format(round(duration, 4)))
+
+            if plotting:
+                plt.cla()
+                ax[0].pcolormesh(strace, cmap='jet')
+                ax[1].plot(np.abs(xuv_rand), color='black', linestyle='dashed', alpha=0.5)
+                ax[1].plot(np.real(xuv_rand), color='blue')
+                ax[1].plot(np.imag(xuv_rand), color='red')
+                plt.pause(0.001)
+
+        else:
+            strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+
+
+
 
         # divide the xuv into real and imaginary
         xuv_real = np.real(xuv_rand)
@@ -114,13 +126,7 @@ with tf.Session() as sess:
         hdf5_file.root.xuv_imag.append(xuv_imag.reshape(1, -1))
         hdf5_file.root.trace.append(strace.reshape(1, -1))
 
-        if plotting:
-            plt.cla()
-            ax[0].pcolormesh(strace, cmap='jet')
-            ax[1].plot(np.abs(xuv_rand), color='black', linestyle='dashed', alpha=0.5)
-            ax[1].plot(xuv_real, color='blue')
-            ax[1].plot(xuv_imag, color='red')
-            plt.pause(0.001)
+
 
 
     hdf5_file.close()
