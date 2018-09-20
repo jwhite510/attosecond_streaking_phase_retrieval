@@ -48,12 +48,36 @@ print(f0_ir)
 # construct filter
 f_center = f0_ir
 width = 0.001
-filter = np.exp(-(tauvec_f_space - f_center)**2 / width**2).reshape(1, -1)*np.real(np.ones_like(traceft))
-filter += np.exp(-(tauvec_f_space + f_center)**2 / width**2).reshape(1, -1)*np.real(np.ones_like(traceft))
 
-trace_filtered = filter * traceft
+#find index of positive frequency
+filter_type = 'rect'
+
+if filter_type == 'rect':
+    width = 2
+    filter = np.zeros_like(tauvec_f_space)
+    f_pos_index = np.argmin(np.abs(tauvec_f_space - f0_ir))
+    f_neg_index = np.argmin(np.abs(tauvec_f_space + f0_ir))
+    filter[f_pos_index-width:f_pos_index+width] = 1
+    filter[f_neg_index-width:f_neg_index+width] = 1
+
+elif filter_type =='gaussian':
+
+    filter = np.exp(-(tauvec_f_space - f_center)**2 / width**2)
+    filter += np.exp(-(tauvec_f_space + f_center)**2 / width**2)
+
+
+filter2d = filter.reshape(1, -1) * np.real(np.ones_like(traceft))
+trace_filtered = filter2d * traceft
 
 trace_filtered_time = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(trace_filtered, axes=1), axis=1), axes=1)
+
+
+# spectrum of xuv for normalization of image
+K = (0.5 * p_vec**2)
+##... workig on it
+
+
+
 
 
 # plot the trace and the xuv
@@ -71,6 +95,12 @@ ax[1].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[1].transAxes, 
 # plot the trace and the xuv
 fig, ax = plt.subplots(7, 1, figsize=(5, 10))
 
+
+# plot the filter
+plt.figure(5)
+plt.plot(tauvec_f_space, filter, color='blue')
+
+
 # plot the fourier transform
 ax[0].pcolormesh(tauvec_f_space, p_vec, np.real(traceft), cmap='jet')
 ax[0].text(0, 0.8, 'real part of trace', transform=ax[0].transAxes, backgroundcolor='white')
@@ -79,7 +109,7 @@ ax[1].text(0, 0.8, 'imag part of trace', transform=ax[1].transAxes, backgroundco
 ax[2].pcolormesh(tauvec_f_space, p_vec, np.abs(traceft), cmap='jet')
 ax[2].text(0, 0.8, 'abs of trace', transform=ax[2].transAxes, backgroundcolor='white')
 
-ax[3].pcolormesh(tauvec_f_space, p_vec, filter, cmap='jet')
+ax[3].pcolormesh(tauvec_f_space, p_vec, filter2d, cmap='jet')
 ax[3].text(0, 0.8, 'filter', transform=ax[3].transAxes, backgroundcolor='white')
 
 ax[4].pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered), cmap='jet')
@@ -93,8 +123,8 @@ ax[6].pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered), cmap='jet')
 ax[6].text(0, 0.8, 'abs of trace', transform=ax[6].transAxes, backgroundcolor='white')
 
 
-
-fig, ax = plt.subplots(3, 1)
+# plot the filtered delay domain trace
+fig, ax = plt.subplots(4, 1, figsize=(5, 10))
 
 ax[0].pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered_time), cmap='jet')
 ax[0].text(0, 0.8, 'real part of trace', transform=ax[0].transAxes, backgroundcolor='white')
@@ -105,6 +135,14 @@ ax[1].text(0, 0.8, 'imag part of trace', transform=ax[1].transAxes, backgroundco
 
 ax[2].pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax[2].text(0, 0.8, 'abs of trace', transform=ax[2].transAxes, backgroundcolor='white')
+
+
+ax[3].plot()
+
+
+
+
+
 
 
 
