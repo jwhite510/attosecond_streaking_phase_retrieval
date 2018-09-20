@@ -5,10 +5,17 @@ import scipy.constants as sc
 # from crab_tf import items, xuv_int_t
 import pickle
 
-with open('crab_tf_items.p', 'rb') as file:
-    crab_tf_items = pickle.load(file)
-items = crab_tf_items['items']
-xuv_int_t = crab_tf_items['xuv_int_t']
+
+try:
+    with open('crab_tf_items.p', 'rb') as file:
+        crab_tf_items = pickle.load(file)
+    items = crab_tf_items['items']
+    xuv_int_t = crab_tf_items['xuv_int_t']
+
+except Exception as e:
+    print(e)
+    print('run crab_tf.py first to pickle the needed files')
+    exit(0)
 
 
 
