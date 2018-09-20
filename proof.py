@@ -20,6 +20,9 @@ try:
     tauvec = crab_tf_items['tauvec']
     p_vec = crab_tf_items['p_vec']
     f0_ir = crab_tf_items['irf0']
+    irEt = crab_tf_items['irEt']
+    irtmat = crab_tf_items['irtmat']
+
 
 
 except Exception as e:
@@ -142,15 +145,15 @@ if __name__ == '__main__':
     ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[4, 0])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered_time), cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
     ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[4, 1])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.imag(trace_filtered_time), cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, np.imag(trace_filtered_time), cmap='jet')
     ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[4, 2])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
     ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
 
     if not os.path.isdir('./pictures/proof'):
@@ -165,21 +168,21 @@ if __name__ == '__main__':
     gs = fig.add_gridspec(5, 2)
 
     ax = fig.add_subplot(gs[0, :])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
     ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[1, 0])
     vals = np.abs(trace_filtered_time)
     p_slice = np.array(vals[:, tau_cross_section])
     vals[:, tau_cross_section] = np.max(vals)
-    ax.pcolormesh(tauvec_f_space, p_vec, vals, cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
     ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
     ax = fig.add_subplot(gs[1, 1])
     ax.plot(p_vec, p_slice)
 
 
     ax = fig.add_subplot(gs[2, 0])
-    ax.pcolormesh(tauvec_f_space, p_vec, xuv_spectrum_compensation, cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, xuv_spectrum_compensation, cmap='jet')
     ax.text(0, 0.8, 'xuv spectral compensation', transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[2, 1])
@@ -187,7 +190,7 @@ if __name__ == '__main__':
     ax.text(0, -0.1, 'xuv spectral compensation offset:{}'.format(offset), transform=ax.transAxes, backgroundcolor='white')
 
     ax = fig.add_subplot(gs[3, :])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_compensated), cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
     ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
 
     # plot a cross section of the values
@@ -195,7 +198,7 @@ if __name__ == '__main__':
     vals = np.abs(trace_compensated)
     p_slice = np.array(vals[:, tau_cross_section])
     vals[:, tau_cross_section] = np.max(vals)
-    ax.pcolormesh(tauvec_f_space, p_vec, vals, cmap='jet')
+    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
     ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
     ax = fig.add_subplot(gs[4, 1])
     ax.plot(p_vec, p_slice)
