@@ -1,8 +1,21 @@
 import os
+home = os.getcwd()
 os.chdir('..')
 from proof import *
+os.chdir(home)
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+def save_figure(filename):
+    if not os.path.isdir('./'+filename+'/'):
+        print('creating '+filename+' folder')
+        os.makedirs('./'+filename+'')
+    plt.savefig('./'+filename+'/'+filename+'{}.png'.format(index))
+
+
+
+
 
 
 # plot the IR, xuv, and attosecond
@@ -20,6 +33,12 @@ ax.text(0, 0.9, 'XUV pulse', transform=ax.transAxes, backgroundcolor='white')
 ax = fig.add_subplot(gs[1, :])
 ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
 ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
+
+save_figure(filename='xuv_ir_streak')
+
+
+
+
 
 
 
@@ -56,6 +75,12 @@ ax.text(0, 0.8, 'abs of trace [Frequency Domain]', transform=ax.transAxes, backg
 ax = fig.add_subplot(gs[4, :])
 ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+save_figure(filename='filtering')
+
+
+
+
+
 
 
 # plot the compensation
@@ -72,6 +97,12 @@ ax.text(0, 0.9, 'Apply compensation for XUV spectrum', transform=ax.transAxes, b
 ax = fig.add_subplot(gs[2, :])
 ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
 ax.text(0, 0.9, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
+
+save_figure(filename='compensation')
+
+
+
+
 
 
 
@@ -93,7 +124,7 @@ ax = fig.add_subplot(gs[2, :])
 ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
 
-
+save_figure(filename='xuv_ir_proof_streak')
 
 
 
