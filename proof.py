@@ -5,13 +5,22 @@ import scipy.constants as sc
 import matplotlib.gridspec as gridspec
 # from crab_tf import items, xuv_int_t
 import pickle
+import os
 
 
 try:
     with open('crab_tf_items.p', 'rb') as file:
         crab_tf_items = pickle.load(file)
+
     items = crab_tf_items['items']
     xuv_int_t = crab_tf_items['xuv_int_t']
+    tmax = crab_tf_items['tmax']
+    N = crab_tf_items['N']
+    dt = crab_tf_items['dt']
+    tauvec = crab_tf_items['tauvec']
+    p_vec = crab_tf_items['p_vec']
+    f0_ir = crab_tf_items['irf0']
+
 
 except Exception as e:
     print(e)
@@ -19,16 +28,6 @@ except Exception as e:
     exit(0)
 
 
-
-p_vec = np.linspace(3, 6.5, 200)
-tauvec = np.arange(-22000, 22000, 250)
-
-# construct frequency axis
-# PULLING THESE VALS FROM crab_tf.py
-tmax = 60e-15
-N = 2**16
-dt = tmax / N
-dt = dt / sc.physical_constants['atomic unit of time'][0]
 tauvec_time = tauvec * dt
 
 dtau = tauvec_time[1] - tauvec_time[0]
@@ -48,22 +47,10 @@ hdf5_file.close()
 
 
 # fourier transform the trace
-print(np.shape(trace))
 traceft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
-
-
-
-# convert IR driving freq to attomic
-lam0 = 1.7 * 1e-6
-f0_ir = sc.c / lam0
-f0_ir = f0_ir * sc.physical_constants['atomic unit of time'][0]
-
-# tauvec_f_space
-print(f0_ir)
 
 # construct filter
 f_center = f0_ir
-width = 0.001
 
 #find index of positive frequency
 filter_type = 'rect'
@@ -77,7 +64,7 @@ if filter_type == 'rect':
     filter[f_neg_index-width:f_neg_index+width] = 1
 
 elif filter_type =='gaussian':
-
+    width = 0.001
     filter = np.exp(-(tauvec_f_space - f_center)**2 / width**2)
     filter += np.exp(-(tauvec_f_space + f_center)**2 / width**2)
 
@@ -96,8 +83,9 @@ product = xuv.reshape(1, -1) * e_fft
 integral = np.abs(dt * np.sum(product, axis=1))**2
 
 # need to figure out this scaling later
-scaling = 1
-compensation = 1 + scaling * (np.max(integral) - integral)
+offset = 0.1
+compensation = 1/(integral+offset)
+# compensation = 1 + scaling * (np.max(integral) - integral)
 
 xuv_spectrum_compensation = np.ones_like(trace) * compensation.reshape(-1, 1)
 
@@ -108,7 +96,7 @@ trace_compensated = np.abs(trace_filtered_time) * xuv_spectrum_compensation
 
 
 # plot the trace before and after filtering
-fig = plt.figure(constrained_layout=True, figsize=(10, 7))
+fig = plt.figure(constrained_layout=True, figsize=(10, 10))
 gs = fig.add_gridspec(5, 3)
 
 ax = fig.add_subplot(gs[0, 0])
@@ -165,7 +153,11 @@ ax = fig.add_subplot(gs[4, 2])
 ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
 
+if not os.path.isdir('./pictures/proof'):
+    print('creating proof folder')
+    os.makedirs('./pictures/proof/')
 
+plt.savefig('./pictures/proof/proof_{}.png'.format(index))
 
 # plot the trace before and after copmensation
 tau_cross_section = 94
@@ -192,7 +184,7 @@ ax.text(0, 0.8, 'xuv spectral compensation', transform=ax.transAxes, backgroundc
 
 ax = fig.add_subplot(gs[2, 1])
 ax.plot(p_vec, compensation)
-ax.text(0, -0.1, 'xuv spectral compensation scaling:{}'.format(scaling), transform=ax.transAxes, backgroundcolor='white')
+ax.text(0, -0.1, 'xuv spectral compensation offset:{}'.format(offset), transform=ax.transAxes, backgroundcolor='white')
 
 ax = fig.add_subplot(gs[3, :])
 ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_compensated), cmap='jet')
@@ -207,6 +199,12 @@ ax.pcolormesh(tauvec_f_space, p_vec, vals, cmap='jet')
 ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
 ax = fig.add_subplot(gs[4, 1])
 ax.plot(p_vec, p_slice)
+
+if not os.path.isdir('./pictures/compensate'):
+    print('creating compensate folder')
+    os.makedirs('./pictures/compensate/')
+plt.savefig('./pictures/compensate/proof_compensation_{}.png'.format(index))
+
 
 plt.show()
 

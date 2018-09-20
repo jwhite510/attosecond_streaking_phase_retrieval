@@ -198,9 +198,17 @@ image = tf.square(tf.abs(integral))
 
 # write items needed to pickle becasue im tired of loading this whole thing
 with open('crab_tf_items.p', 'wb') as file:
+
     crab_tf_items = {}
     crab_tf_items['items'] = items
     crab_tf_items['xuv_int_t'] = xuv_int_t
+    crab_tf_items['N'] = N
+    crab_tf_items['tmax'] = tmax
+    crab_tf_items['dt'] = dt
+    crab_tf_items['tauvec'] = tauvec
+    crab_tf_items['p_vec'] = p_vec
+    crab_tf_items['irf0'] = ir.f0
+
     pickle.dump(crab_tf_items, file)
     print('files pickled')
 
