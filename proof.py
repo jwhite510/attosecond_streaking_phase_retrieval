@@ -2,6 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tables
 import scipy.constants as sc
+# from crab_tf import items, xuv_int_t
+import pickle
+
+with open('crab_tf_items.p', 'rb') as file:
+    crab_tf_items = pickle.load(file)
+items = crab_tf_items['items']
+xuv_int_t = crab_tf_items['xuv_int_t']
+
 
 
 p_vec = np.linspace(3, 6.5, 200)
@@ -73,8 +81,23 @@ trace_filtered_time = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(trace_filtered
 
 
 # spectrum of xuv for normalization of image
-K = (0.5 * p_vec**2)
-##... workig on it
+K = (0.5 * p_vec**2).reshape(-1, 1)
+## importing these from crab_tf .. should import everyhing now.
+e_fft = np.exp(-1j * (K + items['Ip']) * xuv_int_t.reshape(1, -1))
+product = xuv.reshape(1, -1) * e_fft
+integral = np.abs(dt * np.sum(product, axis=1))**2
+
+# need to figure out this scaling later
+scaling = 1
+compensation = 1 + scaling * (np.max(integral) - integral)
+
+plt.figure(2134)
+plt.plot(compensation)
+
+
+xuv_spectrum_compensation = np.ones_like(trace) * compensation.reshape(-1, 1)
+
+trace_compensated = np.abs(trace_filtered_time) * xuv_spectrum_compensation
 
 
 
@@ -124,7 +147,7 @@ ax[6].text(0, 0.8, 'abs of trace', transform=ax[6].transAxes, backgroundcolor='w
 
 
 # plot the filtered delay domain trace
-fig, ax = plt.subplots(4, 1, figsize=(5, 10))
+fig, ax = plt.subplots(3, 1, figsize=(5, 10))
 
 ax[0].pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered_time), cmap='jet')
 ax[0].text(0, 0.8, 'real part of trace', transform=ax[0].transAxes, backgroundcolor='white')
@@ -137,7 +160,17 @@ ax[2].pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax[2].text(0, 0.8, 'abs of trace', transform=ax[2].transAxes, backgroundcolor='white')
 
 
-ax[3].plot()
+_, ax = plt.subplots(3, 1)
+
+ax[0].pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered_time), cmap='jet')
+ax[0].text(0, 0.8, 'abs of trace', transform=ax[0].transAxes, backgroundcolor='white')
+
+
+ax[1].pcolormesh(tauvec_f_space, p_vec, xuv_spectrum_compensation, cmap='jet')
+ax[1].text(0, 0.8, 'xuv spectral compensation', transform=ax[1].transAxes, backgroundcolor='white')
+
+ax[2].pcolormesh(tauvec_f_space, p_vec, np.abs(trace_compensated), cmap='jet')
+ax[2].text(0, 0.8, 'trace with compensation', transform=ax[2].transAxes, backgroundcolor='white')
 
 
 

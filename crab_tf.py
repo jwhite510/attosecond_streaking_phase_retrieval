@@ -3,6 +3,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import scipy.constants as sc
 import time
+import pickle
 
 
 # SI units for defining parameters
@@ -194,6 +195,15 @@ product = xuv_input * p_A_int_mat_tf * e_fft_tf
 integral = tf.constant(dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
 
 image = tf.square(tf.abs(integral))
+
+# write items needed to pickle becasue im tired of loading this whole thing
+with open('crab_tf_items.p', 'wb') as file:
+    crab_tf_items = {}
+    crab_tf_items['items'] = items
+    crab_tf_items['xuv_int_t'] = xuv_int_t
+    pickle.dump(crab_tf_items, file)
+    print('files pickled')
+
 
 
 
