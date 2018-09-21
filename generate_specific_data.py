@@ -93,6 +93,22 @@ E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
 xuv_specific_phase_pulses.append(E_t_phase)
 
 
+
+"""
+pulse 5 - 14 translated in time
+"""
+# translate in time
+gdd = 0
+tod = -20
+for time_translate in np.linspace(-5, 5, 10):
+
+    phase = 2 * np.pi * fmat * time_translate
+    phase += gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
+    E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
+    xuv_specific_phase_pulses.append(E_t_phase)
+
+
+
 fig, ax = plt.subplots(2, 1)
 plt.ion()
 plotting = True
