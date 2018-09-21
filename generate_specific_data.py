@@ -60,26 +60,37 @@ fmat = xuv_specific.cropped_f
 
 xuv_specific_phase_pulses = []
 
+# pulse 0
+gdd = 0
+phase = gdd * (fmat - xuv_specific.f0)**2
+E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
+xuv_specific_phase_pulses.append(E_t_phase)
+
 # pulse 1
-gdd = 20
+gdd = -30
 phase = gdd * (fmat - xuv_specific.f0)**2
 E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
 xuv_specific_phase_pulses.append(E_t_phase)
 
 # pulse 2
-gdd = -20
+gdd = 30
 phase = gdd * (fmat - xuv_specific.f0)**2
 E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
 xuv_specific_phase_pulses.append(E_t_phase)
 
 # pulse 3
 gdd = 0
-phase = gdd * (fmat - xuv_specific.f0)**2
+tod = 20
+phase = gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
 E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
 xuv_specific_phase_pulses.append(E_t_phase)
 
-
-
+# pulse 4
+gdd = 0
+tod = -20
+phase = gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
+E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
+xuv_specific_phase_pulses.append(E_t_phase)
 
 
 fig, ax = plt.subplots(2, 1)
