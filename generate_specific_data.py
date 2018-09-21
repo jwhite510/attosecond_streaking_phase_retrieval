@@ -35,6 +35,10 @@ class XUV_Field_specific_phase(XUV_Field):
 
 xuv_test = XUV_Field(N=N, tmax=tmax, gdd=500, tod=0).Et[lower:upper]
 
+
+test_open = False
+
+
 filename = 'attstrac_specific.hdf5'
 # create hdf5 file
 hdf5_file = tables.open_file(filename, mode='w')
@@ -124,24 +128,25 @@ with tf.Session() as sess:
     hdf5_file.close()
 
 
-# test open the file
-hdf5_file = tables.open_file(filename, mode='r')
 
-index = 0
+if test_open:
+    # test open the file
+    hdf5_file = tables.open_file(filename, mode='r')
 
-xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
+    index = 0
 
+    xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
 
-plt.ioff()
-plt.cla()
-ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
-ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
-ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
-ax[1].plot(np.real(xuv), color='blue')
-ax[1].plot(np.imag(xuv), color='red')
+    plt.ioff()
+    plt.cla()
+    ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
+    ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
+    ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+    ax[1].plot(np.real(xuv), color='blue')
+    ax[1].plot(np.imag(xuv), color='red')
 
-hdf5_file.close()
+    hdf5_file.close()
 
-plt.show()
+    plt.show()
 
 

@@ -50,7 +50,7 @@ tauvec_f_space = df_tau * np.arange(-Ntau/2, Ntau/2, 1)
 
 
 # open the file and retrieve the trace
-index = 2
+index = 0
 show_plots = False
 hdf5_file = tables.open_file('attstrac_specific.hdf5', mode='r')
 xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
