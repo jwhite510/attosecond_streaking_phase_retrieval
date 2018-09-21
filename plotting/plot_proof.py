@@ -6,11 +6,21 @@ os.chdir(home)
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+This python file plots more general views of the attosecond traces, 
+showing only the absolute values and 2-D images of filters
+
+The plotted trace is opened in the proof.py, so for different plots
+it is necessary to change the index number found in proof.py
+"""
+
 
 def save_figure(filename):
     if not os.path.isdir('./'+filename+'/'):
         print('creating '+filename+' folder')
         os.makedirs('./'+filename+'')
+    plt.subplots_adjust(left=0.05, right=0.95)
+
     plt.savefig('./'+filename+'/'+filename+'{}.png'.format(index))
 
 
@@ -19,7 +29,7 @@ def save_figure(filename):
 
 
 # plot the IR, xuv, and attosecond
-fig = plt.figure(constrained_layout=True, figsize=(7, 7))
+fig = plt.figure(constrained_layout=False, figsize=(7, 7))
 gs = fig.add_gridspec(2, 2)
 
 ax = fig.add_subplot(gs[0, 0])
@@ -43,7 +53,7 @@ save_figure(filename='xuv_ir_streak')
 
 
 # plot the filtering
-fig = plt.figure(constrained_layout=True, figsize=(7, 7))
+fig = plt.figure(constrained_layout=False, figsize=(7, 7))
 gs = fig.add_gridspec(5, 2)
 
 # plot the XUV
@@ -84,7 +94,7 @@ save_figure(filename='filtering')
 
 
 # plot the compensation
-fig = plt.figure(constrained_layout=True, figsize=(7, 7))
+fig = plt.figure(constrained_layout=False, figsize=(7, 7))
 gs = fig.add_gridspec(3, 2)
 ax = fig.add_subplot(gs[0, :])
 ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
@@ -107,8 +117,8 @@ save_figure(filename='compensation')
 
 
 # plot only the xuv, attosecond trace, and proof trace
-fig = plt.figure(constrained_layout=True, figsize=(7, 7))
-gs = fig.add_gridspec(3, 2)
+fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+gs = fig.add_gridspec(4, 2)
 # plot the XUV
 ax = fig.add_subplot(gs[0, :])
 ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
@@ -124,11 +134,18 @@ ax = fig.add_subplot(gs[2, :])
 ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
 ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
 
+ax = fig.add_subplot(gs[3, :])
+ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
+ax.text(0, 0.8, 'real of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+
+
+
 save_figure(filename='xuv_ir_proof_streak')
 
 
 
-
-plt.show()
+if show_plots:
+    plt.show()
 
 

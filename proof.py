@@ -8,6 +8,14 @@ import pickle
 import os
 
 
+"""
+This python file shows detailed plots of the generation of the attosecond trace and the PROOF trace
+"""
+
+
+
+
+
 try:
     with open('crab_tf_items.p', 'rb') as file:
         crab_tf_items = pickle.load(file)
@@ -42,8 +50,9 @@ tauvec_f_space = df_tau * np.arange(-Ntau/2, Ntau/2, 1)
 
 
 # open the file and retrieve the trace
-index = 0
-hdf5_file = tables.open_file('attstrace.hdf5', mode='r')
+index = 2
+show_plots = False
+hdf5_file = tables.open_file('attstrac_specific.hdf5', mode='r')
 xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
 trace = hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec))
 hdf5_file.close()
@@ -156,11 +165,11 @@ if __name__ == '__main__':
     ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
     ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
 
-    if not os.path.isdir('./pictures/proof'):
+    if not os.path.isdir('./plotting/detail_proof'):
         print('creating proof folder')
-        os.makedirs('./pictures/proof/')
+        os.makedirs('./plotting/detail_proof/')
 
-    plt.savefig('./pictures/proof/proof_{}.png'.format(index))
+    plt.savefig('./plotting/detail_proof/proof_{}.png'.format(index))
 
     # plot the trace before and after copmensation
     tau_cross_section = 94
@@ -203,11 +212,11 @@ if __name__ == '__main__':
     ax = fig.add_subplot(gs[4, 1])
     ax.plot(p_vec, p_slice)
 
-    if not os.path.isdir('./pictures/compensate'):
+    if not os.path.isdir('./plotting/detail_compensate'):
         print('creating compensate folder')
-        os.makedirs('./pictures/compensate/')
-    plt.savefig('./pictures/compensate/proof_compensation_{}.png'.format(index))
+        os.makedirs('./plotting/detail_compensate/')
+    plt.savefig('./plotting/detail_compensate/proof_compensation_{}.png'.format(index))
 
-
-    plt.show()
+    if show_plots:
+        plt.show()
 
