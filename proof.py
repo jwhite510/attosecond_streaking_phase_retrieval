@@ -8,6 +8,232 @@ import os
 This python file shows detailed plots of the generation of the attosecond trace and the PROOF trace
 """
 
+
+
+def plot_xuv_att_proof():
+
+    # plot only the xuv, attosecond trace, and proof trace
+    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+    gs = fig.add_gridspec(4, 2)
+    # plot the XUV
+    ax = fig.add_subplot(gs[0, :])
+    ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+    ax.plot(np.real(xuv), color='blue')
+    ax.text(0, 0.9, 'XUV', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot the trace
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
+    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'real of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+    save_figure(filename='xuv_ir_proof_streak')
+
+
+def plot_compensation():
+
+    # plot the compensation
+    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+    gs = fig.add_gridspec(3, 2)
+    ax = fig.add_subplot(gs[0, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.9, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(tauvec_time, p_vec, xuv_spectrum_compensation, cmap='jet')
+    ax.text(0, 0.9, 'Apply compensation for XUV spectrum', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
+    ax.text(0, 0.9, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
+
+    save_figure(filename='compensation')
+
+
+
+
+
+
+def plot_filtering():
+
+    # plot the filtering
+    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+    gs = fig.add_gridspec(5, 2)
+
+    # plot the XUV
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(xuv_int_t, np.real(xuv), color='blue')
+    ax.text(0, 0.9, 'XUV', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot the trace
+    ax = fig.add_subplot(gs[0, 1])
+    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
+    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot the fourier transform of the trace
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(traceft), cmap='jet')
+    ax.text(0, 0.9, 'Fourier Transform of Trace', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot the filter
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(tauvec_f_space, p_vec, filter2d, cmap='jet')
+    ax.text(0, 0.8, 'Apply filter', transform=ax.transAxes, backgroundcolor='white')
+    ax.text(0.58, 0.5, '$+\omega_1$', transform=ax.transAxes, backgroundcolor='white')
+    ax.text(0.36, 0.5, '$-\omega_1$', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, :])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace [Frequency Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[4, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+    save_figure(filename='filtering')
+
+
+
+def plot_ir_xuv_atto():
+
+    # plot the IR, xuv, and attosecond
+    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+    gs = fig.add_gridspec(2, 2)
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(irtmat, irEt, color='orange')
+    ax.text(0, 0.9, 'IR pulse', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.plot(xuv_int_t, np.real(xuv), color='blue')
+    ax.text(0, 0.9, 'XUV pulse', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
+    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
+
+    save_figure(filename='xuv_ir_streak')
+
+
+
+
+def plot_before_after_compensation():
+
+    # plot the trace before and after copmensation
+    tau_cross_section = 94
+    fig = plt.figure(constrained_layout=False, figsize=(10, 7))
+    gs = fig.add_gridspec(5, 2)
+
+    ax = fig.add_subplot(gs[0, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, 0])
+    vals = np.abs(trace_filtered_time)
+    p_slice = np.array(vals[:, tau_cross_section])
+    vals[:, tau_cross_section] = np.max(vals)
+    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
+    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
+    ax = fig.add_subplot(gs[1, 1])
+    ax.plot(p_vec, p_slice)
+
+    ax = fig.add_subplot(gs[2, 0])
+    ax.pcolormesh(tauvec_time, p_vec, xuv_spectrum_compensation, cmap='jet')
+    ax.text(0, 0.8, 'xuv spectral compensation', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, 1])
+    ax.plot(p_vec, compensation)
+    ax.text(0, -0.1, 'xuv spectral compensation offset:{}'.format(offset), transform=ax.transAxes,
+            backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
+    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot a cross section of the values
+    ax = fig.add_subplot(gs[4, 0])
+    vals = np.abs(trace_compensated)
+    p_slice = np.array(vals[:, tau_cross_section])
+    vals[:, tau_cross_section] = np.max(vals)
+    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
+    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
+    ax = fig.add_subplot(gs[4, 1])
+    ax.plot(p_vec, p_slice)
+
+    save_figure('detail_compensate')
+
+
+
+
+def plot_before_after_filter():
+
+    # plot the trace before and after filtering
+    fig = plt.figure(constrained_layout=False, figsize=(10, 10))
+    gs = fig.add_gridspec(5, 3)
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+    ax.plot(np.real(xuv), color='blue')
+    ax.plot(np.imag(xuv), color='red')
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.pcolormesh(trace, cmap='jet')
+    ax.text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, 0])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.real(traceft), cmap='jet')
+    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, 1])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.imag(traceft), cmap='jet')
+    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[1, 2])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(traceft), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, 1])
+    ax.pcolormesh(tauvec_f_space, p_vec, filter2d, cmap='jet')
+    ax.text(0, 0.8, 'filter', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, 0])
+    plt.plot(tauvec_f_space, filter, color='blue')
+    ax.text(0, 0.8, 'filter', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, 0])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered), cmap='jet')
+    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, 1])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.imag(trace_filtered), cmap='jet')
+    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, 2])
+    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[4, 0])
+    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[4, 1])
+    ax.pcolormesh(tauvec_time, p_vec, np.imag(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[4, 2])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
+
+    save_figure('detail_proof')
+
+
+
 def save_figure(filename):
     if not os.path.isdir('./'+filename+'/'):
         print('creating '+filename+' folder')
@@ -15,8 +241,6 @@ def save_figure(filename):
     plt.subplots_adjust(left=0.05, right=0.95)
 
     plt.savefig('./'+filename+'/'+filename+'{}.png'.format(index))
-
-
 
 
 # open the pickles
@@ -113,231 +337,15 @@ trace_compensated = np.abs(trace_filtered_time) * xuv_spectrum_compensation
 
 if __name__ == '__main__':
 
-    # plot the trace before and after filtering
-    fig = plt.figure(constrained_layout=False, figsize=(10, 10))
-    gs = fig.add_gridspec(5, 3)
+    plot_before_after_filter()
 
-    ax = fig.add_subplot(gs[0, 0])
-    ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
-    ax.plot(np.real(xuv), color='blue')
-    ax.plot(np.imag(xuv), color='red')
+    plot_before_after_compensation()
 
-    ax = fig.add_subplot(gs[0, 1])
-    ax.pcolormesh(trace, cmap='jet')
-    ax.text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax.transAxes, backgroundcolor='white')
+    plot_ir_xuv_atto()
 
-    ax = fig.add_subplot(gs[1, 0])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.real(traceft), cmap='jet')
-    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
+    plot_filtering()
 
-    ax = fig.add_subplot(gs[1, 1])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.imag(traceft), cmap='jet')
-    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[1, 2])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(traceft), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[2, 1])
-    ax.pcolormesh(tauvec_f_space, p_vec, filter2d, cmap='jet')
-    ax.text(0, 0.8, 'filter', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[2, 0])
-    plt.plot(tauvec_f_space, filter, color='blue')
-    ax.text(0, 0.8, 'filter', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, 0])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.real(trace_filtered), cmap='jet')
-    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, 1])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.imag(trace_filtered), cmap='jet')
-    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, 2])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[4, 0])
-    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'real part of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[4, 1])
-    ax.pcolormesh(tauvec_time, p_vec, np.imag(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'imag part of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[4, 2])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    save_figure('detail_proof')
-
-
-
-
-
-
-    # plot the trace before and after copmensation
-    tau_cross_section = 94
-    fig = plt.figure(constrained_layout=False, figsize=(10, 7))
-    gs = fig.add_gridspec(5, 2)
-
-    ax = fig.add_subplot(gs[0, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[1, 0])
-    vals = np.abs(trace_filtered_time)
-    p_slice = np.array(vals[:, tau_cross_section])
-    vals[:, tau_cross_section] = np.max(vals)
-    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
-    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
-    ax = fig.add_subplot(gs[1, 1])
-    ax.plot(p_vec, p_slice)
-
-    ax = fig.add_subplot(gs[2, 0])
-    ax.pcolormesh(tauvec_time, p_vec, xuv_spectrum_compensation, cmap='jet')
-    ax.text(0, 0.8, 'xuv spectral compensation', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[2, 1])
-    ax.plot(p_vec, compensation)
-    ax.text(0, -0.1, 'xuv spectral compensation offset:{}'.format(offset), transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
-    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
-
-    # plot a cross section of the values
-    ax = fig.add_subplot(gs[4, 0])
-    vals = np.abs(trace_compensated)
-    p_slice = np.array(vals[:, tau_cross_section])
-    vals[:, tau_cross_section] = np.max(vals)
-    ax.pcolormesh(tauvec_time, p_vec, vals, cmap='jet')
-    ax.text(0, 0.8, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
-    ax = fig.add_subplot(gs[4, 1])
-    ax.plot(p_vec, p_slice)
-
-    save_figure('detail_compensate')
-
-
-
-
-
-
-    # plot the IR, xuv, and attosecond
-    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
-    gs = fig.add_gridspec(2, 2)
-
-    ax = fig.add_subplot(gs[0, 0])
-    ax.plot(irtmat, irEt, color='orange')
-    ax.text(0, 0.9, 'IR pulse', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[0, 1])
-    ax.plot(xuv_int_t, np.real(xuv), color='blue')
-    ax.text(0, 0.9, 'XUV pulse', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[1, :])
-    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
-    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
-
-    save_figure(filename='xuv_ir_streak')
-
-
-
-
-
-
-
-
-
-
-
-    # plot the filtering
-    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
-    gs = fig.add_gridspec(5, 2)
-
-    # plot the XUV
-    ax = fig.add_subplot(gs[0, 0])
-    ax.plot(xuv_int_t, np.real(xuv), color='blue')
-    ax.text(0, 0.9, 'XUV', transform=ax.transAxes, backgroundcolor='white')
-
-    # plot the trace
-    ax = fig.add_subplot(gs[0, 1])
-    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
-    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
-
-    # plot the fourier transform of the trace
-    ax = fig.add_subplot(gs[1, :])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(traceft), cmap='jet')
-    ax.text(0, 0.9, 'Fourier Transform of Trace', transform=ax.transAxes, backgroundcolor='white')
-
-    # plot the filter
-    ax = fig.add_subplot(gs[2, :])
-    ax.pcolormesh(tauvec_f_space, p_vec, filter2d, cmap='jet')
-    ax.text(0, 0.8, 'Apply filter', transform=ax.transAxes, backgroundcolor='white')
-    ax.text(0.58, 0.5, '$+\omega_1$', transform=ax.transAxes, backgroundcolor='white')
-    ax.text(0.36, 0.5, '$-\omega_1$', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, :])
-    ax.pcolormesh(tauvec_f_space, p_vec, np.abs(trace_filtered), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace [Frequency Domain]', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[4, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
-    save_figure(filename='filtering')
-
-
-
-
-
-    # plot the compensation
-    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
-    gs = fig.add_gridspec(3, 2)
-    ax = fig.add_subplot(gs[0, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.9, 'abs of trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[1, :])
-    ax.pcolormesh(tauvec_time, p_vec, xuv_spectrum_compensation, cmap='jet')
-    ax.text(0, 0.9, 'Apply compensation for XUV spectrum', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[2, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_compensated), cmap='jet')
-    ax.text(0, 0.9, 'trace with compensation', transform=ax.transAxes, backgroundcolor='white')
-
-    save_figure(filename='compensation')
-
-
-
-
-
-
-    # plot only the xuv, attosecond trace, and proof trace
-    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
-    gs = fig.add_gridspec(4, 2)
-    # plot the XUV
-    ax = fig.add_subplot(gs[0, :])
-    ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
-    ax.plot(np.real(xuv), color='blue')
-    ax.text(0, 0.9, 'XUV', transform=ax.transAxes, backgroundcolor='white')
-
-    # plot the trace
-    ax = fig.add_subplot(gs[1, :])
-    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
-    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[2, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
-
-    ax = fig.add_subplot(gs[3, :])
-    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
-    ax.text(0, 0.8, 'real of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
-
-    save_figure(filename='xuv_ir_proof_streak')
-
-
+    plot_compensation()
 
     if show_plots:
         plt.show()
