@@ -94,6 +94,8 @@ if __name__ == "__main__":
 
 
     xuv_dimmension_reduction = 8
+    print('Dimmension reduction: ', xuv_dimmension_reduction)
+    print('xuv field length: ', int(len(xuv_int_t)/xuv_dimmension_reduction))
 
     # create a file for proof traces and xuv envelopes
     with tables.open_file('processed.hdf5', mode='w') as processed_data:
@@ -111,39 +113,39 @@ if __name__ == "__main__":
                                      shape=(0, int(len(xuv_int_t)/xuv_dimmension_reduction)))
 
 
+    # unprocessed_filename = 'attstrac_specific.hdf5'
+    unprocessed_filename = 'attstrace.hdf5'
 
 
-
-    with tables.open_file('attstrac_specific.hdf5', mode='r') as unprocessed_datafile:
+    with tables.open_file(unprocessed_filename, mode='r') as unprocessed_datafile:
         with tables.open_file('processed.hdf5', mode='a') as processed_data:
 
-            index = 0
             # get the number of data points
+            samples = np.shape(unprocessed_datafile.root.xuv_real[:, :])[0]
+            print('Samples to be processed: ', samples)
 
-            xuv = unprocessed_datafile.root.xuv_real[index, :] + 1j * unprocessed_datafile.root.xuv_imag[index, :]
-            attstrace = unprocessed_datafile.root.trace[index, :].reshape(len(p_vec), len(tauvec))
+            for index in range(samples):
 
-            # construct proof trace
-            proof_trace, _ = construct_proof(attstrace, tauvec=tauvec, dt=dt, f0_ir=f0_ir)
+                if index % 5 == 0:
+                    print(index, '/', samples )
 
-            # construct xuv pulse minus central oscilating term
-            xuv_envelope = process_xuv(xuv, xuv_time=xuv_int_t, f0=xuvf0,
-                                       reduction=xuv_dimmension_reduction, plotting=False)
-            print('shape: ', np.shape(xuv_envelope))
-            exit(0)
+                xuv = unprocessed_datafile.root.xuv_real[index, :] + 1j * unprocessed_datafile.root.xuv_imag[index, :]
+                attstrace = unprocessed_datafile.root.trace[index, :].reshape(len(p_vec), len(tauvec))
 
-            # reduce dimmension of xuv envelope
+                # construct proof trace
+                proof_trace, _ = construct_proof(attstrace, tauvec=tauvec, dt=dt, f0_ir=f0_ir)
 
+                # construct xuv pulse minus central oscilating term
+                xuv_envelope = process_xuv(xuv, xuv_time=xuv_int_t, f0=xuvf0,
+                                           reduction=xuv_dimmension_reduction, plotting=False)
 
+                # plot_elements(attstrace, np.real(proof_trace), xuv, xuv_envelope)
 
-            # plot_elements(attstrace, np.real(proof_trace), xuv, xuv_envelope)
-
-            # append the data to the processed hdf5 file
-            processed_data.root.attstrace.append(attstrace.reshape(1, -1))
-            processed_data.root.proof.append(np.real(proof_trace).reshape(1, -1))
-            processed_data.root.xuv.append(xuv.reshape(1, -1))
-            processed_data.root.xuv_envelope.append(xuv_envelope.reshape(1, -1))
-
+                # append the data to the processed hdf5 file
+                processed_data.root.attstrace.append(attstrace.reshape(1, -1))
+                processed_data.root.proof.append(np.real(proof_trace).reshape(1, -1))
+                processed_data.root.xuv.append(xuv.reshape(1, -1))
+                processed_data.root.xuv_envelope.append(xuv_envelope.reshape(1, -1))
 
 
 
