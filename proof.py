@@ -57,7 +57,7 @@ def plot_compensation():
     save_figure(filename='compensation')
 
 
-def construct_proof(trace, tauvec, dt):
+def construct_proof(trace, tauvec, dt, f0_ir):
 
     # define parameters needed for calculation
     tauvec_time = tauvec * dt
@@ -330,7 +330,7 @@ if __name__ == '__main__':
 
         os.chdir('./plotting/')
 
-        trace_filtered_time, params = construct_proof(trace, tauvec, dt)
+        trace_filtered_time, params = construct_proof(trace, tauvec, dt, f0_ir)
 
         tauvec_f_space = params['tauvec_f_space']
         traceft =  params['traceft']

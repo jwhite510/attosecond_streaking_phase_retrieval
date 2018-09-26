@@ -210,6 +210,8 @@ with open('crab_tf_items.p', 'wb') as file:
     crab_tf_items['irf0'] = ir.f0
     crab_tf_items['irEt'] = ir.Et
     crab_tf_items['irtmat'] = ir.tmat
+    crab_tf_items['xuvf0'] = xuv.f0
+
 
     pickle.dump(crab_tf_items, file)
     print('files pickled')
