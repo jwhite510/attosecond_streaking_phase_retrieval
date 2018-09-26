@@ -57,7 +57,49 @@ def plot_compensation():
     save_figure(filename='compensation')
 
 
+def construct_proof(trace, tauvec, dt):
 
+    # define parameters needed for calculation
+    tauvec_time = tauvec * dt
+    dtau = tauvec_time[1] - tauvec_time[0]
+    Ntau = len(tauvec_time)
+    df_tau = 1 / (Ntau * dtau)  # frequency in au
+    tauvec_f_space = df_tau * np.arange(-Ntau / 2, Ntau / 2, 1)
+
+    # fourier transform the trace
+    traceft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
+
+    # construct filter
+    filter_type = 'rect'
+
+    if filter_type == 'rect':
+        width = 2
+        filter = np.zeros_like(tauvec_f_space)
+        f_pos_index = np.argmin(np.abs(tauvec_f_space - f0_ir))
+        f_neg_index = np.argmin(np.abs(tauvec_f_space + f0_ir))
+        filter[f_pos_index - width:f_pos_index + width] = 1
+        filter[f_neg_index - width:f_neg_index + width] = 1
+
+    elif filter_type == 'gaussian':
+        width = 0.001
+        filter = np.exp(-(tauvec_f_space - f0_ir) ** 2 / width ** 2)
+        filter += np.exp(-(tauvec_f_space + f0_ir) ** 2 / width ** 2)
+
+    filter2d = filter.reshape(1, -1) * np.real(np.ones_like(traceft))
+    trace_filtered = filter2d * traceft
+
+    # fourier transform the filtered signal
+    trace_filtered_time = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(trace_filtered, axes=1), axis=1), axes=1)
+
+    params = {}
+    params['tauvec_f_space'] = tauvec_f_space
+    params['filter'] = filter
+    params['filter2d'] = filter2d
+    params['traceft'] = traceft
+    params['trace_filtered'] = trace_filtered
+    params['tauvec_time'] = tauvec_time
+
+    return trace_filtered_time, params
 
 
 
@@ -288,37 +330,14 @@ if __name__ == '__main__':
 
         os.chdir('./plotting/')
 
-        # define parameters needed for calculation
-        tauvec_time = tauvec * dt
-        dtau = tauvec_time[1] - tauvec_time[0]
-        Ntau = len(tauvec_time)
-        df_tau = 1 / (Ntau * dtau)  # frequency in au
-        tauvec_f_space = df_tau * np.arange(-Ntau / 2, Ntau / 2, 1)
+        trace_filtered_time, params = construct_proof(trace, tauvec, dt)
 
-        # fourier transform the trace
-        traceft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
-
-        # construct filter
-        filter_type = 'rect'
-
-        if filter_type == 'rect':
-            width = 2
-            filter = np.zeros_like(tauvec_f_space)
-            f_pos_index = np.argmin(np.abs(tauvec_f_space - f0_ir))
-            f_neg_index = np.argmin(np.abs(tauvec_f_space + f0_ir))
-            filter[f_pos_index - width:f_pos_index + width] = 1
-            filter[f_neg_index - width:f_neg_index + width] = 1
-
-        elif filter_type == 'gaussian':
-            width = 0.001
-            filter = np.exp(-(tauvec_f_space - f0_ir) ** 2 / width ** 2)
-            filter += np.exp(-(tauvec_f_space + f0_ir) ** 2 / width ** 2)
-
-        filter2d = filter.reshape(1, -1) * np.real(np.ones_like(traceft))
-        trace_filtered = filter2d * traceft
-
-        # fourier transform the filtered signal
-        trace_filtered_time = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(trace_filtered, axes=1), axis=1), axes=1)
+        tauvec_f_space = params['tauvec_f_space']
+        traceft =  params['traceft']
+        filter2d = params['filter2d']
+        filter = params['filter']
+        trace_filtered = params['trace_filtered']
+        tauvec_time = params['tauvec_time']
 
         # spectrum of xuv for normalization of image
         K = (0.5 * p_vec ** 2).reshape(-1, 1)
