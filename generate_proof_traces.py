@@ -88,12 +88,14 @@ except Exception as e:
     print('run crab_tf.py first to pickle the needed files')
     exit(0)
 
+xuv_dimmension_reduction = 8
+xuv_field_length = int(len(xuv_int_t)/xuv_dimmension_reduction)
 
 if __name__ == "__main__":
 
 
 
-    xuv_dimmension_reduction = 8
+
     print('Dimmension reduction: ', xuv_dimmension_reduction)
     print('xuv field length: ', int(len(xuv_int_t)/xuv_dimmension_reduction))
 
