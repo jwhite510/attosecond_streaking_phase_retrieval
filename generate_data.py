@@ -17,6 +17,7 @@ class XUV_Field_rand_phase(XUV_Field):
 
         # define the integration timespan of the field
         self.Et_cropped = self.Et[lower:upper]
+        self.tmat_cropped = self.tmat[lower:upper]
 
         # define phase vector
         self.nodes = phase_amplitude * (np.random.rand(phase_nodes) - 0.5)
@@ -37,6 +38,53 @@ class XUV_Field_rand_phase(XUV_Field):
 
         # ft back to temporal domain
         self.Et_cropped_t_phase = np.fft.fftshift((np.fft.ifft(np.fft.fftshift(self.Et_cropped_f_phase))))
+
+        # ambiguity removal
+        # set the phase angle at t0 to 0
+        Envelope = self.Et_cropped_t_phase * np.exp(-2j * np.pi * self.f0 * self.tmat_cropped)
+        t_0_index = np.argmin(np.abs(self.tmat_cropped - 0))
+        # print('t_0_index: ', t_0_index)
+        angle_at_t0 = np.angle(Envelope[t_0_index])
+        Envelope_corrected = Envelope * np.exp(-1j * angle_at_t0)
+
+        # print('np.real(Envelope[t_0_index]):', np.real(Envelope[t_0_index]))
+        # print('np.imag(Envelope[t_0_index]):', np.imag(Envelope[t_0_index]))
+        #
+        # print('np.real(Envelope_corrected[t_0_index]):', np.real(Envelope_corrected[t_0_index]))
+        # print('np.imag(Envelope_corrected[t_0_index]):', np.imag(Envelope_corrected[t_0_index]))
+
+        Corrected_centralfreq = Envelope_corrected * np.exp(2j * np.pi * self.f0 * self.tmat_cropped)
+
+        self.Et_cropped_t_phase = Corrected_centralfreq
+
+        # plt.plot(np.real(Corrected_centralfreq))
+        # plt.ioff()
+        # plt.show()
+
+
+        # Corrected_centralfreq2 = Corrected_centralfreq * np.exp(-2j * np.pi * self.f0 * self.tmat_cropped)
+
+        # for checking angle at time 0
+        # fig, ax = plt.subplots(5, 1)
+        #
+        # ax[0].plot(self.tmat_cropped, np.real(self.Et_cropped_t_phase), color='blue')
+        # ax[0].plot(self.tmat_cropped, np.imag(self.Et_cropped_t_phase), color='red')
+        #
+        # ax[1].plot(self.tmat_cropped, np.real(Envelope), color='blue')
+        # ax[1].plot(self.tmat_cropped, np.imag(Envelope), color='red')
+        #
+        # ax[2].plot(self.tmat_cropped, np.real(Envelope_corrected), color='blue')
+        # ax[2].plot(self.tmat_cropped, np.imag(Envelope_corrected), color='red')
+        #
+        # ax[3].plot(self.tmat_cropped, np.real(Corrected_centralfreq), color='blue')
+        # ax[3].plot(self.tmat_cropped, np.imag(Corrected_centralfreq), color='red')
+        #
+        # ax[4].plot(self.tmat_cropped, np.real(Corrected_centralfreq2), color='blue')
+        # ax[4].plot(self.tmat_cropped, np.imag(Corrected_centralfreq2), color='red')
+        #
+        # plt.ioff()
+        # plt.show()
+
 
         if plot:
             fig, ax = plt.subplots(4, 1, figsize=(5, 10))
@@ -92,7 +140,7 @@ with tf.Session() as sess:
     for i in range(n_samples):
 
         # generate a random xuv pulse
-        xuv_rand = XUV_Field_rand_phase(phase_amplitude=3, phase_nodes=120, plot=False).Et_cropped_t_phase
+        xuv_rand = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=120, plot=False).Et_cropped_t_phase
 
         if i % 10 == 0:
             print('generating sample {} of {}'.format(i + 1, n_samples))
