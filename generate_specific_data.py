@@ -97,7 +97,7 @@ xuv_specific_phase_pulses.append(E_t_phase)
 test for ambiguities
 """
 # pulse 5
-gdd = 0
+gdd = 30
 tod = -20
 phase = gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
 E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
@@ -129,11 +129,32 @@ E_t_phase_ps = E_t_phase * np.exp(1j * phase)
 xuv_specific_phase_pulses.append(E_t_phase_ps)
 
 
+# conjugate flip 10
+# conf_flip = np.real(E_t_phase_ps) - 1j * np.imag(E_t_phase_ps)
 
-# plt.figure(5)
-# plt.plot(np.real(E_t_phase))
+# conf_flip = np.array(E_t_phase_ps)
+# xuv_specific_phase_pulses.append(conf_flip)
+#
+# envelope = conf_flip * np.exp(-2j * np.pi * xuv.f0 * xuv_int_t)
+# conj_envelope = np.real(envelope) - 1j * np.imag(envelope)
+# conj_envelope_w0 = conj_envelope * np.exp(2j * np.pi * xuv.f0 * xuv_int_t)
+
+# plt.figure(9)
+# plt.plot(np.real(conf_flip), color='blue')
+# plt.plot(np.imag(conf_flip), color='red')
+# plt.figure(10)
+# plt.plot(np.real(envelope), color='blue')
+# plt.plot(np.imag(envelope), color='red')
+# plt.figure(11)
+# plt.plot(np.real(conj_envelope), color='blue')
+# plt.plot(np.imag(conj_envelope), color='red')
+# plt.figure(12)
+# plt.plot(np.real(conj_envelope_w0), color='blue')
+# plt.plot(np.imag(conj_envelope_w0), color='red')
+#
 # plt.show()
-# exit(0)
+
+
 
 
 
