@@ -98,30 +98,38 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
                                         y_true: y_in[index].reshape(1, -1)})
         mses.append(mse)
 
-        # plot E(t) retrieved
-        axis[0][ax].cla()
-        axis[0][ax].plot(predictions[index, :64], color="blue")
-        axis[0][ax].plot(predictions[index, 64:], color="red")
-
-        axis[0][ax].text(0.1, 1.3, "Epoch : {}".format(i + 1),
-                         transform=axis[0][ax].transAxes, backgroundcolor='white')
-        axis[0][ax].text(0.1, 1.15, "MSE: " + str(mse),
-                         transform=axis[0][ax].transAxes, backgroundcolor='white')
-        axis[0][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[0][ax].transAxes,
+        # plot  actual trace
+        axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
+                                                   len(generate_proof_traces.tauvec)), cmap='jet')
+        axis[0][ax].text(0.1, 1, "PROOF", transform=axis[0][ax].transAxes,
                          backgroundcolor='white')
+        axis[0][ax].text(0.1, 1.1, "Epoch : {}".format(i + 1),
+                         transform=axis[0][ax].transAxes, backgroundcolor='white')
 
         # plot E(t) retrieved
         axis[1][ax].cla()
-        axis[1][ax].plot(y_in[index, :64], color="blue")
-        axis[1][ax].plot(y_in[index, 64:], color="red")
-        axis[1][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
+        axis[1][ax].plot(predictions[index, :64], color="blue")
+        axis[1][ax].plot(predictions[index, 64:], color="red")
+
+        axis[1][ax].text(0.1, 1.1, "MSE: " + str(mse),
+                         transform=axis[1][ax].transAxes, backgroundcolor='white')
+        axis[1][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[1][ax].transAxes,
                          backgroundcolor='white')
 
-        # plot  actual trace
-        axis[2][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
-                                                   len(generate_proof_traces.tauvec)), cmap='jet')
-        axis[2][ax].text(0.1, 1, "PROOF", transform=axis[2][ax].transAxes,
+        # plot E(t) actual
+        axis[2][ax].cla()
+        axis[2][ax].plot(y_in[index, :64], color="blue")
+        axis[2][ax].plot(y_in[index, 64:], color="red")
+        axis[2][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
                          backgroundcolor='white')
+
+
+        axis[0][ax].set_xticks([])
+        axis[0][ax].set_yticks([])
+        axis[1][ax].set_xticks([])
+        axis[1][ax].set_yticks([])
+        axis[2][ax].set_xticks([])
+        axis[2][ax].set_yticks([])
 
 
     print("mses: ", mses)
@@ -220,7 +228,7 @@ epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'atts1'
+    modelname = 'atts1_test2'
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
@@ -280,7 +288,7 @@ if __name__ == "__main__":
             writer.flush()
 
             # every x steps plot predictions
-            if (i + 1) % 100 == 0 or (i + 1) <= 15:
+            if (i + 1) % 20 == 0 or (i + 1) <= 15:
                 # update the plot
 
                 batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)

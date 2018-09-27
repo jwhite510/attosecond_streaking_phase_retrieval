@@ -126,7 +126,7 @@ E_imag_f = hdf5_file.create_earray(hdf5_file.root,
 hdf5_file.close()
 
 fig, ax = plt.subplots(2, 1)
-n_samples = 1000
+n_samples = 20000
 plt.ion()
 plotting = True
 init = tf.global_variables_initializer()
@@ -142,7 +142,7 @@ with tf.Session() as sess:
         # generate a random xuv pulse
         xuv_rand = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=120, plot=False).Et_cropped_t_phase
 
-        if i % 10 == 0:
+        if i % 1000 == 0:
             print('generating sample {} of {}'.format(i + 1, n_samples))
             # generate the FROG trace
             time1 = time.time()
