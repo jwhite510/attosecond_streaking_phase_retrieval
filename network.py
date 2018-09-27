@@ -103,7 +103,7 @@ class GetData():
 
 
 
-def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
+def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
 
     mses = []
     predictions = sess.run(y_pred, feed_dict={x: x_in,
@@ -118,8 +118,14 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         # plot  actual trace
         axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
                                                    len(generate_proof_traces.tauvec)), cmap='jet')
-        axis[0][ax].text(0.1, 1, "PROOF", transform=axis[0][ax].transAxes,
-                         backgroundcolor='white')
+
+        if inputtype == 'rawtrace':
+            axis[0][ax].text(0.1, 1, "unprocessed trace", transform=axis[0][ax].transAxes,
+                             backgroundcolor='white')
+        elif inputtype == 'proof':
+            axis[0][ax].text(0.1, 1, "PROOF", transform=axis[0][ax].transAxes,
+                             backgroundcolor='white')
+
         axis[0][ax].text(0.1, 1.1, "Epoch : {}".format(i + 1),
                          transform=axis[0][ax].transAxes, backgroundcolor='white')
 
@@ -310,7 +316,7 @@ if __name__ == "__main__":
 
                 batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
                 plot_predictions(x_in=batch_x_train, y_in=batch_y_train, axis=ax1, fig=fig1,
-                                 set="train", modelname=modelname, epoch=i + 1)
+                                 set="train", modelname=modelname, epoch=i + 1, inputtype=get_data.imagetype)
 
                 plt.show()
                 plt.pause(0.001)
