@@ -15,6 +15,9 @@ class GetData():
         self.batch_size = batch_size
         self.filename = 'processed.hdf5'
 
+        # self.imagetype = 'proof'
+        self.imagetype = 'rawtrace'
+
         hdf5_file = tables.open_file("processed.hdf5", mode="r")
         attstraces = hdf5_file.root.attstrace[:, :]
         self.samples = np.shape(attstraces)[0]
@@ -29,7 +32,12 @@ class GetData():
         xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
         xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
 
-        trace_batch = hdf5_file.root.proof[self.batch_index:self.batch_index+self.batch_size, :]
+        if self.imagetype == 'rawtrace':
+            trace_batch = hdf5_file.root.attstrace[self.batch_index:self.batch_index + self.batch_size, :]
+
+        elif self.imagetype == 'proof':
+            trace_batch = hdf5_file.root.proof[self.batch_index:self.batch_index+self.batch_size, :]
+
 
         hdf5_file.close()
 
@@ -49,7 +57,12 @@ class GetData():
         xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[indexes, :])
         xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
 
-        trace_batch = hdf5_file.root.proof[indexes, :]
+        if self.imagetype == 'rawtrace':
+            trace_batch = hdf5_file.root.attstrace[indexes, :]
+        elif self.imagetype == 'proof':
+            trace_batch = hdf5_file.root.proof[indexes, :]
+
+
         hdf5_file.close()
 
         self.batch_index += self.batch_size
@@ -78,7 +91,11 @@ class GetData():
         xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:samples, :])
         xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:samples, :])
         xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
-        trace_eval = hdf5_file.root.proof[:samples, :]
+
+        if self.imagetype == 'rawtrace':
+            trace_eval = hdf5_file.root.attstrace[:samples, :]
+        elif self.imagetype == 'proof':
+            trace_eval = hdf5_file.root.proof[:samples, :]
 
         hdf5_file.close()
 
@@ -228,7 +245,7 @@ epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'atts1_test2'
+    modelname = 'atts_trace_raw'
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,

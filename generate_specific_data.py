@@ -93,19 +93,72 @@ E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
 xuv_specific_phase_pulses.append(E_t_phase)
 
 
-
 """
-pulse 5 - 14 translated in time
+test for ambiguities
 """
-# translate in time
+# pulse 5
 gdd = 0
 tod = -20
-for time_translate in np.linspace(-5, 5, 10):
+phase = gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
+E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
+xuv_specific_phase_pulses.append(E_t_phase)
 
-    phase = 2 * np.pi * fmat * time_translate
-    phase += gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
-    E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
-    xuv_specific_phase_pulses.append(E_t_phase)
+
+# add constant phase shift 6
+phase = 0.25 * np.pi
+E_t_phase_ps = E_t_phase * np.exp(1j * phase)
+xuv_specific_phase_pulses.append(E_t_phase_ps)
+
+
+# add constant phase shift 7
+phase = 0.5 * np.pi
+E_t_phase_ps = E_t_phase * np.exp(1j * phase)
+xuv_specific_phase_pulses.append(E_t_phase_ps)
+
+
+# add constant phase shift 8
+phase = 0.75 * np.pi
+E_t_phase_ps = E_t_phase * np.exp(1j * phase)
+xuv_specific_phase_pulses.append(E_t_phase_ps)
+
+
+
+# add constant phase shift 9
+phase = 1 * np.pi
+E_t_phase_ps = E_t_phase * np.exp(1j * phase)
+xuv_specific_phase_pulses.append(E_t_phase_ps)
+
+
+
+# plt.figure(5)
+# plt.plot(np.real(E_t_phase))
+# plt.show()
+# exit(0)
+
+
+
+
+# """
+# pulse 5 - 14 translated in time
+# """
+# # translate in time
+# gdd = 0
+# tod = -20
+# for time_translate in np.linspace(-5, 5, 10):
+#
+#     phase = 2 * np.pi * fmat * time_translate
+#     phase += gdd * (fmat - xuv_specific.f0)**2 + tod * (fmat - xuv_specific.f0)**3
+#     E_t_phase = xuv_specific.apply_phase(spectral_phase=phase)
+#     xuv_specific_phase_pulses.append(E_t_phase)
+
+
+
+
+
+
+
+
+
 
 
 

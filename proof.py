@@ -37,6 +37,44 @@ def plot_xuv_att_proof():
     save_figure(filename='xuv_ir_proof_streak')
 
 
+def plot_xuv_att_proof_envlope():
+
+    # plot only the xuv, attosecond trace, and proof trace
+    fig = plt.figure(constrained_layout=False, figsize=(7, 7))
+    gs = fig.add_gridspec(5, 2)
+    # plot the XUV
+    ax = fig.add_subplot(gs[0, :])
+    ax.plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+    ax.plot(np.real(xuv), color='blue')
+    ax.text(0, 0.9, 'XUV', transform=ax.transAxes, backgroundcolor='white')
+
+    # plot the trace
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(tauvec_time, p_vec, trace, cmap='jet')
+    ax.text(0, 0.9, 'Attosecond Streaking Trace', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.abs(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'abs of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+    ax = fig.add_subplot(gs[3, :])
+    ax.pcolormesh(tauvec_time, p_vec, np.real(trace_filtered_time), cmap='jet')
+    ax.text(0, 0.8, 'real of trace [Delay Domain]', transform=ax.transAxes, backgroundcolor='white')
+
+
+    envelope = xuv * np.exp(-2j * np.pi * xuv_f0 * xuv_int_t)
+
+    ax = fig.add_subplot(gs[4, :])
+    ax.plot(xuv_int_t, np.abs(envelope), color='black', linestyle='dashed', alpha=0.5)
+    ax.plot(xuv_int_t, np.real(envelope), color='blue')
+    ax.plot(xuv_int_t, np.imag(envelope), color='red')
+    ax.plot([xuv_int_t[0], xuv_int_t[-1]], [0, 0], color='black', alpha=0.5)
+    ax.plot([0, 0], [np.max(np.abs(envelope))/2, -np.max(np.abs(envelope))/2], color='black', alpha=0.5)
+    ax.text(0, 0.8, 'XUV envelope [time]', transform=ax.transAxes, backgroundcolor='white')
+
+    save_figure(filename='xuv_ir_proof_streak_envelope')
+
+
 def plot_compensation():
 
     # plot the compensation
@@ -300,6 +338,7 @@ try:
     f0_ir = crab_tf_items['irf0']
     irEt = crab_tf_items['irEt']
     irtmat = crab_tf_items['irtmat']
+    xuv_f0 = crab_tf_items['xuvf0']
 
 except Exception as e:
     print(e)
@@ -313,12 +352,18 @@ if __name__ == '__main__':
 
     home = os.getcwd()
 
-    for index in np.arange(5, 15, 1):
+    for index in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]:
         print('plotting index {}'.format(index))
 
         show_plots = False
         os.chdir(home)
-        hdf5_file = tables.open_file('attstrac_specific.hdf5', mode='r')
+
+        # for specific data
+        # hdf5_file = tables.open_file('attstrac_specific.hdf5', mode='r')
+
+        # training data
+        hdf5_file = tables.open_file('attstrace.hdf5', mode='r')
+
         xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
         trace = hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec))
         hdf5_file.close()
@@ -365,6 +410,8 @@ if __name__ == '__main__':
         plot_compensation()
 
         plot_xuv_att_proof()
+
+        plot_xuv_att_proof_envlope()
 
         if show_plots:
             plt.show()
