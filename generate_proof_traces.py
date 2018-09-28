@@ -15,26 +15,36 @@ def plot_elements(trace, proof_trace, xuv, xuv_envelope):
     ax = fig.add_subplot(gs[0, 0])
     ax.pcolormesh(trace, cmap='jet')
     ax.text(0, 0.9, '1', transform=ax.transAxes, backgroundcolor='yellow')
+    ax.set_xticks([])
+    ax.set_yticks([])
 
     ax = fig.add_subplot(gs[0, 1])
     ax.pcolormesh(proof_trace, cmap='jet')
     ax.text(0, 0.9, '2', transform=ax.transAxes, backgroundcolor='yellow')
+    ax.set_xticks([])
+    ax.set_yticks([])
+
 
     ax = fig.add_subplot(gs[1, 0])
-    ax.plot(np.real(xuv), color='blue')
-    ax.plot(np.abs(xuv), color='black', linestyle='dashed')
+    ax.plot(xuv_int_t, np.real(xuv), color='blue')
+    ax.plot(xuv_int_t, np.imag(xuv), color='red')
+    ax.plot(xuv_int_t, np.abs(xuv), color='black', linestyle='dashed')
     ax.text(0, 0.9, '1', transform=ax.transAxes, backgroundcolor='yellow')
 
     ax = fig.add_subplot(gs[1, 1])
-    ax.plot(np.real(xuv_envelope), color='blue')
-    ax.plot(np.abs(xuv_envelope), color='black', linestyle='dashed')
+    ax.plot(time_reduced_dim, np.real(xuv_envelope), color='blue')
+    ax.plot(time_reduced_dim, np.imag(xuv_envelope), color='red')
+    ax.plot(time_reduced_dim, np.abs(xuv_envelope), color='black', linestyle='dashed')
     ax.text(0, 0.9, '2', transform=ax.transAxes, backgroundcolor='yellow')
+    ax.plot([time_reduced_dim[0], time_reduced_dim[-1]], [0, 0], color='black', alpha=0.5)
+    ax.plot([0, 0], [0.2, -0.2], color='black', alpha=0.5)
 
+    plt.savefig('./processdata.png')
     plt.show()
 
 
 def process_xuv(xuv, xuv_time, f0, reduction, plotting=True):
-
+    global time_reduced_dim
     f0_removed = xuv * np.exp(-1j * 2 * np.pi * f0 * xuv_time)
     t_steps_reduced = len(xuv)/reduction
     time_reduced_dim = np.linspace(xuv_time[0], xuv_time[-1], t_steps_reduced)
