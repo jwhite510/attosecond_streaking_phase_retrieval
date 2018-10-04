@@ -226,8 +226,9 @@ convo_3_flat = tf.contrib.layers.flatten(convo_3)
 full_layer_one = normal_full_layer(convo_3_flat, 512)
 
 #dropout
-hold_prob = tf.constant(0.1, dtype=tf.float32)
+hold_prob = tf.placeholder_with_default(1.0, shape=())
 dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
 
 y_pred = normal_full_layer(dropout_layer, 128)
 #y_pred = normal_full_layer(full_layer_one, 128)
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                sess.run(train, feed_dict={x: batch_x, y_true: batch_y})
+                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.1})
 
             print("")
 
