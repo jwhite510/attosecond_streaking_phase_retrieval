@@ -108,7 +108,7 @@ def construct_proof(trace, tauvec, dt, f0_ir):
     traceft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
 
     # construct filter
-    filter_type = 'rect'
+    filter_type = 'pass_above_w0'
 
     if filter_type == 'rect':
         width = 2
@@ -122,6 +122,15 @@ def construct_proof(trace, tauvec, dt, f0_ir):
         width = 0.001
         filter = np.exp(-(tauvec_f_space - f0_ir) ** 2 / width ** 2)
         filter += np.exp(-(tauvec_f_space + f0_ir) ** 2 / width ** 2)
+
+    elif filter_type == 'pass_above_w0':
+        width = 2
+        filter = np.zeros_like(tauvec_f_space)
+        f_pos_index = np.argmin(np.abs(tauvec_f_space - f0_ir))
+        f_neg_index = np.argmin(np.abs(tauvec_f_space + f0_ir))
+        filter[f_pos_index - width:] = 1
+        filter[:f_neg_index + width] = 1
+
 
     filter2d = filter.reshape(1, -1) * np.real(np.ones_like(traceft))
     trace_filtered = filter2d * traceft
