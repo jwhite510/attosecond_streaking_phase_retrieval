@@ -15,8 +15,8 @@ class GetData():
         self.batch_size = batch_size
         self.filename = 'processed.hdf5'
 
-        # self.imagetype = 'proof'
-        self.imagetype = 'rawtrace'
+        self.imagetype = 'proof'
+        # self.imagetype = 'rawtrace'
 
         hdf5_file = tables.open_file("processed.hdf5", mode="r")
         attstraces = hdf5_file.root.attstrace[:, :]
@@ -251,7 +251,8 @@ epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'atts_trace_raw'
+    modelname = 'proof_2_keep_all_freq_above0'
+    print('starting ' + modelname)
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
