@@ -15,8 +15,8 @@ class GetData():
         self.batch_size = batch_size
         self.filename = 'processed.hdf5'
 
-        self.imagetype = 'proof'
-        # self.imagetype = 'rawtrace'
+        # self.imagetype = 'proof'
+        self.imagetype = 'rawtrace'
 
         hdf5_file = tables.open_file("processed.hdf5", mode="r")
         attstraces = hdf5_file.root.attstrace[:, :]
@@ -252,7 +252,7 @@ epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'proof_2_keep_all_freq_above0'
+    modelname = 'raw_img_hp08_bs_10_test_2'
     print('starting ' + modelname)
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
@@ -294,7 +294,7 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.1})
+                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8})
 
             print("")
 
