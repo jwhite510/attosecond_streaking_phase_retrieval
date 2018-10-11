@@ -154,6 +154,10 @@ tvec =  ir.tmat
 p_vec = np.linspace(3, 6.5, 200)
 tauvec = np.arange(-22000, 22000, 250)
 
+# few cycle
+# p_vec = np.linspace(3, 6.5, 250)
+# tauvec = np.arange(-5000, 5000, 56)
+
 # calculate At
 A_t = -1 * dt * np.cumsum(ir.Et)
 A_t_integ = -1 * np.flip(dt * np.cumsum(np.flip(A_t, axis=0)), axis=0)
