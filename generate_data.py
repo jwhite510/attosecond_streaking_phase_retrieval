@@ -152,7 +152,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
 
     n_train_samples = 20000
-    n_test_samples = 1000
+    n_test_samples = 500
 
     init.run()
 
