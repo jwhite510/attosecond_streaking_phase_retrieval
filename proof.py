@@ -124,7 +124,7 @@ def construct_proof(trace, tauvec, dt, f0_ir):
         filter += np.exp(-(tauvec_f_space + f0_ir) ** 2 / width ** 2)
 
     elif filter_type == 'pass_above_w0':
-        width = 2
+        width = 0
         filter = np.zeros_like(tauvec_f_space)
         f_pos_index = np.argmin(np.abs(tauvec_f_space - f0_ir))
         f_neg_index = np.argmin(np.abs(tauvec_f_space + f0_ir))
