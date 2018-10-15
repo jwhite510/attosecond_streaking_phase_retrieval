@@ -205,38 +205,111 @@ def normal_full_layer(input_layer, size):
     return tf.matmul(input_layer, W) + b
 
 
+def multires_layer(input, input_channels, filter_sizes):
+
+    # list of layers
+    filters = []
+    for filter_size in filter_sizes:
+        # create filter
+        filters.append(convolutional_layer(input, shape=[filter_size, filter_size,
+                        input_channels, input_channels], activate='relu', stride=[1, 1]))
+
+    concat_layer = tf.concat(filters, axis=3)
+    return concat_layer
+
+
+
+
 
 # placeholders
 x = tf.placeholder(tf.float32, shape=[None, int(len(generate_proof_traces.p_vec)*len(generate_proof_traces.tauvec))])
 y_true = tf.placeholder(tf.float32, shape=[None, int(generate_proof_traces.xuv_field_length*2)])
 
 
-# layers
-
+#input image
 x_image = tf.reshape(x, [-1, len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec), 1])
 
-# shape = [sizex, sizey, channels, filters/features]
-convo_1 = convolutional_layer(x_image, shape=[4, 4, 1, 32], activate='none', stride=[2, 2])
-convo_2 = convolutional_layer(convo_1, shape=[2, 2, 32, 32], activate='none', stride=[2, 2])
-convo_3 = convolutional_layer(convo_2, shape=[1, 1, 32, 32], activate='leaky', stride=[1, 1])
+network = 1
 
-#convo_3_flat = tf.reshape(convo_3, [-1, 58*106*32])
-convo_3_flat = tf.contrib.layers.flatten(convo_3)
-#full_layer_one = tf.nn.relu(normal_full_layer(convo_3_flat, 512))
-full_layer_one = normal_full_layer(convo_3_flat, 512)
+"""
+network 1 uses a 3 convolutional layers followed by two dense layers
 
-#dropout
-hold_prob = tf.placeholder_with_default(1.0, shape=())
-dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+network 2 uses the multires layer setting
+"""
+if network == 1:
+
+    print('Setting up standard convolutional network')
+
+    # shape = [sizex, sizey, channels, filters/features]
+    convo_1 = convolutional_layer(x_image, shape=[4, 4, 1, 32], activate='none', stride=[2, 2])
+    convo_2 = convolutional_layer(convo_1, shape=[2, 2, 32, 32], activate='none', stride=[2, 2])
+    convo_3 = convolutional_layer(convo_2, shape=[1, 1, 32, 32], activate='leaky', stride=[1, 1])
+
+    #convo_3_flat = tf.reshape(convo_3, [-1, 58*106*32])
+    convo_3_flat = tf.contrib.layers.flatten(convo_3)
+    #full_layer_one = tf.nn.relu(normal_full_layer(convo_3_flat, 512))
+    full_layer_one = normal_full_layer(convo_3_flat, 512)
+
+    #dropout
+    hold_prob = tf.placeholder_with_default(1.0, shape=())
+    dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
 
-y_pred = normal_full_layer(dropout_layer, 128)
-#y_pred = normal_full_layer(full_layer_one, 128)
+    y_pred = normal_full_layer(dropout_layer, 128)
+    #y_pred = normal_full_layer(full_layer_one, 128)
 
-loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-train = optimizer.minimize(loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    train = optimizer.minimize(loss)
+
+
+elif network == 2:
+
+    print('Setting up multires layer network')
+
+    # six convolutional layers
+    convolutional_outputs = 8
+
+    multires_filters = [11, 7, 5, 3]
+
+    multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+
+    conv_layer_1= convolutional_layer(multires_layer_1, shape=[1, 1, len(multires_filters), convolutional_outputs],
+                            activate='relu', stride=[2, 2])
+
+
+
+    multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=convolutional_outputs,
+                                      filter_sizes=multires_filters)
+
+    conv_layer_2 = convolutional_layer(multires_layer_2, shape=[1, 1, int(convolutional_outputs*len(multires_filters)),
+                                convolutional_outputs], activate='relu', stride=[2, 2])
+
+
+
+    multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=convolutional_outputs,
+                                      filter_sizes=multires_filters)
+
+    conv_layer_3 = convolutional_layer(multires_layer_3,
+                                       shape=[1, 1, int(convolutional_outputs * len(multires_filters)),
+                                              convolutional_outputs], activate='relu', stride=[2, 2])
+
+    convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
+    full_layer_one = normal_full_layer(convo_3_flat, 512)
+
+    # dropout
+    hold_prob = tf.placeholder_with_default(1.0, shape=())
+    dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+    y_pred = normal_full_layer(dropout_layer, 128)
+
+    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    train = optimizer.minimize(loss)
+
+
 
 init = tf.global_variables_initializer()
 
