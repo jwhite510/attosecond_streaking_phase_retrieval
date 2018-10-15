@@ -75,6 +75,59 @@ def process_xuv(xuv, xuv_time, f0, reduction, plotting=True):
 
 
 
+
+def generate_processed_traces(filename):
+
+    # create a file for proof traces and xuv envelopes
+    processed_filename = filename.split('.')[0] +'_processed.hdf5'
+
+    print('creating file: '+processed_filename)
+
+    with tables.open_file(processed_filename, mode='w') as processed_data:
+
+        processed_data.create_earray(processed_data.root, 'attstrace', tables.Float16Atom(),
+                                     shape=(0, len(p_vec) * len(tauvec)))
+
+        processed_data.create_earray(processed_data.root, 'proof', tables.Float16Atom(),
+                                     shape=(0, len(p_vec) * len(tauvec)))
+
+        processed_data.create_earray(processed_data.root, 'xuv', tables.ComplexAtom(itemsize=16),
+                                     shape=(0, len(xuv_int_t)))
+
+        processed_data.create_earray(processed_data.root, 'xuv_envelope', tables.ComplexAtom(itemsize=16),
+                                     shape=(0, int(len(xuv_int_t) / xuv_dimmension_reduction)))
+
+
+    with tables.open_file(filename, mode='r') as unprocessed_datafile:
+        with tables.open_file(processed_filename, mode='a') as processed_data:
+
+            # get the number of data points
+            samples = np.shape(unprocessed_datafile.root.xuv_real[:, :])[0]
+            print('Samples to be processed: ', samples)
+
+            for index in range(samples):
+
+                if index % 5 == 0:
+                    print(index, '/', samples)
+
+                xuv = unprocessed_datafile.root.xuv_real[index, :] + 1j * unprocessed_datafile.root.xuv_imag[index, :]
+                attstrace = unprocessed_datafile.root.trace[index, :].reshape(len(p_vec), len(tauvec))
+
+                # construct proof trace
+                proof_trace, _ = construct_proof(attstrace, tauvec=tauvec, dt=dt, f0_ir=f0_ir)
+
+                # construct xuv pulse minus central oscilating term
+                xuv_envelope = process_xuv(xuv, xuv_time=xuv_int_t, f0=xuvf0,
+                                           reduction=xuv_dimmension_reduction, plotting=False)
+
+                # plot_elements(attstrace, np.real(proof_trace), xuv, xuv_envelope)
+
+                # append the data to the processed hdf5 file
+                processed_data.root.attstrace.append(attstrace.reshape(1, -1))
+                processed_data.root.proof.append(np.real(proof_trace).reshape(1, -1))
+                processed_data.root.xuv.append(xuv.reshape(1, -1))
+                processed_data.root.xuv_envelope.append(xuv_envelope.reshape(1, -1))
+
 # open the pickles
 try:
     with open('crab_tf_items.p', 'rb') as file:
@@ -103,72 +156,22 @@ xuv_field_length = int(len(xuv_int_t)/xuv_dimmension_reduction)
 
 if __name__ == "__main__":
 
-
-
-
     print('Dimmension reduction: ', xuv_dimmension_reduction)
     print('xuv field length: ', int(len(xuv_int_t)/xuv_dimmension_reduction))
 
-    # create a file for proof traces and xuv envelopes
-    with tables.open_file('processed.hdf5', mode='w') as processed_data:
-
-        processed_data.create_earray(processed_data.root, 'attstrace', tables.Float16Atom(),
-                                     shape=(0, len(p_vec) * len(tauvec)))
-
-        processed_data.create_earray(processed_data.root, 'proof', tables.Float16Atom(),
-                                     shape=(0, len(p_vec) * len(tauvec)))
-
-        processed_data.create_earray(processed_data.root, 'xuv', tables.ComplexAtom(itemsize=16),
-                                     shape=(0, len(xuv_int_t)))
-
-        processed_data.create_earray(processed_data.root, 'xuv_envelope', tables.ComplexAtom(itemsize=16),
-                                     shape=(0, int(len(xuv_int_t)/xuv_dimmension_reduction)))
-
-
     # unprocessed_filename = 'attstrac_specific.hdf5'
-    unprocessed_filename = 'attstrace.hdf5'
-
-
-    with tables.open_file(unprocessed_filename, mode='r') as unprocessed_datafile:
-        with tables.open_file('processed.hdf5', mode='a') as processed_data:
-
-            # get the number of data points
-            samples = np.shape(unprocessed_datafile.root.xuv_real[:, :])[0]
-            print('Samples to be processed: ', samples)
-
-            for index in range(samples):
-
-                if index % 5 == 0:
-                    print(index, '/', samples )
-
-                xuv = unprocessed_datafile.root.xuv_real[index, :] + 1j * unprocessed_datafile.root.xuv_imag[index, :]
-                attstrace = unprocessed_datafile.root.trace[index, :].reshape(len(p_vec), len(tauvec))
-
-                # construct proof trace
-                proof_trace, _ = construct_proof(attstrace, tauvec=tauvec, dt=dt, f0_ir=f0_ir)
-
-                # construct xuv pulse minus central oscilating term
-                xuv_envelope = process_xuv(xuv, xuv_time=xuv_int_t, f0=xuvf0,
-                                           reduction=xuv_dimmension_reduction, plotting=False)
-
-                # plot_elements(attstrace, np.real(proof_trace), xuv, xuv_envelope)
-
-                # append the data to the processed hdf5 file
-                processed_data.root.attstrace.append(attstrace.reshape(1, -1))
-                processed_data.root.proof.append(np.real(proof_trace).reshape(1, -1))
-                processed_data.root.xuv.append(xuv.reshape(1, -1))
-                processed_data.root.xuv_envelope.append(xuv_envelope.reshape(1, -1))
-
-
+    generate_processed_traces(filename='attstrace_train.hdf5')
+    generate_processed_traces(filename='attstrace_test.hdf5')
 
     # test opening the file
     index = 0
-    with tables.open_file('processed.hdf5', mode='r') as processed_data:
+    # test_open_file = 'attstrace_test_processed.hdf5'
+    test_open_file = 'attstrace_train_processed.hdf5'
+    with tables.open_file(test_open_file, mode='r') as processed_data:
         xuv1 = processed_data.root.xuv[index, :]
         xuv_envelope1 = processed_data.root.xuv_envelope[index, :]
         attstrace1 = processed_data.root.attstrace[index, :].reshape(len(p_vec), len(tauvec))
         proof_trace1 = processed_data.root.proof[index, :].reshape(len(p_vec), len(tauvec))
-
         plot_elements(attstrace1, np.real(proof_trace1), xuv1, xuv_envelope1)
 
 
