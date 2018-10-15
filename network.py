@@ -13,12 +13,13 @@ class GetData():
         self.batch_counter = 0
         self.batch_index = 0
         self.batch_size = batch_size
-        self.filename = 'processed.hdf5'
+        self.train_filename = 'attstrace_train_processed.hdf5'
+        self.test_filename = 'attstrace_test_processed.hdf5'
 
         # self.imagetype = 'proof'
         self.imagetype = 'rawtrace'
 
-        hdf5_file = tables.open_file("processed.hdf5", mode="r")
+        hdf5_file = tables.open_file(self.train_filename, mode="r")
         attstraces = hdf5_file.root.attstrace[:, :]
         self.samples = np.shape(attstraces)[0]
         hdf5_file.close()
@@ -26,7 +27,7 @@ class GetData():
     def next_batch(self):
 
         # retrieve the next batch of data from the data source
-        hdf5_file = tables.open_file("processed.hdf5", mode="r")
+        hdf5_file = tables.open_file(self.train_filename, mode="r")
 
         xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
         xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
@@ -70,23 +71,30 @@ class GetData():
         return  trace_batch, xuv_appended_batch
 
 
-    def evaluate_on_test_data(self, samples):
+    def evaluate_on_test_data(self):
 
         # this is used to evaluate the mean squared error of the data after every epoch
-        pass
-        # hdf5_file = tables.open_file("frogtestdata.hdf5", mode="r")
-        # E_real_eval = hdf5_file.root.E_real[:samples, :]
-        # E_imag_eval = hdf5_file.root.E_imag[:samples, :]
-        # E_appended_eval = np.append(E_real_eval, E_imag_eval, 1)
-        # frog_eval = hdf5_file.root.frog[:samples, :]
-        # hdf5_file.close()
-        #
-        # return frog_eval, E_appended_eval
+        hdf5_file = tables.open_file(self.test_filename, mode="r")
+
+        xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:, :])
+        xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:, :])
+        xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+
+        if self.imagetype == 'rawtrace':
+            trace_eval = hdf5_file.root.attstrace[:, :]
+        elif self.imagetype == 'proof':
+            trace_eval = hdf5_file.root.proof[:, :]
+
+        hdf5_file.close()
+
+        return trace_eval, xuv_appended_eval
+
+
 
     def evaluate_on_train_data(self, samples):
 
         # this is used to evaluate the mean squared error of the data after every epoch
-        hdf5_file = tables.open_file("processed.hdf5", mode="r")
+        hdf5_file = tables.open_file(self.train_filename, mode="r")
 
         xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:samples, :])
         xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:samples, :])
@@ -332,9 +340,9 @@ if __name__ == "__main__":
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
                         wspace=0.1, hspace=0.1)
 
-    # fig2, ax2 = plt.subplots(4, 6, figsize=(14, 8))
-    # plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
-    #                     wspace=0.1, hspace=0.1)
+    fig2, ax2 = plt.subplots(4, 6, figsize=(14, 8))
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
+                        wspace=0.1, hspace=0.1)
 
     plt.ion()
 
@@ -371,11 +379,11 @@ if __name__ == "__main__":
 
             print("")
 
-            # # view the mean squared error of the test data
-            # batch_x_test, batch_y_test = get_data.evaluate_on_test_data(samples=500)
-            # print("test MSE: ", sess.run(loss, feed_dict={x: batch_x_test, y_true: batch_y_test}), "\n")
-            # summ = sess.run(test_mse_tb, feed_dict={x: batch_x_test, y_true: batch_y_test})
-            # writer.add_summary(summ, global_step=i+1)
+            # view the mean squared error of the train data
+            batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+            print("test MSE: ", sess.run(loss, feed_dict={x: batch_x_test, y_true: batch_y_test}))
+            summ = sess.run(test_mse_tb, feed_dict={x: batch_x_test, y_true: batch_y_test})
+            writer.add_summary(summ, global_step=i + 1)
 
             # view the mean squared error of the train data
             batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
@@ -392,6 +400,12 @@ if __name__ == "__main__":
                 batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
                 plot_predictions(x_in=batch_x_train, y_in=batch_y_train, axis=ax1, fig=fig1,
                                  set="train", modelname=modelname, epoch=i + 1, inputtype=get_data.imagetype)
+
+
+                batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+                plot_predictions(x_in=batch_x_test, y_in=batch_y_test, axis=ax2, fig=fig2,
+                                 set="test", modelname=modelname, epoch=i + 1, inputtype=get_data.imagetype)
+
 
                 plt.show()
                 plt.pause(0.001)
