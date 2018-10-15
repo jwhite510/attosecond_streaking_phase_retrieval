@@ -5,7 +5,7 @@ import random
 import tensorflow as tf
 import generate_proof_traces
 import os
-
+import shutil
 
 class GetData():
     def __init__(self, batch_size):
@@ -237,7 +237,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, int(generate_proof_traces.xuv_f
 #input image
 x_image = tf.reshape(x, [-1, len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec), 1])
 
-network = 1
+network = 2
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -277,7 +277,7 @@ elif network == 2:
     print('Setting up multires layer network')
 
     # six convolutional layers
-    convolutional_outputs = 8
+    convolutional_outputs = 16
 
     multires_filters = [11, 7, 5, 3]
 
@@ -333,8 +333,10 @@ epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'raw_img_hp08_bs_10_test_2'
+    modelname = 'multires_test_1'
     print('starting ' + modelname)
+    # save this file
+    shutil.copyfile('./network.py', './models/network_{}_.py'.format(modelname))
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
