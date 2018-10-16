@@ -237,7 +237,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, int(generate_proof_traces.xuv_f
 #input image
 x_image = tf.reshape(x, [-1, len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec), 1])
 
-network = 2
+network = 1
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -319,21 +319,23 @@ elif network == 2:
 
 
 
-init = tf.global_variables_initializer()
 
-# initialize data object
-get_data = GetData(batch_size=10)
-
-test_mse_tb = tf.summary.scalar("test_mse", loss)
-train_mse_tb = tf.summary.scalar("train_mse", loss)
-
-
-saver = tf.train.Saver()
-epochs = 300
 
 if __name__ == "__main__":
 
-    modelname = 'multires_test_1'
+    init = tf.global_variables_initializer()
+
+    # initialize data object
+    get_data = GetData(batch_size=10)
+
+    test_mse_tb = tf.summary.scalar("test_mse", loss)
+
+    train_mse_tb = tf.summary.scalar("train_mse", loss)
+
+    saver = tf.train.Saver()
+    epochs = 300
+
+    modelname = 'reg_conv_net_1'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network.py', './models/network_{}_.py'.format(modelname))
