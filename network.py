@@ -333,7 +333,7 @@ if __name__ == "__main__":
     train_mse_tb = tf.summary.scalar("train_mse", loss)
 
     saver = tf.train.Saver()
-    epochs = 300
+    epochs = 200
 
     modelname = 'reg_conv_net_1'
     print('starting ' + modelname)
@@ -344,7 +344,7 @@ if __name__ == "__main__":
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
                         wspace=0.1, hspace=0.1)
 
-    fig2, ax2 = plt.subplots(4, 6, figsize=(14, 8))
+    fig2, ax2 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
                         wspace=0.1, hspace=0.1)
 
