@@ -6,7 +6,7 @@ from scipy import interpolate
 # load the model functions
 import importlib
 network_name = 'reg_conv_net_1'
-model = importlib.import_module('models.network_{}_'.format(network_name))
+model = importlib.import_module('models.network_{}'.format(network_name))
 
 # load the model data
 import tensorflow as tf
