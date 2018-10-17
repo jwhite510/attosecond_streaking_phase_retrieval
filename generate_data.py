@@ -50,6 +50,7 @@ class XUV_Field_rand_phase(XUV_Field):
 
         Corrected_centralfreq = Envelope_corrected * np.exp(2j * np.pi * self.f0 * self.tmat_cropped)
 
+        # keep in frequency domain
         self.Et_cropped_t_phase = Corrected_centralfreq
 
         # plt.plot(np.real(Corrected_centralfreq))
