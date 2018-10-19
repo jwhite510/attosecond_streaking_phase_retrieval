@@ -19,6 +19,10 @@ class GetData():
         # self.imagetype = 'proof'
         self.imagetype = 'rawtrace'
 
+        self.labeltype = 'frequency'
+        # self.labeltype = 'temporal'
+
+
         hdf5_file = tables.open_file(self.train_filename, mode="r")
         attstraces = hdf5_file.root.attstrace[:, :]
         self.samples = np.shape(attstraces)[0]
@@ -29,9 +33,18 @@ class GetData():
         # retrieve the next batch of data from the data source
         hdf5_file = tables.open_file(self.train_filename, mode="r")
 
-        xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
-        xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
-        xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
+
+        if self.labeltype == 'temporal':
+            xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
+            xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[self.batch_index:self.batch_index+self.batch_size, :])
+            xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
+
+        elif self.labeltype == 'frequency':
+            xuv_real_batch = np.real(hdf5_file.root.xuv_frequency_domain[self.batch_index:self.batch_index + self.batch_size, :])
+            xuv_imag_batch = np.imag(hdf5_file.root.xuv_frequency_domain[self.batch_index:self.batch_index + self.batch_size, :])
+            xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
+
+
 
         if self.imagetype == 'rawtrace':
             trace_batch = hdf5_file.root.attstrace[self.batch_index:self.batch_index + self.batch_size, :]
@@ -49,26 +62,28 @@ class GetData():
 
     def next_batch_random(self):
 
+        pass
+
         # generate random indexes for the batch
         # make a vector of random integers between 0 and samples-1
-        indexes = random.sample(range(self.samples), self.batch_size)
-        hdf5_file = tables.open_file("processed.hdf5", mode="r")
-
-        xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[indexes, :])
-        xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[indexes, :])
-        xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
-
-        if self.imagetype == 'rawtrace':
-            trace_batch = hdf5_file.root.attstrace[indexes, :]
-        elif self.imagetype == 'proof':
-            trace_batch = hdf5_file.root.proof[indexes, :]
-
-
-        hdf5_file.close()
-
-        self.batch_index += self.batch_size
-
-        return  trace_batch, xuv_appended_batch
+        # indexes = random.sample(range(self.samples), self.batch_size)
+        # hdf5_file = tables.open_file("processed.hdf5", mode="r")
+        #
+        # xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[indexes, :])
+        # xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[indexes, :])
+        # xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
+        #
+        # if self.imagetype == 'rawtrace':
+        #     trace_batch = hdf5_file.root.attstrace[indexes, :]
+        # elif self.imagetype == 'proof':
+        #     trace_batch = hdf5_file.root.proof[indexes, :]
+        #
+        #
+        # hdf5_file.close()
+        #
+        # self.batch_index += self.batch_size
+        #
+        # return  trace_batch, xuv_appended_batch
 
 
     def evaluate_on_test_data(self):
@@ -76,9 +91,18 @@ class GetData():
         # this is used to evaluate the mean squared error of the data after every epoch
         hdf5_file = tables.open_file(self.test_filename, mode="r")
 
-        xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:, :])
-        xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:, :])
-        xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+        if self.labeltype == 'temporal':
+
+            xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:, :])
+            xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:, :])
+            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+
+        elif self.labeltype == 'frequency':
+
+            xuv_real_eval = np.real(hdf5_file.root.xuv_frequency_domain[:, :])
+            xuv_imag_eval = np.imag(hdf5_file.root.xuv_frequency_domain[:, :])
+            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+
 
         if self.imagetype == 'rawtrace':
             trace_eval = hdf5_file.root.attstrace[:, :]
@@ -96,9 +120,15 @@ class GetData():
         # this is used to evaluate the mean squared error of the data after every epoch
         hdf5_file = tables.open_file(self.train_filename, mode="r")
 
-        xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:samples, :])
-        xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:samples, :])
-        xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+        if self.labeltype == 'temporal':
+            xuv_real_eval = np.real(hdf5_file.root.xuv_envelope[:samples, :])
+            xuv_imag_eval = np.imag(hdf5_file.root.xuv_envelope[:samples, :])
+            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+
+        elif self.labeltype == 'frequency':
+            xuv_real_eval = np.real(hdf5_file.root.xuv_frequency_domain[:samples, :])
+            xuv_imag_eval = np.imag(hdf5_file.root.xuv_frequency_domain[:samples, :])
+            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
 
         if self.imagetype == 'rawtrace':
             trace_eval = hdf5_file.root.attstrace[:samples, :]
