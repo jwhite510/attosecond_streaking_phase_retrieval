@@ -153,49 +153,53 @@ def Ew_64_to_Et_512(E_f_64, f_512, start_index, width):
     return E_t
 
 
-xuv_test = XUV_Field(N=N, tmax=tmax, gdd=500, tod=0).Et[lower:upper]
 
 
-fig, ax = plt.subplots(3, 1)
+if __name__ == "__main__":
 
-plt.ion()
-plotting = True
-init = tf.global_variables_initializer()
-with tf.Session() as sess:
-
-    n_train_samples = 20000
-    n_test_samples = 500
-
-    init.run()
-
-    generate_samples(n_samples=n_train_samples, filename='attstrace_train.hdf5')
-    generate_samples(n_samples=n_test_samples, filename='attstrace_test.hdf5')
+    xuv_test = XUV_Field(N=N, tmax=tmax, gdd=500, tod=0).Et[lower:upper]
 
 
-# test open the file
-index = 20
-hdf5_file = tables.open_file('attstrace_train.hdf5', mode='r')
-# hdf5_file = tables.open_file('attstrace_test.hdf5', mode='r')
+    fig, ax = plt.subplots(3, 1)
 
-xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
-xuv_f = hdf5_file.root.xuv_frequency_domain[index, :]
-plt.ioff()
+    plt.ion()
+    plotting = True
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
 
-ax[0].clear()
-ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
-ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
+        n_train_samples = 20000
+        n_test_samples = 500
 
-ax[1].clear()
-ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
-ax[1].plot(np.real(xuv), color='blue')
-ax[1].plot(np.imag(xuv), color='red')
+        init.run()
 
-ax[2].clear()
-ax[2].plot(np.real(xuv_f), color='blue')
-ax[2].plot(np.imag(xuv_f), color='red')
+        generate_samples(n_samples=n_train_samples, filename='attstrace_train.hdf5')
+        generate_samples(n_samples=n_test_samples, filename='attstrace_test.hdf5')
 
-hdf5_file.close()
 
-plt.show()
+    # test open the file
+    index = 20
+    hdf5_file = tables.open_file('attstrace_train.hdf5', mode='r')
+    # hdf5_file = tables.open_file('attstrace_test.hdf5', mode='r')
+
+    xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
+    xuv_f = hdf5_file.root.xuv_frequency_domain[index, :]
+    plt.ioff()
+
+    ax[0].clear()
+    ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
+    ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
+
+    ax[1].clear()
+    ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
+    ax[1].plot(np.real(xuv), color='blue')
+    ax[1].plot(np.imag(xuv), color='red')
+
+    ax[2].clear()
+    ax[2].plot(np.real(xuv_f), color='blue')
+    ax[2].plot(np.imag(xuv_f), color='red')
+
+    hdf5_file.close()
+
+    plt.show()
 
 
