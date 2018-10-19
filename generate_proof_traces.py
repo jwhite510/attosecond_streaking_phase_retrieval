@@ -5,12 +5,13 @@ import tables
 from scipy import interpolate
 from proof import construct_proof
 import matplotlib.patches as mpatches
+from generate_data import XUV_Field_rand_phase
 
 
-def plot_elements(trace, proof_trace, xuv, xuv_envelope):
+def plot_elements(trace, proof_trace, xuv, xuv_envelope, xuv_frequency):
 
     fig = plt.figure(constrained_layout=False, figsize=(7, 5))
-    gs = fig.add_gridspec(2, 2)
+    gs = fig.add_gridspec(3, 2)
 
     ax = fig.add_subplot(gs[0, 0])
     ax.pcolormesh(trace, cmap='jet')
@@ -38,6 +39,15 @@ def plot_elements(trace, proof_trace, xuv, xuv_envelope):
     ax.text(0, 0.9, '2', transform=ax.transAxes, backgroundcolor='yellow')
     ax.plot([time_reduced_dim[0], time_reduced_dim[-1]], [0, 0], color='black', alpha=0.5)
     ax.plot([0, 0], [0.2, -0.2], color='black', alpha=0.5)
+
+
+    ax = fig.add_subplot(gs[2, 1])
+    ax.plot(frequency_axis, np.real(xuv_frequency), color='blue')
+    ax.plot(frequency_axis, np.imag(xuv_frequency), color='red')
+
+
+
+
 
     plt.savefig('./processdata.png')
     plt.show()
@@ -79,8 +89,8 @@ def process_xuv(xuv, xuv_time, f0, reduction, plotting=True):
 def generate_processed_traces(filename):
 
     # create a file for proof traces and xuv envelopes
-    processed_filename = filename.split('.')[0] +'_processed.hdf5'
 
+    processed_filename = filename.split('.')[0] +'_processed.hdf5'
     print('creating file: '+processed_filename)
 
     with tables.open_file(processed_filename, mode='w') as processed_data:
@@ -96,6 +106,11 @@ def generate_processed_traces(filename):
 
         processed_data.create_earray(processed_data.root, 'xuv_envelope', tables.ComplexAtom(itemsize=16),
                                      shape=(0, int(len(xuv_int_t) / xuv_dimmension_reduction)))
+
+        processed_data.create_earray(processed_data.root, 'xuv_frequency_domain', tables.ComplexAtom(itemsize=16),
+                                     shape=(0, 64))
+
+
 
 
     with tables.open_file(filename, mode='r') as unprocessed_datafile:
@@ -113,6 +128,7 @@ def generate_processed_traces(filename):
                 xuv = unprocessed_datafile.root.xuv_real[index, :] + 1j * unprocessed_datafile.root.xuv_imag[index, :]
                 attstrace = unprocessed_datafile.root.trace[index, :].reshape(len(p_vec), len(tauvec))
 
+
                 # construct proof trace
                 proof_trace, _ = construct_proof(attstrace, tauvec=tauvec, dt=dt, f0_ir=f0_ir)
 
@@ -120,9 +136,13 @@ def generate_processed_traces(filename):
                 xuv_envelope = process_xuv(xuv, xuv_time=xuv_int_t, f0=xuvf0,
                                            reduction=xuv_dimmension_reduction, plotting=False)
 
+                # retrieve the xuv in frequency domain
+                xuv_frequency_d = unprocessed_datafile.root.xuv_frequency_domain[index, :]
+
                 # plot_elements(attstrace, np.real(proof_trace), xuv, xuv_envelope)
 
                 # append the data to the processed hdf5 file
+                processed_data.root.xuv_frequency_domain.append(xuv_frequency_d.reshape(1, -1))
                 processed_data.root.attstrace.append(attstrace.reshape(1, -1))
                 processed_data.root.proof.append(np.real(proof_trace).reshape(1, -1))
                 processed_data.root.xuv.append(xuv.reshape(1, -1))
@@ -156,6 +176,10 @@ xuv_field_length = int(len(xuv_int_t)/xuv_dimmension_reduction)
 
 if __name__ == "__main__":
 
+    # get the frequency axis
+    xuv_test = XUV_Field_rand_phase(phase_amplitude=0, phase_nodes=100, plot=False)
+    frequency_axis = xuv_test.f_cropped_cropped
+
     print('Dimmension reduction: ', xuv_dimmension_reduction)
     print('xuv field length: ', int(len(xuv_int_t)/xuv_dimmension_reduction))
 
@@ -172,7 +196,9 @@ if __name__ == "__main__":
         xuv_envelope1 = processed_data.root.xuv_envelope[index, :]
         attstrace1 = processed_data.root.attstrace[index, :].reshape(len(p_vec), len(tauvec))
         proof_trace1 = processed_data.root.proof[index, :].reshape(len(p_vec), len(tauvec))
-        plot_elements(attstrace1, np.real(proof_trace1), xuv1, xuv_envelope1)
+        xuv_f = processed_data.root.xuv_frequency_domain[index, :]
+
+        plot_elements(attstrace1, np.real(proof_trace1), xuv1, xuv_envelope1, xuv_f)
 
 
 
