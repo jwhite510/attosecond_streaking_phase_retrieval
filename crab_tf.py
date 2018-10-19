@@ -70,7 +70,7 @@ class XUV_Field():
         # plt.figure(100)
         # plt.plot(np.real(Ef_prop), color='blue')
         # plt.plot(np.imag(Ef_prop), color='red')
-        Ef_prop = Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
+        self.Ef_prop = Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
         # plt.figure(101)
         # plt.plot(np.real(Ef_prop), color='blue')
         # plt.plot(np.imag(Ef_prop), color='red')
@@ -132,6 +132,28 @@ class Med():
 
         self.Ip = 24.587 * sc.electron_volt
         self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]
+
+
+def plot_spectrum(xuv_Ef, xuv_fmat):
+    # plot also the spectrum
+    xuv_fmat_HZ = xuv_fmat / sc.physical_constants['atomic unit of time'][0]
+
+    # frequency in Hz
+    joules = sc.h * xuv_fmat_HZ # joules
+    electronvolts = 1 / (sc.elementary_charge) * joules
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(electronvolts, np.abs(xuv_Ef), color='black')
+    ax.set_xlabel('eV')
+    ax.set_xlim(100, 600)
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.plot(xuv_fmat_HZ, np.abs(xuv_Ef), color='black')
+    ax.set_xlabel('HZ')
+    ax.set_xlim(0, 2e17)
 
 
 N = 2**16
@@ -240,6 +262,7 @@ if __name__ == '__main__':
         print("duration: ", duration)
 
         if plot:
+            plot_spectrum(xuv_Ef=xuv.Ef_prop, xuv_fmat=xuv.fmat)
             fig, ax = plt.subplots(2, 2)
             ax[1][1].pcolormesh(tauvec, p_vec, strace, cmap='jet')
             ax[0][0].plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
