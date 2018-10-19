@@ -39,47 +39,35 @@ class XUV_Field_rand_phase(XUV_Field):
         # ft back to temporal domain
         self.Et_cropped_t_phase = np.fft.fftshift((np.fft.ifft(np.fft.fftshift(self.Et_cropped_f_phase))))
 
-        # ambiguity removal
+        # make sure the information can be saved
 
-        # set the phase angle at t0 to 0
-        Envelope = self.Et_cropped_t_phase * np.exp(-2j * np.pi * self.f0 * self.tmat_cropped)
-        t_0_index = np.argmin(np.abs(self.tmat_cropped - 0))
-        # print('t_0_index: ', t_0_index)
-        angle_at_t0 = np.angle(Envelope[t_0_index])
-        Envelope_corrected = Envelope * np.exp(-1j * angle_at_t0)
+        #construct frequency axis
+        dt = self.tmat_cropped[1] - self.tmat_cropped[0]
+        N_cropped = len(self.tmat_cropped)
+        df_cropped = 1 / (N_cropped * dt)
+        f_cropped = df_cropped * np.arange(-N_cropped/2, N_cropped/2, 1)
 
-        Corrected_centralfreq = Envelope_corrected * np.exp(2j * np.pi * self.f0 * self.tmat_cropped)
-
-        # keep in frequency domain
-        self.Et_cropped_t_phase = Corrected_centralfreq
-
-        # plt.plot(np.real(Corrected_centralfreq))
-        # plt.ioff()
-        # plt.show()
+        # crop the spectrum
+        start_index = 260
+        width = 64
 
 
-        if plot:
-            fig, ax = plt.subplots(4, 1, figsize=(5, 10))
-            ax[0].plot(np.real(self.Et_cropped), color='blue')
-            ax[0].plot(np.imag(self.Et_cropped), color='red')
+        self.f_cropped_cropped = f_cropped[start_index:start_index+width]
+        self.Ef_cropped_cropped = self.Et_cropped_f_phase[start_index:start_index+width]
 
-            # plot the fourier transform and the phase to apply
-            ax[1].plot(np.real(self.Et_cropped_f), color='blue')
-            ax[1].plot(np.imag(self.Et_cropped_f), color='red')
-            axtwin = ax[1].twinx()
-            axtwin.plot(phase, color='green', linestyle='dashed')
 
-            # plot the spectral pulse with phase applied
-            ax[2].plot(np.real(self.Et_cropped_f_phase), color='blue')
-            ax[2].plot(np.imag(self.Et_cropped_f_phase), color='red')
-            axtwin = ax[2].twinx()
-            axtwin.plot(np.unwrap(np.angle(self.Et_cropped_f_phase)), color='green')
+        self.E_w64 = self.Ef_cropped_cropped
 
-            # plot the field in time domain
-            ax[3].plot(np.real(self.Et_cropped_t_phase), color='blue')
-            ax[3].plot(np.imag(self.Et_cropped_t_phase), color='red')
+        # set the phase angle to 0 at center
+        w0_index = 32
+        angle_at_w0 = np.angle(self.E_w64[w0_index])
+        self.E_w64 = self.E_w64 * np.exp(-1j * angle_at_w0)
 
-            plt.show()
+        # construct 512 timestep Et from 64 timestep Ef
+        self.E_t512 = Ew_64_to_Et_512(self.Ef_cropped_cropped, f_cropped,
+                             start_index, width)
+
+
 
 
 def generate_samples(n_samples, filename):
@@ -88,12 +76,16 @@ def generate_samples(n_samples, filename):
     # create hdf5 file
     print('creating file: '+filename)
     hdf5_file = tables.open_file(filename, mode='w')
-    frog_image_f = hdf5_file.create_earray(hdf5_file.root,
+    hdf5_file.create_earray(hdf5_file.root,
                                            'trace', tables.Float16Atom(), shape=(0, len(p_vec) * len(tauvec)))
-    E_real_f = hdf5_file.create_earray(hdf5_file.root,
+    hdf5_file.create_earray(hdf5_file.root,
                                        'xuv_real', tables.Float16Atom(), shape=(0, len(xuv_test)))
-    E_imag_f = hdf5_file.create_earray(hdf5_file.root,
+    hdf5_file.create_earray(hdf5_file.root,
                                        'xuv_imag', tables.Float16Atom(), shape=(0, len(xuv_test)))
+    hdf5_file.create_earray(hdf5_file.root,
+                            'xuv_frequency_domain', tables.ComplexAtom(itemsize=16),
+                            shape=(0, 64))
+
     hdf5_file.close()
 
 
@@ -103,7 +95,11 @@ def generate_samples(n_samples, filename):
     for i in range(n_samples):
 
         # generate a random xuv pulse
-        xuv_rand = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=120, plot=False).Et_cropped_t_phase
+        xuv_object = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=120, plot=False)
+
+        xuv_rand = xuv_object.E_t512
+        xuv_rand_f = xuv_object.E_w64
+
 
         if i % 500 == 0:
             print('generating sample {} of {}'.format(i + 1, n_samples))
@@ -115,11 +111,19 @@ def generate_samples(n_samples, filename):
             print('duration: {} s'.format(round(duration, 4)))
 
             if plotting:
-                plt.cla()
+
+                ax[0].clear()
                 ax[0].pcolormesh(strace, cmap='jet')
+
+                ax[1].clear()
                 ax[1].plot(np.abs(xuv_rand), color='black', linestyle='dashed', alpha=0.5)
                 ax[1].plot(np.real(xuv_rand), color='blue')
                 ax[1].plot(np.imag(xuv_rand), color='red')
+
+                ax[2].clear()
+                ax[2].plot(np.real(xuv_rand_f), color='blue')
+                ax[2].plot(np.imag(xuv_rand_f), color='red')
+
                 plt.pause(0.001)
 
         else:
@@ -133,19 +137,26 @@ def generate_samples(n_samples, filename):
         hdf5_file.root.xuv_real.append(xuv_real.reshape(1, -1))
         hdf5_file.root.xuv_imag.append(xuv_imag.reshape(1, -1))
         hdf5_file.root.trace.append(strace.reshape(1, -1))
+        hdf5_file.root.xuv_frequency_domain.append(xuv_rand_f.reshape(1, -1))
+
 
     hdf5_file.close()
 
 
 
+def Ew_64_to_Et_512(E_f_64, f_512, start_index, width):
+
+    E_f_512 = np.zeros_like(f_512, dtype=complex)
+    E_f_512[start_index:start_index+width] = E_f_64
+    # convert to time domain
+    E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(E_f_512)))
+    return E_t
+
+
 xuv_test = XUV_Field(N=N, tmax=tmax, gdd=500, tod=0).Et[lower:upper]
 
 
-
-
-fig, ax = plt.subplots(2, 1)
-# n_train_samples = 20000
-# n_test_samples = 1000
+fig, ax = plt.subplots(3, 1)
 
 plt.ion()
 plotting = True
@@ -167,13 +178,22 @@ hdf5_file = tables.open_file('attstrace_train.hdf5', mode='r')
 # hdf5_file = tables.open_file('attstrace_test.hdf5', mode='r')
 
 xuv = hdf5_file.root.xuv_real[index, :] + 1j * hdf5_file.root.xuv_imag[index, :]
+xuv_f = hdf5_file.root.xuv_frequency_domain[index, :]
 plt.ioff()
-plt.cla()
+
+ax[0].clear()
 ax[0].pcolormesh(hdf5_file.root.trace[index, :].reshape(len(p_vec), len(tauvec)), cmap='jet')
 ax[0].text(0.2, 0.9, 'index: {}'.format(str(index)), transform=ax[0].transAxes, backgroundcolor='white')
+
+ax[1].clear()
 ax[1].plot(np.abs(xuv), color='black', linestyle='dashed', alpha=0.5)
 ax[1].plot(np.real(xuv), color='blue')
 ax[1].plot(np.imag(xuv), color='red')
+
+ax[2].clear()
+ax[2].plot(np.real(xuv_f), color='blue')
+ax[2].plot(np.imag(xuv_f), color='red')
+
 hdf5_file.close()
 
 plt.show()
