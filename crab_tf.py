@@ -17,6 +17,8 @@ class XUV_Field():
 
     def __init__(self, N, tmax, gdd, tod):
 
+        # smaller dt
+
         # define parameters in SI units
         self.N = N
         # self.en0 = 20 * sc.eV # central energy
