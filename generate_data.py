@@ -133,6 +133,7 @@ def generate_samples(n_samples, filename):
             # generate the FROG trace
             time1 = time.time()
             strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+            strace_scaled = scale_trace(strace)
             time2 = time.time()
             duration = time2 - time1
             print('duration: {} s'.format(round(duration, 4)))
@@ -155,6 +156,9 @@ def generate_samples(n_samples, filename):
 
         else:
             strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+            strace_scaled = scale_trace(strace)
+
+
 
         # divide the xuv into real and imaginary
         xuv_real = np.real(xuv_rand)
@@ -163,7 +167,7 @@ def generate_samples(n_samples, filename):
         # append the hdf5 file
         hdf5_file.root.xuv_real.append(xuv_real.reshape(1, -1))
         hdf5_file.root.xuv_imag.append(xuv_imag.reshape(1, -1))
-        hdf5_file.root.trace.append(strace.reshape(1, -1))
+        hdf5_file.root.trace.append(strace_scaled.reshape(1, -1))
         hdf5_file.root.xuv_frequency_domain.append(xuv_rand_f.reshape(1, -1))
 
 
@@ -178,6 +182,15 @@ def Ew_64_to_Et_512(E_f_64, f_512, start_index, width):
     # convert to time domain
     E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(E_f_512)))
     return E_t
+
+
+def scale_trace(strace):
+
+    strace_scaled = strace - np.min(strace)
+    strace_scaled = strace_scaled / np.max(strace_scaled)
+
+    return strace_scaled
+
 
 
 
