@@ -25,7 +25,8 @@ class XUV_Field():
         # self.den0 = 75 * sc.eV #energy fwhm
         self.f0 = 120e15
         self.T0 = 1/self.f0 # optical cycle
-        self.t0 = 10e-18 # pulse duration
+        # self.t0 = 5e-18 # pulse duration
+        self.bandwidth = 350 * sc.electron_volt # bandwidth, joules
         self.gdd = gdd * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
         self.tod = tod * atts**3 # TOD
@@ -47,7 +48,14 @@ class XUV_Field():
         # convert to AU
         # self.en0 = self.en0 / sc.physical_constants['atomic unit of energy'][0]
         # self.den0 = self.den0 / sc.physical_constants['atomic unit of energy'][0]
-        self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
+
+        #convert bandwidth from joules to Hz
+        self.bandwidth = self.bandwidth /sc.h #Hz
+        # convert bandwidth to atomic units
+        self.bandwidth = self.bandwidth * sc.physical_constants['atomic unit of time'][0]
+
+
+        # self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
         self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
         self.T0 = self.T0 / sc.physical_constants['atomic unit of time'][0]
         self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0]**2
@@ -58,11 +66,16 @@ class XUV_Field():
         self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
 
         # set up streaking xuv field in AU
-        self.Et = np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2 ) * np.exp(2j * np.pi * self.f0 * self.tmat)
+        # self.Et = np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2 ) * np.exp(2j * np.pi * self.f0 * self.tmat)
 
         # add GDD/TOD to streaking XUV field
-        Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
+        # Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
 
+        Ef0 = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth)**2)
+        Ef1 = 0.6 * np.exp(-2 * np.log(2) * ((self.fmat - (self.f0 - 1.3)) / (self.bandwidth/2))**2)
+        Ef2 = 0.6 * np.exp(-2 * np.log(2) * ((self.fmat - (self.f0 + 1.3)) / (self.bandwidth / 2)) ** 2)
+        Ef = Ef0 + Ef1 + Ef2
+        # Ef = Ef0
         self.Ef_prop = Ef * np.exp(1j * 0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
         self.Ef_prop = self.Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
 
@@ -79,7 +92,8 @@ class IR_Field():
         self.T0 = 1/self.f0 # optical cycle
         self.t0 = 12 * fs # pulse duration
         self.ncyc = self.t0/self.T0
-        self.I0 = 1e13 * W/cm**2
+        self.I0_si = 1e13 # W/cm**2
+        self.I0 = self.I0_si * W/cm**2
 
         # compute ponderomotive energy
         self.Up = (sc.elementary_charge**2 * self.I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * self.f0)**2)
@@ -168,14 +182,36 @@ def plot_spectrum(xuv_Ef, xuv_fmat):
     ax.set_xlim(0, 2e17)
 
     # plot just the spectrum intensity
+
+    # find FWHM
+    I = np.abs(xuv_Ef)**2
+    maximum_energy = np.max(I)
+    fwhm_i1 = np.argmin(np.abs(maximum_energy/2 - I))
+    I_2 = np.array(I)
+    I_2[fwhm_i1] = 0
+    fwhm_i2 = np.argmin(np.abs(maximum_energy / 2 - I_2))
+
+
     fig = plt.figure()
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[:, :])
-    ax.plot(electronvolts, np.abs(xuv_Ef) ** 2, color='black')
+
+    # plot the dots
+    ax.plot(electronvolts[fwhm_i1], I[fwhm_i1], 'r*')
+    ax.plot(electronvolts[fwhm_i2], I[fwhm_i2], 'r*')
+
+    # plot the line
+    ax.plot([electronvolts[fwhm_i1], electronvolts[fwhm_i2]], [I[fwhm_i1], I[fwhm_i2]], 'r')
+
+    # calculate FWHM
+    fwhm = np.abs(electronvolts[fwhm_i1] - electronvolts[fwhm_i2])
+
+    ax.plot(electronvolts, I, color='black')
+    ax.text(50, I[fwhm_i1], 'FWHM: '+str(round(fwhm, 1))+' eV', backgroundcolor='white')
     ax.set_title('Intensity')
     ax.set_xlabel('eV')
     ax.set_ylabel('Intensity')
-    ax.set_xlim(-900, 900)
+    ax.set_xlim(0, 1200)
 
 
 def plot_xuv_ir_atto_1(save):
@@ -227,7 +263,117 @@ def plot_xuv_ir_atto_1(save):
         plt.savefig('./tracegdd{}tod{}.png'.format(int(xuv.gdd_si), int(xuv.tod_si)))
 
 
-N = 2**16
+
+def complete_plot(xuv, xuv_fmat, ir_intensity):
+
+    xuv_Ef = xuv.Ef_prop
+    fig = plt.figure(figsize=(15,10))
+    gs = fig.add_gridspec(2,3)
+
+
+    # plot the attosecond pulse
+    ax = fig.add_subplot(gs[0,0])
+    si_time = xuv_int_t * sc.physical_constants['atomic unit of time'][0]
+    ax.plot(si_time * 1e18, np.real(xuv_integral_space), color='blue', label='Real $E_{xuv}$')
+    ax.text(0.1, 0.9, 'XUV pulse', transform=ax.transAxes, backgroundcolor='white')
+    ax.legend()
+    ax.set_xlabel('attoseconds')
+    #label GDD and TOD
+    ax.text(0.1,0.8,'GDD: '+str(xuv.gdd_si)+' $as^2$', transform=ax.transAxes)
+    ax.text(0.1,0.7,'TOD: '+str(xuv.tod_si)+' $as^3$', transform=ax.transAxes)
+
+
+    # plot the attosecond pulse intensity
+    ax = fig.add_subplot(gs[0, 1])
+    si_time = xuv_int_t * sc.physical_constants['atomic unit of time'][0]
+    plot_time = si_time * 1e18
+    Ixuv_t = np.abs(xuv_integral_space)**2
+    max_I_t = np.max(Ixuv_t)
+    fwhm_i1 = np.argmin(np.abs(max_I_t/2 - Ixuv_t))
+    I_2 = np.array(Ixuv_t)
+    I_2[fwhm_i1] = 0
+    fwhm_i2 = np.argmin(np.abs(max_I_t / 2 - I_2))
+    # plot the points
+    ax.plot(plot_time[fwhm_i1], Ixuv_t[fwhm_i1], 'r*')
+    ax.plot(plot_time[fwhm_i2], Ixuv_t[fwhm_i2], 'r*')
+    # plot the line
+    ax.plot([plot_time[fwhm_i1], plot_time[fwhm_i2]], [Ixuv_t[fwhm_i1], Ixuv_t[fwhm_i2]], 'r')
+    # calculate FWHM
+    fwhm = np.abs(plot_time[fwhm_i1] - plot_time[fwhm_i2])
+    ax.text(0.1, 0.1, 'FWHM: ' + str(round(fwhm, 1)) + ' as', backgroundcolor='white', transform=ax.transAxes, color='red')
+    # plot the Intensity
+    ax.plot(plot_time, Ixuv_t, color='black', label='$I_{xuv}$')
+    ax.text(0.1, 0.9, 'XUV pulse\nIntensity', transform=ax.transAxes, backgroundcolor='white')
+    # ax.legend()
+    ax.set_yticks([])
+    ax.set_xlabel('attoseconds')
+
+
+    # plot the IR
+    ax = fig.add_subplot(gs[1,0])
+    si_time = ir.tmat * sc.physical_constants['atomic unit of time'][0]
+    ax.plot(si_time * 1e15, ir.Et, color='orange', label='$E_{IR}$')
+    ax.text(0.1, 0.9, 'IR pulse', transform=ax.transAxes, backgroundcolor='white')
+    ax.text(0.1, 0.1, '$I_{IR}$:'+str(int(ir_intensity/1e12))+r'$\cdot 10^{12} \frac{W}{cm^{2}}$',
+            backgroundcolor='white', transform=ax.transAxes)
+    ax.set_ylabel('IR [atomic units]')
+    ax.set_xlabel('fs')
+
+
+    # plot the streaking trace
+    ax = fig.add_subplot(gs[1, 1:3])
+    si_time = tauvec * dt * sc.physical_constants['atomic unit of time'][0]
+    # convert p_vec to eV
+    energy_values = sc.physical_constants['atomic unit of energy'][0] * 0.5 * p_vec ** 2  # joules
+    energy_values = energy_values / sc.electron_volt  # electron volts
+    ax.pcolormesh(si_time * 1e15, energy_values, strace, cmap='jet')
+    ax.text(0.1, 0.9, '$I_p$: {} eV'.format(med.Ip_eV), backgroundcolor='white', transform=ax.transAxes)
+    ax.set_xlabel('fs')
+    ax.set_ylabel('eV')
+
+
+    # plot the XUV spectrum
+    ax = fig.add_subplot(gs[0, 2])
+    # plot also the spectrum
+    xuv_fmat_HZ = xuv_fmat / sc.physical_constants['atomic unit of time'][0]
+    # frequency in Hz
+    joules = sc.h * xuv_fmat_HZ  # joules
+    electronvolts = 1 / (sc.elementary_charge) * joules
+    # find FWHM
+    I = np.abs(xuv_Ef) ** 2
+    maximum_energy = np.max(I)
+    fwhm_i1 = np.argmin(np.abs(maximum_energy / 2 - I))
+    I_2 = np.array(I)
+    I_2[fwhm_i1] = 0
+    fwhm_i2 = np.argmin(np.abs(maximum_energy / 2 - I_2))
+    ax.plot(electronvolts[fwhm_i1], I[fwhm_i1], 'r*')
+    ax.plot(electronvolts[fwhm_i2], I[fwhm_i2], 'r*')
+    # plot the line
+    ax.plot([electronvolts[fwhm_i1], electronvolts[fwhm_i2]], [I[fwhm_i1], I[fwhm_i2]], 'r')
+    # calculate FWHM
+    fwhm = np.abs(electronvolts[fwhm_i1] - electronvolts[fwhm_i2])
+    #find 0 index
+    zero_eV_index = np.argmin(np.abs(electronvolts - 0))
+    min_index, max_index = zero_eV_index, -50000
+    ax.plot(electronvolts[min_index:max_index], I[min_index:max_index], color='black', label='$I_{xuv}$')
+    ax.text(0.1, 0.9, 'XUV spectrum', transform=ax.transAxes, backgroundcolor='white')
+    ax.set_xlabel('eV')
+    ax.set_ylabel('Intensity')
+    # ax.set_xlim(0, 1200)
+    # plot the phase
+    axtwin = ax.twinx()
+    axtwin.plot(electronvolts[min_index:max_index], np.unwrap(np.angle(xuv_Ef[min_index:max_index])), color='green', alpha=0.5, linestyle='dashed')
+    space = 0.5
+    axtwin.set_ylim(np.min(np.unwrap(np.angle(xuv_Ef[min_index:max_index])))-0.5*space, np.max(np.unwrap(np.angle(xuv_Ef[min_index:max_index])))+space)
+    axtwin.tick_params(colors='green')
+    axtwin.set_ylabel('$\phi (eV)$', color='green')
+    axtwin.text(0.1, 0.1, 'FWHM: ' + str(round(fwhm, 1)) + ' eV', backgroundcolor='white', transform=ax.transAxes,
+            color='red')
+    plt.savefig('./{}gdd.png'.format(str(xuv.gdd_si)))
+
+
+
+N = 2**17
 tmax = 60e-15
 xuv = XUV_Field(N=N, tmax=tmax, gdd=0, tod=0)
 ir = IR_Field(N=N, tmax=tmax)
@@ -248,22 +394,18 @@ tvec =  ir.tmat
 # p_vec = np.linspace(3, 6.5, 200) #a.u.
 # tauvec = np.arange(-22000, 22000, 250) #indexes
 
-p_max, p_min = 8, 0
+p_max, p_min = 9, 0
 k_max, k_min = 0.5*p_max**2, 0.5*p_min**2
-k_vec = np.linspace(k_min, k_max, 200)
+# k_vec = np.linspace(k_min, k_max, 200)
+k_vec = np.linspace(k_min, k_max, 30)
 p_vec = np.sqrt(2 * k_vec)
 
 
-tauvec = np.arange(-22000, 22000, 250) #indexes
-# tauvec = np.arange(-int(65536/2), int(65536/2), 1000) #indexes
-
-
-## test to make sure vectors are identical
-# tauvec = np.arange(-int(65536/2), int(65536/2), 1) #indexes
-# print('len(tauvec): ', len(tauvec))
-# print('len(ir.tmat): ', len(ir.tmat))
-# print('dt * tauvec[0:10]: \n', dt * tauvec[0:10])
-# print('ir.tmat[0:10]: \n', ir.tmat[0:10])
+tau_vals = [-22000, 22000, 250]
+# factor by two to make the time steps of the delay correct for the IR timescale
+tau_vals  = [2 * val for val in tau_vals]
+tauvec = np.arange(tau_vals[0], tau_vals[1], tau_vals[2]) #indexes
+# tauvec = np.arange(-22000, 22000, 250) #indexes
 
 # few cycle
 # p_vec = np.linspace(3, 6.5, 250)
@@ -352,8 +494,9 @@ if __name__ == '__main__':
 
         if plot:
 
-            plot_spectrum(xuv_Ef=xuv.Ef_prop, xuv_fmat=xuv.fmat)
-            plot_xuv_ir_atto_1(save)
+            # plot_spectrum(xuv_Ef=xuv.Ef_prop, xuv_fmat=xuv.fmat)
+            # plot_xuv_ir_atto_1(save)
+            complete_plot(xuv=xuv, xuv_fmat=xuv.fmat, ir_intensity=ir.I0_si)
 
             plt.show()
 

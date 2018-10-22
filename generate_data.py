@@ -48,13 +48,11 @@ class XUV_Field_rand_phase(XUV_Field):
         f_cropped = df_cropped * np.arange(-N_cropped/2, N_cropped/2, 1)
 
         # crop the spectrum
-        start_index = 260
+        start_index = 253
         width = 64
-
 
         self.f_cropped_cropped = f_cropped[start_index:start_index+width]
         self.Ef_cropped_cropped = self.Et_cropped_f_phase[start_index:start_index+width]
-
 
         self.E_w64 = self.Ef_cropped_cropped
 
@@ -66,6 +64,35 @@ class XUV_Field_rand_phase(XUV_Field):
         # construct 512 timestep Et from 64 timestep Ef
         self.E_t512 = Ew_64_to_Et_512(self.Ef_cropped_cropped, f_cropped,
                              start_index, width)
+
+        if plot:
+            fig = plt.figure()
+            gs = fig.add_gridspec(2,2)
+
+            # plot the original E(t)
+            axis = fig.add_subplot(gs[0,0])
+            axis.plot(np.real(self.Et_cropped_t_phase), color='blue')
+            axis.plot(np.imag(self.Et_cropped_t_phase), color='red')
+            axis.plot(np.abs(self.Et_cropped_t_phase), color='black')
+            axis.set_title('true E(t)')
+
+            # plot the spectrum uncropped
+            axis = fig.add_subplot(gs[0,1])
+            axis.plot(np.real(self.Et_cropped_f_phase), color='blue')
+            axis.plot(np.imag(self.Et_cropped_f_phase), color='red')
+            axis.plot(np.abs(self.Et_cropped_f_phase), color='black')
+
+            axis = fig.add_subplot(gs[1,1])
+            axis.plot(np.real(self.E_w64), color='blue')
+            axis.plot(np.imag(self.E_w64), color='red')
+            axis.plot(np.abs(self.E_w64), color='black')
+
+            axis = fig.add_subplot(gs[1,0])
+            axis.plot(np.real(self.E_t512), color='blue')
+            axis.plot(np.imag(self.E_t512), color='red')
+            axis.plot(np.abs(self.E_t512), color='black')
+            plt.ioff()
+            plt.show()
 
 
 
@@ -95,7 +122,7 @@ def generate_samples(n_samples, filename):
     for i in range(n_samples):
 
         # generate a random xuv pulse
-        xuv_object = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=120, plot=False)
+        xuv_object = XUV_Field_rand_phase(phase_amplitude=5, phase_nodes=80, plot=False)
 
         xuv_rand = xuv_object.E_t512
         xuv_rand_f = xuv_object.E_w64
