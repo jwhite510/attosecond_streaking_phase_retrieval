@@ -396,8 +396,8 @@ tvec =  ir.tmat
 
 p_max, p_min = 9, 0
 k_max, k_min = 0.5*p_max**2, 0.5*p_min**2
-# k_vec = np.linspace(k_min, k_max, 200)
-k_vec = np.linspace(k_min, k_max, 30)
+k_vec = np.linspace(k_min, k_max, 200)
+# k_vec = np.linspace(k_min, k_max, 30)
 p_vec = np.sqrt(2 * k_vec)
 
 
