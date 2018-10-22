@@ -21,9 +21,9 @@ class XUV_Field():
         self.N = N
         # self.en0 = 20 * sc.eV # central energy
         # self.den0 = 75 * sc.eV #energy fwhm
-        self.f0 = 80e15
+        self.f0 = 120e15
         self.T0 = 1/self.f0 # optical cycle
-        self.t0 = 20e-18 # pulse duration
+        self.t0 = 10e-18 # pulse duration
         self.gdd = gdd * atts**2 # gdd
         self.gdd_si = self.gdd / atts**2
         self.tod = tod * atts**3 # TOD
@@ -58,24 +58,13 @@ class XUV_Field():
         # set up streaking xuv field in AU
         self.Et = np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2 ) * np.exp(2j * np.pi * self.f0 * self.tmat)
 
-        # add GDD to streaking XUV field
+        # add GDD/TOD to streaking XUV field
         Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
-        Ef_prop = Ef * np.exp(1j * 0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
-        # plt.figure(98)
-        # plt.plot(0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
 
-        # add TOD to streaking XUV field
-        # plt.figure(99)
-        # plt.plot(0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
-        # plt.figure(100)
-        # plt.plot(np.real(Ef_prop), color='blue')
-        # plt.plot(np.imag(Ef_prop), color='red')
-        self.Ef_prop = Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
-        # plt.figure(101)
-        # plt.plot(np.real(Ef_prop), color='blue')
-        # plt.plot(np.imag(Ef_prop), color='red')
+        self.Ef_prop = Ef * np.exp(1j * 0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
+        self.Ef_prop = self.Ef_prop * np.exp(1j * 0.5 * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3)
 
-        self.Et = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_prop)))
+        self.Et = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
 
 
 class IR_Field():
@@ -130,8 +119,10 @@ class Med():
 
     def __init__(self):
 
-        self.Ip = 24.587 * sc.electron_volt
-        self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]
+        # self.Ip_eV = 24.587
+        self.Ip_eV = 13.6
+        self.Ip = self.Ip_eV * sc.electron_volt # joules
+        self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0] # a.u.
 
 
 def plot_spectrum(xuv_Ef, xuv_fmat):
@@ -145,20 +136,98 @@ def plot_spectrum(xuv_Ef, xuv_fmat):
     fig = plt.figure()
     gs = fig.add_gridspec(2, 2)
 
+    # plot the modulus of spectrum in eV
     ax = fig.add_subplot(gs[0, 0])
     ax.plot(electronvolts, np.abs(xuv_Ef), color='black')
+    ax.set_title('|E|')
     ax.set_xlabel('eV')
     ax.set_xlim(100, 600)
 
+
+    ax = fig.add_subplot(gs[1, 0])
+    ax.plot(electronvolts, np.abs(xuv_Ef)**2, color='black')
+    ax.set_title('I')
+    ax.set_xlabel('eV')
+    ax.set_xlim(100, 600)
+
+
+    # plot the modulus of spectrum in Hz
     ax = fig.add_subplot(gs[0, 1])
     ax.plot(xuv_fmat_HZ, np.abs(xuv_Ef), color='black')
+    ax.set_title('|E|')
     ax.set_xlabel('HZ')
     ax.set_xlim(0, 2e17)
+
+    # plot the modulus of spectrum in Hz
+    ax = fig.add_subplot(gs[1, 1])
+    ax.plot(xuv_fmat_HZ, np.abs(xuv_Ef)**2, color='black')
+    ax.set_title('I')
+    ax.set_xlabel('HZ')
+    ax.set_xlim(0, 2e17)
+
+    # plot just the spectrum intensity
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[:, :])
+    ax.plot(electronvolts, np.abs(xuv_Ef) ** 2, color='black')
+    ax.set_title('Intensity')
+    ax.set_xlabel('eV')
+    ax.set_ylabel('Intensity')
+    ax.set_xlim(-900, 900)
+
+
+def plot_xuv_ir_atto_1(save):
+
+    fig, ax = plt.subplots(2, 2, figsize=(10,8))
+
+    si_time = tauvec * dt * sc.physical_constants['atomic unit of time'][0]
+    # ax[1][1].pcolormesh(tauvec*dt, p_vec, strace, cmap='jet')
+
+    # convert p_vec to eV
+    energy_values = sc.physical_constants['atomic unit of energy'][0] * 0.5 * p_vec**2 # joules
+    energy_values = energy_values / sc.electron_volt # electron volts
+
+    ax[1][1].pcolormesh(si_time*1e15, energy_values, strace, cmap='jet')
+    ax[1][1].text(0.05, 0.95, '$I_p$: {} eV'.format(med.Ip_eV), backgroundcolor='white', transform=ax[1][1].transAxes)
+    ax[1][1].set_xlabel('fs')
+    ax[1][1].set_ylabel('eV')
+
+    si_time = xuv_int_t * sc.physical_constants['atomic unit of time'][0]
+    # ax[0][0].plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
+    ax[0][0].plot(si_time*1e18, np.real(xuv_integral_space), color='blue')
+    ax[0][0].set_xlabel('as')
+
+    si_time = ir.tmat * sc.physical_constants['atomic unit of time'][0]
+    # ax[0][1].plot(ir.tmat, ir.Et, color='orange')
+    ax[0][1].plot(si_time*1e15, ir.Et, color='orange')
+    ax[0][1].set_xlabel('fs')
+
+    si_time = ir.tmat * sc.physical_constants['atomic unit of time'][0]
+    # ax[1][0].plot(ir.tmat, ir.Et, color='orange')
+    ax[1][0].plot(si_time*1e15, ir.Et, color='orange')
+    ax[1][0].set_xlabel('fs')
+
+    axtwin = ax[1][0].twinx()
+    si_time = xuv_int_t * sc.physical_constants['atomic unit of time'][0]
+    # axtwin.plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
+    axtwin.plot(si_time*1e15, np.real(xuv_integral_space), color='blue')
+    axtwin.set_xlabel('fs')
+    if save:
+        plt.savefig('./xuv_ir_atto_Ip{}.png'.format(str(med.Ip_eV)))
+
+    if save:
+        plt.figure(10)
+        plt.pcolormesh(tauvec*dt, p_vec, strace, cmap='jet')
+        plt.text(0.1, 0.92, 'GDD: {}'.format(xuv.gdd_si) + ' $as^2$',
+                 transform=plt.gca().transAxes, backgroundcolor='white')
+        plt.text(0.1, 0.85, 'TOD: {}'.format(xuv.tod_si) + ' $as^3$',
+                 transform=plt.gca().transAxes, backgroundcolor='white')
+        plt.savefig('./tracegdd{}tod{}.png'.format(int(xuv.gdd_si), int(xuv.tod_si)))
 
 
 N = 2**16
 tmax = 60e-15
-xuv = XUV_Field(N=N, tmax=tmax, gdd=-500, tod=0)
+xuv = XUV_Field(N=N, tmax=tmax, gdd=0, tod=0)
 ir = IR_Field(N=N, tmax=tmax)
 med = Med()
 
@@ -173,8 +242,26 @@ fvec = df * np.arange(-N/2, N/2, 1)
 # construct the delay vector and momentum vector for plotting
 span = xuv.span
 tvec =  ir.tmat
-p_vec = np.linspace(3, 6.5, 200)
-tauvec = np.arange(-22000, 22000, 250)
+
+# p_vec = np.linspace(3, 6.5, 200) #a.u.
+# tauvec = np.arange(-22000, 22000, 250) #indexes
+
+p_max, p_min = 8, 0
+k_max, k_min = 0.5*p_max**2, 0.5*p_min**2
+k_vec = np.linspace(k_min, k_max, 200)
+p_vec = np.sqrt(2 * k_vec)
+
+
+tauvec = np.arange(-22000, 22000, 250) #indexes
+# tauvec = np.arange(-int(65536/2), int(65536/2), 1000) #indexes
+
+
+## test to make sure vectors are identical
+# tauvec = np.arange(-int(65536/2), int(65536/2), 1) #indexes
+# print('len(tauvec): ', len(tauvec))
+# print('len(ir.tmat): ', len(ir.tmat))
+# print('dt * tauvec[0:10]: \n', dt * tauvec[0:10])
+# print('ir.tmat[0:10]: \n', ir.tmat[0:10])
 
 # few cycle
 # p_vec = np.linspace(3, 6.5, 250)
@@ -204,7 +291,7 @@ p = p_vec.reshape(-1, 1, 1)
 p_A_int_mat = np.exp(1j * p * A_integrals)
 
 
-K = (0.5 * p**2)
+K = (0.5 * p**2) # a.u.
 e_fft = np.exp(-1j * (K + items['Ip']) * t_vals)
 
 # convert values to tensorflow
@@ -262,23 +349,9 @@ if __name__ == '__main__':
         print("duration: ", duration)
 
         if plot:
-            plot_spectrum(xuv_Ef=xuv.Ef_prop, xuv_fmat=xuv.fmat)
-            fig, ax = plt.subplots(2, 2)
-            ax[1][1].pcolormesh(tauvec, p_vec, strace, cmap='jet')
-            ax[0][0].plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
-            ax[0][1].plot(ir.tmat, ir.Et, color='orange')
 
-            ax[1][0].plot(ir.tmat, ir.Et, color='orange')
-            axtwin = ax[1][0].twinx()
-            axtwin.plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
-            if save:
-                plt.figure(10)
-                plt.pcolormesh(tauvec, p_vec, strace, cmap='jet')
-                plt.text(0.1, 0.92, 'GDD: {}'.format(xuv.gdd_si)+' $as^2$',
-                         transform=plt.gca().transAxes, backgroundcolor='white')
-                plt.text(0.1, 0.85, 'TOD: {}'.format(xuv.tod_si)+' $as^3$',
-                         transform=plt.gca().transAxes, backgroundcolor='white')
-                plt.savefig('./tracegdd{}tod{}.png'.format(int(xuv.gdd_si), int(xuv.tod_si)))
+            plot_spectrum(xuv_Ef=xuv.Ef_prop, xuv_fmat=xuv.fmat)
+            plot_xuv_ir_atto_1(save)
 
             plt.show()
 
