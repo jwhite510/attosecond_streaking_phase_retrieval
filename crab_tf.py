@@ -165,6 +165,11 @@ fvec = df * np.arange(-N/2, N/2, 1)
 span = xuv.span
 tvec =  ir.tmat
 p_vec = np.linspace(3, 6.5, 200)
+p_max, p_min = p_vec[-1], p_vec[0]
+E_max, E_min = 0.5 * p_max**2, 0.5 * p_min**2
+E_vec = np.linspace(E_min, E_max, 300)
+p_vec = np.sqrt(2 * E_vec)
+
 tauvec = np.arange(-22000, 22000, 250)
 
 # few cycle
