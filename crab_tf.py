@@ -259,7 +259,7 @@ if __name__ == '__main__':
 
         if plot:
             fig, ax = plt.subplots(2, 2)
-            ax[1][1].pcolormesh(tauvec, p_vec, strace, cmap='jet')
+            ax[1][1].pcolormesh(strace, cmap='jet')
             ax[0][0].plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
             ax[0][1].plot(ir.tmat, ir.Et, color='orange')
 
@@ -268,7 +268,7 @@ if __name__ == '__main__':
             axtwin.plot(xuv_int_t, np.real(xuv_integral_space), color='blue')
             if save:
                 plt.figure(10)
-                plt.pcolormesh(tauvec, p_vec, strace, cmap='jet')
+                plt.pcolormesh(strace, cmap='jet')
                 plt.text(0.1, 0.92, 'GDD: {}'.format(xuv.gdd_si)+' $as^2$',
                          transform=plt.gca().transAxes, backgroundcolor='white')
                 plt.text(0.1, 0.85, 'TOD: {}'.format(xuv.tod_si)+' $as^3$',
