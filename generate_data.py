@@ -69,6 +69,13 @@ class XUV_Field_rand_phase(XUV_Field):
 
 
 
+def scale_trace(strace):
+
+    strace_scaled = strace - np.min(strace)
+    strace_scaled = strace_scaled / np.max(strace_scaled)
+
+    return strace_scaled
+
 
 def generate_samples(n_samples, filename):
 
@@ -106,6 +113,7 @@ def generate_samples(n_samples, filename):
             # generate the FROG trace
             time1 = time.time()
             strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+            strace = scale_trace(strace)
             time2 = time.time()
             duration = time2 - time1
             print('duration: {} s'.format(round(duration, 4)))
@@ -128,6 +136,7 @@ def generate_samples(n_samples, filename):
 
         else:
             strace = sess.run(image, feed_dict={xuv_input: xuv_rand.reshape(1, -1, 1)})
+            strace = scale_trace(strace)
 
         # divide the xuv into real and imaginary
         xuv_real = np.real(xuv_rand)
