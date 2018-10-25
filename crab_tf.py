@@ -59,7 +59,20 @@ class XUV_Field():
         self.Et = np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2 ) * np.exp(2j * np.pi * self.f0 * self.tmat)
 
         # add GDD to streaking XUV field
-        Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
+        # Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
+
+        # self.bandwidth = np.sqrt(4/(self.t0**2))
+        # calculate bandwidth from fwhm
+        self.bandwidth = 0.44 / self.t0
+        Ef = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth) ** 2)
+
+        # fig, ax = plt.subplots(2,1)
+        # ax[0].plot(Ef)
+        # ax[1].plot(Ef0)
+        # plt.ioff()
+        # plt.show()
+
+        # exit(0)
         Ef_prop = Ef * np.exp(1j * 0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
         # plt.figure(98)
         # plt.plot(0.5 * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2)
@@ -136,7 +149,7 @@ class Med():
 
 N = 2**16
 tmax = 60e-15
-xuv = XUV_Field(N=N, tmax=tmax, gdd=-500, tod=0)
+xuv = XUV_Field(N=N, tmax=tmax, gdd=0, tod=0)
 ir = IR_Field(N=N, tmax=tmax)
 med = Med()
 
