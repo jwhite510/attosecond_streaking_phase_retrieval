@@ -40,8 +40,10 @@ def plot_single_trace(x_in, y_in):
     axis.pcolormesh(si_time*1e15, p_vec, x_in[index].reshape(len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec)), cmap='jet')
     axis.set_xlabel('Delay [Femtoseconds]')
     axis.set_ylabel('Momentum [a.u]')
-    axis.text(0.3, 1.05, "Input Streaking Trace", transform=axis.transAxes, backgroundcolor='white', weight='bold')
+    axis.text(0.5, 1.05, "Input Streaking Trace", transform=axis.transAxes, backgroundcolor='white', weight='bold', horizontalalignment='center')
 
+    # subplot just for the letter for input trace
+    axis.text(0, 1.05, "a)", transform=axis.transAxes, backgroundcolor='white', weight='bold')
 
 
     # plot the predicted spectral phase
@@ -57,7 +59,7 @@ def plot_single_trace(x_in, y_in):
     axtwin.tick_params(axis='y', colors='green')
     # plot the error
     axis.text(0.5, 1.05, "MSE: " + str(round(mse, 5)),transform=axis.transAxes, backgroundcolor='white')
-    axis.text(0, 1.05, "Prediction", transform=axis.transAxes, backgroundcolor='white', weight='bold')
+    axis.text(0, 1.05, "c) Prediction", transform=axis.transAxes, backgroundcolor='white', weight='bold')
     axis.set_xlabel('Energy [eV]')
 
 
@@ -72,7 +74,7 @@ def plot_single_trace(x_in, y_in):
     axtwin.set_ylabel(r"$\phi(eV)$")
     axtwin.yaxis.label.set_color('green')
     axtwin.tick_params(axis='y', colors='green')
-    axis.text(0, 1.05, "Actual", transform=axis.transAxes, backgroundcolor='white', weight='bold')
+    axis.text(0, 1.05, "b) Actual", transform=axis.transAxes, backgroundcolor='white', weight='bold')
     axis.set_xlabel('Energy [eV]')
 
 
