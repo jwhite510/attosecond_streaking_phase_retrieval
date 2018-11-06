@@ -30,25 +30,30 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
                                                    len(generate_proof_traces.tauvec)), cmap='jet')
 
+        # set the number of points to crop when plotting the phase to redice the noise
+        crop_phase_right = 15
+        crop_phase_left = 20
+
         # plot E(t) retrieved
         axis[1][ax].cla()
         complex_field = predictions[index, :64] + 1j * predictions[index, 64:]
-        # axis[1][ax].plot(np.real(complex_field), color="blue")
-        # axis[1][ax].plot(np.imag(complex_field), color="red")
         axis[1][ax].plot(electronvolts, np.abs(complex_field), color="black")
         axtwin = axis[1][ax].twinx()
-        axtwin.plot(electronvolts, np.unwrap(np.angle(complex_field)), color="green")
+        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right], color="green")
         axis[1][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[1][ax].transAxes,
                          backgroundcolor='white')
+
+        # plot the error
+        axis[1][ax].text(0.1, 1.1, "MSE: " + str(mse),
+                         transform=axis[1][ax].transAxes, backgroundcolor='white')
+
 
         # plot E(t) actual
         axis[2][ax].cla()
         complex_field = y_in[index, :64] + 1j * y_in[index, 64:]
-        # axis[2][ax].plot(np.real(complex_field), color="blue")
-        # axis[2][ax].plot(np.imag(complex_field), color="red")
         axis[2][ax].plot(electronvolts, np.abs(complex_field), color="black")
         axtwin = axis[2][ax].twinx()
-        axtwin.plot(electronvolts, np.unwrap(np.angle(complex_field)), color="green")
+        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right], color="green")
         axis[2][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
                          backgroundcolor='white')
 
