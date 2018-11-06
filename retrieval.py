@@ -2,16 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 from scipy import interpolate
-
-# load the model functions
+from generate_data import XUV_Field_rand_phase
 import importlib
-modelname= 'reg_conv_net_11_5_18_linmomentum'
-
+modelname = 'reg_conv_net_11_5_18_linmomentum'
 # model = importlib.import_module('models.network_{}'.format(modelname))
 from models.network_reg_conv_net_11_5_18_linmomentum import *
-
-# load the model data
 import tensorflow as tf
+import scipy.constants as sc
+
+
 
 
 def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
@@ -36,9 +35,9 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         complex_field = predictions[index, :64] + 1j * predictions[index, 64:]
         # axis[1][ax].plot(np.real(complex_field), color="blue")
         # axis[1][ax].plot(np.imag(complex_field), color="red")
-        axis[1][ax].plot(np.abs(complex_field), color="black")
+        axis[1][ax].plot(electronvolts, np.abs(complex_field), color="black")
         axtwin = axis[1][ax].twinx()
-        axtwin.plot(np.unwrap(np.angle(complex_field)), color="green")
+        axtwin.plot(electronvolts, np.unwrap(np.angle(complex_field)), color="green")
         axis[1][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[1][ax].transAxes,
                          backgroundcolor='white')
 
@@ -47,18 +46,18 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         complex_field = y_in[index, :64] + 1j * y_in[index, 64:]
         # axis[2][ax].plot(np.real(complex_field), color="blue")
         # axis[2][ax].plot(np.imag(complex_field), color="red")
-        axis[2][ax].plot(np.abs(complex_field), color="black")
+        axis[2][ax].plot(electronvolts, np.abs(complex_field), color="black")
         axtwin = axis[2][ax].twinx()
-        axtwin.plot(np.unwrap(np.angle(complex_field)), color="green")
+        axtwin.plot(electronvolts, np.unwrap(np.angle(complex_field)), color="green")
         axis[2][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
                          backgroundcolor='white')
 
-        axis[0][ax].set_xticks([])
-        axis[0][ax].set_yticks([])
-        axis[1][ax].set_xticks([])
-        axis[1][ax].set_yticks([])
-        axis[2][ax].set_xticks([])
-        axis[2][ax].set_yticks([])
+        # axis[0][ax].set_xticks([])
+        # axis[0][ax].set_yticks([])
+        # axis[1][ax].set_xticks([])
+        # axis[1][ax].set_yticks([])
+        # axis[2][ax].set_xticks([])
+        # axis[2][ax].set_yticks([])
 
 
     print("mses: ", mses)
@@ -113,6 +112,15 @@ def retrieve_pulse(filepath, plotting=False):
 
 # retrieve the experimental data
 delay, energy, trace = retrieve_pulse(filepath='./experimental_data/53asstreakingdata.csv', plotting=False)
+
+
+# retrieve f vector
+xuv_test = XUV_Field_rand_phase(phase_amplitude=0, phase_nodes=100, plot=False)
+fmat = xuv_test.f_cropped_cropped # a.u.
+fmat_hz = fmat / sc.physical_constants['atomic unit of time'][0]
+fmat_joules = sc.h * fmat_hz # joules
+electronvolts = 1 / (sc.elementary_charge) * fmat_joules
+
 
 
 #initialize the plot
