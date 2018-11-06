@@ -28,7 +28,7 @@ def plot_single_trace(x_in, y_in):
     si_time = tauvec * dt * sc.physical_constants['atomic unit of time'][0]
 
     predictions = sess.run(y_pred, feed_dict={x: x_in, y_true: y_in})
-    index = 0
+    index = 4
     mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1), y_true: y_in[index].reshape(1, -1)})
 
     # determine phase crop
@@ -41,6 +41,7 @@ def plot_single_trace(x_in, y_in):
     axis.set_xlabel('Delay [Femtoseconds]')
     axis.set_ylabel('Momentum [a.u]')
     axis.text(0.5, 1.05, "Input Streaking Trace", transform=axis.transAxes, backgroundcolor='white', weight='bold', horizontalalignment='center')
+    axis.set_xticks([-15, -10, -5, 0, 5, 10, 15])
 
     # subplot just for the letter for input trace
     axis.text(0, 1.05, "a)", transform=axis.transAxes, backgroundcolor='white', weight='bold')
@@ -53,14 +54,18 @@ def plot_single_trace(x_in, y_in):
     axis.plot(electronvolts, np.abs(complex_field), color="black")
     axtwin = axis.twinx()
     # plot the phase
-    axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right],np.unwrap(np.angle(complex_field[crop_phase_left:-crop_phase_right])), color="green")
-    axtwin.set_ylabel(r"$\phi(eV)$")
+    phase = np.unwrap(np.angle(complex_field[crop_phase_left:-crop_phase_right]))
+    phase = phase - np.min(phase)
+    axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right],phase, color="green", linewidth=3)
+    axtwin.set_ylabel(r"$\phi_{XUV}(eV)$[rad]")
     axtwin.yaxis.label.set_color('green')
     axtwin.tick_params(axis='y', colors='green')
     # plot the error
-    axis.text(0.5, 1.05, "MSE: " + str(round(mse, 5)),transform=axis.transAxes, backgroundcolor='white')
+    axtwin.text(0.03, 0.90, "MSE: " + str(round(mse, 5)), transform=axtwin.transAxes, backgroundcolor='white',
+                bbox=dict(facecolor='white', edgecolor='black', pad=3.0))
     axis.text(0, 1.05, "c) Prediction", transform=axis.transAxes, backgroundcolor='white', weight='bold')
     axis.set_xlabel('Energy [eV]')
+    axis.set_ylabel('$|E_{XUV}(eV)|$')
 
 
     # plot the actual spectral phase
@@ -70,12 +75,17 @@ def plot_single_trace(x_in, y_in):
     axis.plot(electronvolts, np.abs(complex_field), color="black")
     axtwin = axis.twinx()
     # plot the phase
-    axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right],np.unwrap(np.angle(complex_field[crop_phase_left:-crop_phase_right])), color="green")
-    axtwin.set_ylabel(r"$\phi(eV)$")
+    phase = np.unwrap(np.angle(complex_field[crop_phase_left:-crop_phase_right]))
+    phase = phase - np.min(phase)
+    axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], phase, color="green", linewidth=3)
+    axtwin.set_ylabel(r"$\phi_{XUV}(eV)$[rad]")
     axtwin.yaxis.label.set_color('green')
     axtwin.tick_params(axis='y', colors='green')
     axis.text(0, 1.05, "b) Actual", transform=axis.transAxes, backgroundcolor='white', weight='bold')
     axis.set_xlabel('Energy [eV]')
+    axis.set_ylabel('$|E_{XUV}(eV)|$')
+
+    plt.savefig('./singletraceplot.png')
 
 
 
@@ -87,61 +97,80 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
     mses = []
     predictions = sess.run(y_pred, feed_dict={x: x_in,
                                               y_true: y_in})
+    plt.subplots_adjust(wspace=0.12)
 
     # for ax, index in zip([0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]):
-    for ax, index in zip([0, 1, 2], [0, 1, 2]):
+    for ax, index in zip([0, 1, 2, 3, 4], [0, 1, 2, 8, 10]):
 
         mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),
                                         y_true: y_in[index].reshape(1, -1)})
         mses.append(mse)
 
         # plot  actual trace
-        axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
-                                                   len(generate_proof_traces.tauvec)), cmap='jet')
+        axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec)), cmap='jet')
+        if ax == 0:
+            axis[0][ax].set_ylabel('Momentum [a.u]')
+
 
         # set the number of points to crop when plotting the phase to redice the noise
         crop_phase_right = 15
         crop_phase_left = 20
 
         # plot E(t) retrieved
-        axis[1][ax].cla()
+        axis[2][ax].cla()
         complex_field = predictions[index, :64] + 1j * predictions[index, 64:]
-        axis[1][ax].plot(electronvolts, np.abs(complex_field), color="black")
-        axtwin = axis[1][ax].twinx()
-        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right], color="green")
-        axis[1][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[1][ax].transAxes,
-                         backgroundcolor='white')
-
+        axis[2][ax].plot(electronvolts, np.abs(complex_field), color="black")
+        axtwin = axis[2][ax].twinx()
+        phase = np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right]
+        phase = phase - np.min(phase)
+        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], phase, color="green", linewidth=3)
+        axtwin.yaxis.label.set_color('green')
+        axtwin.tick_params(axis='y', colors='green')
         # plot the error
-        axis[1][ax].text(0.1, 1.1, "MSE: " + str(mse),
-                         transform=axis[1][ax].transAxes, backgroundcolor='white')
+        axtwin.text(0.03, 0.90, "MSE: " + str(round(mse, 5)), transform=axtwin.transAxes, backgroundcolor='white', bbox=dict(facecolor='white', edgecolor='black', pad=3.0))
+        if ax == 0:
+            axis[2][ax].set_ylabel('Prediction\n$|E_{XUV}(eV)|$')
+        if ax == 4:
+            axtwin.set_ylabel('$\phi_{XUV}(eV)$[rad]')
 
 
         # plot E(t) actual
-        axis[2][ax].cla()
+        axis[1][ax].cla()
         complex_field = y_in[index, :64] + 1j * y_in[index, 64:]
-        axis[2][ax].plot(electronvolts, np.abs(complex_field), color="black")
-        axtwin = axis[2][ax].twinx()
-        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right], color="green")
-        axis[2][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
-                         backgroundcolor='white')
+        axis[1][ax].plot(electronvolts, np.abs(complex_field), color="black")
+        axtwin = axis[1][ax].twinx()
 
-        # axis[0][ax].set_xticks([])
-        # axis[0][ax].set_yticks([])
-        # axis[1][ax].set_xticks([])
-        # axis[1][ax].set_yticks([])
-        # axis[2][ax].set_xticks([])
-        # axis[2][ax].set_yticks([])
+        phase = np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right]
+        phase = phase - np.min(phase)
+        axtwin.plot(electronvolts[crop_phase_left:-crop_phase_right], phase, color="green", linewidth=3)
+        axtwin.yaxis.label.set_color('green')
+        axtwin.tick_params(axis='y', colors='green')
+        # axis[1][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[1][ax].transAxes, backgroundcolor='white')
+        axis[1][ax].set_xlabel('Energy [eV]')
+
+        if ax == 0:
+            axis[1][ax].set_ylabel('Actual\n$|E_{XUV}(eV)|$')
+        if ax == 4:
+            axtwin.set_ylabel('$\phi_{XUV}(eV)$[rad]')
+
+
+        axis[0][ax].set_xticks([])
+        axis[0][ax].set_yticks([])
+        axis[1][ax].set_xticks([])
+        axis[1][ax].set_yticks([])
+        axis[2][ax].set_xticks([])
+        axis[2][ax].set_yticks([])
 
 
     print("mses: ", mses)
     print("avg : ", (1 / len(mses)) * np.sum(np.array(mses)))
 
     # save image
-    dir = "/home/zom/PythonProjects/attosecond_streaking_phase_retrieval/nnpictures/" + modelname + "/" + set + "/"
-    if not os.path.isdir(dir):
-        os.makedirs(dir)
-    fig.savefig(dir + str(epoch) + ".png")
+    plt.savefig('./multitraceplot.png')
+    # dir = "/home/zom/PythonProjects/attosecond_streaking_phase_retrieval/nnpictures/" + modelname + "/" + set + "/"
+    # if not os.path.isdir(dir):
+    #     os.makedirs(dir)
+    # fig.savefig(dir + str(epoch) + ".png")
 
 
 
@@ -206,7 +235,7 @@ with open('crab_tf_items.p', 'rb') as file:
 
 
 #initialize the plot for multiple traces
-fig2, ax2 = plt.subplots(3, 3, figsize=(14, 8))
+fig2, ax2 = plt.subplots(3, 5, figsize=(14, 8))
 plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
                         wspace=0.1, hspace=0.1)
 
