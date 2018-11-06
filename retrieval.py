@@ -5,11 +5,70 @@ from scipy import interpolate
 
 # load the model functions
 import importlib
-network_name = 'reg_conv_net_1'
-model = importlib.import_module('models.network_{}'.format(network_name))
+modelname= 'reg_conv_net_11_5_18_linmomentum'
+
+# model = importlib.import_module('models.network_{}'.format(modelname))
+from models.network_reg_conv_net_11_5_18_linmomentum import *
 
 # load the model data
 import tensorflow as tf
+
+
+def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
+
+    mses = []
+    predictions = sess.run(y_pred, feed_dict={x: x_in,
+                                              y_true: y_in})
+
+    # for ax, index in zip([0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]):
+    for ax, index in zip([0, 1, 2], [0, 1, 2]):
+
+        mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),
+                                        y_true: y_in[index].reshape(1, -1)})
+        mses.append(mse)
+
+        # plot  actual trace
+        axis[0][ax].pcolormesh(x_in[index].reshape(len(generate_proof_traces.p_vec),
+                                                   len(generate_proof_traces.tauvec)), cmap='jet')
+
+        # plot E(t) retrieved
+        axis[1][ax].cla()
+        complex_field = predictions[index, :64] + 1j * predictions[index, 64:]
+        # axis[1][ax].plot(np.real(complex_field), color="blue")
+        # axis[1][ax].plot(np.imag(complex_field), color="red")
+        axis[1][ax].plot(np.abs(complex_field), color="black")
+        axtwin = axis[1][ax].twinx()
+        axtwin.plot(np.unwrap(np.angle(complex_field)), color="green")
+        axis[1][ax].text(0.1, 1, "prediction [" + set + " set]", transform=axis[1][ax].transAxes,
+                         backgroundcolor='white')
+
+        # plot E(t) actual
+        axis[2][ax].cla()
+        complex_field = y_in[index, :64] + 1j * y_in[index, 64:]
+        # axis[2][ax].plot(np.real(complex_field), color="blue")
+        # axis[2][ax].plot(np.imag(complex_field), color="red")
+        axis[2][ax].plot(np.abs(complex_field), color="black")
+        axtwin = axis[2][ax].twinx()
+        axtwin.plot(np.unwrap(np.angle(complex_field)), color="green")
+        axis[2][ax].text(0.1, 1, "actual [" + set + " set]", transform=axis[2][ax].transAxes,
+                         backgroundcolor='white')
+
+        axis[0][ax].set_xticks([])
+        axis[0][ax].set_yticks([])
+        axis[1][ax].set_xticks([])
+        axis[1][ax].set_yticks([])
+        axis[2][ax].set_xticks([])
+        axis[2][ax].set_yticks([])
+
+
+    print("mses: ", mses)
+    print("avg : ", (1 / len(mses)) * np.sum(np.array(mses)))
+
+    # save image
+    dir = "/home/zom/PythonProjects/attosecond_streaking_phase_retrieval/nnpictures/" + modelname + "/" + set + "/"
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
+    fig.savefig(dir + str(epoch) + ".png")
 
 
 
@@ -56,9 +115,24 @@ def retrieve_pulse(filepath, plotting=False):
 delay, energy, trace = retrieve_pulse(filepath='./experimental_data/53asstreakingdata.csv', plotting=False)
 
 
+#initialize the plot
+fig2, ax2 = plt.subplots(3, 3, figsize=(14, 8))
+plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
+                        wspace=0.1, hspace=0.1)
+
 with tf.Session() as sess:
     # restore checkpoint
     saver = tf.train.Saver()
-    saver.restore(sess, './models/{}.ckpt'.format(network_name))
+    print('restoring ', './models/{}.ckpt'.format(modelname))
+    saver.restore(sess, './models/{}.ckpt'.format(modelname))
+    get_data = GetData(batch_size=10)
+
+    # get data and evaluate
+    batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, axis=ax2, fig=fig2,
+                     set="test", modelname=modelname, epoch=0)
+
+    plt.ioff()
+    plt.show()
 
 
