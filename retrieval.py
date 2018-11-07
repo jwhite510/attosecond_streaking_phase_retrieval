@@ -166,6 +166,7 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
     print("avg : ", (1 / len(mses)) * np.sum(np.array(mses)))
 
     # save image
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,wspace=0.2, hspace=0.2)
     plt.savefig('./multitraceplot.png')
     # dir = "/home/zom/PythonProjects/attosecond_streaking_phase_retrieval/nnpictures/" + modelname + "/" + set + "/"
     # if not os.path.isdir(dir):
@@ -235,9 +236,10 @@ with open('crab_tf_items.p', 'rb') as file:
 
 
 #initialize the plot for multiple traces
-fig2, ax2 = plt.subplots(3, 5, figsize=(14, 8))
-plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
-                        wspace=0.1, hspace=0.1)
+scale = 0.7
+fig2, ax2 = plt.subplots(3, 5, figsize=(14*scale, 8*scale))
+# plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
+#                         wspace=0.1, hspace=0.1)
 
 with tf.Session() as sess:
     # restore checkpoint
