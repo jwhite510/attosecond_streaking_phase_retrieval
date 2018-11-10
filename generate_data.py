@@ -45,15 +45,15 @@ class XUV_Field_rand_phase(XUV_Field):
         dt = self.tmat_cropped[1] - self.tmat_cropped[0]
         N_cropped = len(self.tmat_cropped)
         df_cropped = 1 / (N_cropped * dt)
-        f_cropped = df_cropped * np.arange(-N_cropped/2, N_cropped/2, 1)
+        self.f_cropped = df_cropped * np.arange(-N_cropped/2, N_cropped/2, 1)
 
         # crop the spectrum
-        start_index = 260
-        width = 64
+        self.start_index = 260
+        self.width = 64
 
 
-        self.f_cropped_cropped = f_cropped[start_index:start_index+width]
-        self.Ef_cropped_cropped = self.Et_cropped_f_phase[start_index:start_index+width]
+        self.f_cropped_cropped = self.f_cropped[self.start_index:self.start_index+self.width]
+        self.Ef_cropped_cropped = self.Et_cropped_f_phase[self.start_index:self.start_index+self.width]
 
 
         self.E_w64 = self.Ef_cropped_cropped
@@ -64,8 +64,8 @@ class XUV_Field_rand_phase(XUV_Field):
         self.E_w64 = self.E_w64 * np.exp(-1j * angle_at_w0)
 
         # construct 512 timestep Et from 64 timestep Ef
-        self.E_t512 = Ew_64_to_Et_512(self.Ef_cropped_cropped, f_cropped,
-                             start_index, width)
+        self.E_t512 = Ew_64_to_Et_512(self.Ef_cropped_cropped, self.f_cropped,
+                             self.start_index, self.width)
 
 
 
