@@ -46,7 +46,7 @@ def plot_single_trace(x_in, y_in):
     plotvars['p_vec'] = p_vec
     plotvars['p_vec'] = p_vec
 
-    axis.set_xlabel('Delay [Femtoseconds]')
+    axis.set_xlabel('Time Delay [fs]')
     axis.set_ylabel('Momentum [atomic units]')
     axis.text(0.5, 1.05, "Input Streaking Trace", transform=axis.transAxes, backgroundcolor='white', weight='bold', horizontalalignment='center')
     axis.set_xticks([-15, -10, -5, 0, 5, 10, 15])
@@ -142,7 +142,9 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         axis[0][ax].pcolormesh(si_time*1e15, p_vec, x_in[index].reshape(len(generate_proof_traces.p_vec), len(generate_proof_traces.tauvec)), cmap='jet')
         if ax == 0:
             axis[0][ax].set_ylabel('Momentum [atomic units]')
-        axis[0][ax].set_xlabel('Delay [Femtoseconds]')
+        axis[0][ax].set_xlabel('Time Delay [fs]')
+        axis[0][ax].text(0.5, 1.05, 'Streaking Trace {}'.format(str(ax+1)), transform=axis[0][ax].transAxes, horizontalalignment='center',
+                         weight='bold')
 
 
 
@@ -170,7 +172,7 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         # plot the error
         axtwin.text(0, 0.95, "MSE: " + str(round(mse, 5)), transform=axtwin.transAxes, backgroundcolor='white', bbox=dict(facecolor='white', edgecolor='black', pad=3.0))
         axis[2][ax].set_xlabel('Photon Energy [eV]')
-        axis[2][ax].text(0.5, 1.05, 'Prediction', transform=axis[2][ax].transAxes, horizontalalignment='center',
+        axis[2][ax].text(0.5, 1.05, 'Prediction {}'.format(str(ax+1)), transform=axis[2][ax].transAxes, horizontalalignment='center',
                          weight='bold')
         if ax == 0:
             axis[2][ax].set_ylabel('Intensity [arbitrary units]')
@@ -182,7 +184,7 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch):
         axis[1][ax].cla()
         complex_field = y_in[index, :64] + 1j * y_in[index, 64:]
         axis[1][ax].plot(electronvolts, np.abs(complex_field)**2, color="black")
-        axis[1][ax].text(0.5,1.05,'Actual', transform=axis[1][ax].transAxes, horizontalalignment='center', weight='bold')
+        axis[1][ax].text(0.5,1.05,'Actual {}'.format(str(ax+1)), transform=axis[1][ax].transAxes, horizontalalignment='center', weight='bold')
         axtwin = axis[1][ax].twinx()
 
         phase = np.unwrap(np.angle(complex_field))[crop_phase_left:-crop_phase_right]
@@ -324,7 +326,7 @@ with tf.Session() as sess:
 
 axis = fig.add_subplot(gs[2, :])
 axis.pcolormesh(plotvars['si_time']*1e15, plotvars['p_vec'], strace, cmap='jet')
-axis.set_xlabel('Delay [Femtoseconds]')
+axis.set_xlabel('Time Delay [fs]')
 axis.set_ylabel('Momentum [atomic units]')
 axis.text(0.5, 1.05, "Reconstructed Streaking Trace", transform=axis.transAxes, backgroundcolor='white', weight='bold', horizontalalignment='center')
 # subplot just for the letter for input trace
