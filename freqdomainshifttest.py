@@ -57,7 +57,7 @@ t2_index = np.where(E_t2==point)[0][0]
 
 
 fig = plt.figure()
-gs = fig.add_gridspec(3,2)
+gs = fig.add_gridspec(4,2)
 
 # plot the delayed signal
 ax = fig.add_subplot(gs[0,0])
@@ -74,6 +74,7 @@ ax.plot(t[t_index], np.real(E_t[t_index]), 'ro')
 ax = fig.add_subplot(gs[1,1])
 ax.plot(t2, np.real(E_t2))
 ax.plot(t2[t2_index], np.real(E_t2[t2_index]), 'ro')
+ax.text(0.2, 1.5, 'Proof that the signal\ncan be represented\naccurately with fourier\ndelay', transform=ax.transAxes, backgroundcolor='yellow')
 
 # plot the small area around the selected point
 ax = fig.add_subplot(gs[2,1])
@@ -84,6 +85,16 @@ ax.plot(t2[t2_index], np.real(E_t2[t2_index]), 'ro')
 ax = fig.add_subplot(gs[2,0])
 ax.plot(delay+t[t_index], np.real(delayedEt[:, t_index]), color='orange')
 ax.plot(delay[3]+t[t_index], np.real(delayedEt[3, t_index]), 'ro')
+
+
+# plot the signals in frequency domain
+ax = fig.add_subplot(gs[3,0])
+ax.plot(f, np.real(np.fft.fftshift(np.fft.fft(np.fft.fftshift(E_t)))), color='blue')
+
+
+ax = fig.add_subplot(gs[3,1])
+ax.plot(f2, np.real(np.fft.fftshift(np.fft.fft(np.fft.fftshift(E_t2)))), color='blue')
+
 
 
 plt.show()
