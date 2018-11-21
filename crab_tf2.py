@@ -147,17 +147,20 @@ def plot_initial_field(field, timespan):
     gs = fig.add_gridspec(3, 2)
     ax = fig.add_subplot(gs[0, 0])
     ax.plot(field.tmat, np.real(field.Et_prop), color='blue')
+    ax.plot(field.tmat, np.imag(field.Et_prop), color='red')
     ax = fig.add_subplot(gs[1, 0])
     ax.plot(field.fmat, np.real(field.Ef_prop), color='blue')
+    ax.plot(field.fmat, np.imag(field.Ef_prop), color='red')
     ax = fig.add_subplot(gs[2, 0])
     ax.plot(field.f_cropped, np.real(field.Ef_prop_cropped), color='blue')
+    ax.plot(field.f_cropped, np.imag(field.Ef_prop_cropped), color='red')
     ax.text(0, -0.25, 'cropped frequency ({} long)'.format(int(timespan)), transform=ax.transAxes,
             backgroundcolor='white')
 
 
 # use these indexes to crop the ir and xuv frequency space for input to the neural net
-xuv_fmin_index,  xuv_fmax_index = 274, 321
-ir_fmin_index, ir_fmax_index = 256, 276
+xuv_fmin_index,  xuv_fmax_index = 270, 325
+ir_fmin_index, ir_fmax_index = 64, 84
 
 # the length of each vector, ir and xuv
 xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
@@ -166,7 +169,7 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 # create two time axes, with the same dt for the xuv and the IR
 xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-ir = IR_Field(N=512, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 
 # plot the xuv field
 plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
@@ -175,7 +178,34 @@ plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
 plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
 
 # construct the field with tensorflow
-xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
+
+# placeholders
+xuv_cropped_f = tf.placeholder(tf.complex64, [1, len(xuv.Ef_prop_cropped)])
+ir_cropped_f = tf.placeholder(tf.complex64, [len(ir.Ef_prop_cropped)])
+
+# constants
+xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
+ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
+
+
+# zero pad the spectrum of ir and xuv input
+paddings = tf.constant([[0,0], [1,2]], dtype=tf.int32)
+
+padded = tf.pad(xuv_cropped_f, paddings)
+
+
+init = tf.global_variables_initializer()
+with tf.Session() as sess:
+    init.run()
+    out = sess.run(padded, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped.reshape(1,-1)})
+    print(out)
+    exit(0)
+
+
+
+
+
+
 
 
 
