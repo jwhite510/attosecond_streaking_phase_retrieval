@@ -217,6 +217,7 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 # create two time axes, with the same dt for the xuv and the IR
 xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+med = Med()
 
 # plot the xuv field
 # plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
@@ -263,11 +264,57 @@ ir_time_domain_not_shifted = tf.ifft(fftshifted_ir_f)
 ir_time_domain = tf.manip.roll(ir_time_domain_not_shifted, shift=int(len(ir.fmat)/2), axis=0)
 
 
+# calculate A(t) integrals
+A_t = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_time_domain), axis=0)
+flipped1 = tf.reverse(A_t, axis=[0])
+flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+A_t_integ = tf.reverse(flipped_integral, axis=[0])
+
+
+# constant ionization potential
+I_p = tf.constant(med.Ip, dtype=tf.float32)
+
+
+# construct delay axis
+time_axis = tf.reshape(tf.constant(xuv.tmat, dtype=tf.float32), [-1, 1])
+delay_axis_f = tf.reshape(tf.constant(ir.fmat, dtype=tf.float32), [1, -1])
+delaymat = time_axis * delay_axis_f
+
+
+# fourier transform the A integral
+# shift
+fftshifted_A_t_int = tf.manip.roll(A_t_integ, shift=int(len(ir.fmat)/2), axis=0)
+# fft
+complex_A_t_int = tf.complex(real=fftshifted_A_t_int, imag=tf.zeros_like(fftshifted_A_t_int))
+A_t_int_f_not_shifted = tf.fft(complex_A_t_int)
+# shift again
+A_t_int_f = tf.manip.roll(A_t_int_f_not_shifted, shift=int(len(ir.fmat)/2), axis=0)
+# multiply A_t_integral in f space by phase angle of delay matrix
+# tf.reshape(A_t_int_f, [1,-1]) *  #e^phi
+thing = tf.exp(A_t_int_f)
+# thing = tf.exp(1j * A_t_int_f)
+
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    check_fft_and_reconstruction()
+    # check_fft_and_reconstruction()
+    # output = sess.run(A_t, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # plt.figure(99)
+    # plt.plot(ir.tmat, output)
+    #
+    # output = sess.run(flipped1, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # plt.plot(ir.tmat, output)
+
+    # output = sess.run(delaymat, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # plt.figure(9)
+    # plt.pcolormesh(output)
+    # plt.show()
+
+    output = sess.run(thing, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    print(output)
+
+
 
     # construct streaking trace
 
