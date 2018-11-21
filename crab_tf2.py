@@ -141,6 +141,53 @@ class Med():
         self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
 
+def check_fft_and_reconstruction():
+
+    out_xuv = sess.run(padded_xuv_f, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped})
+    out_xuv_time = sess.run(xuv_time_domain, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped})
+    out_ir = sess.run(padded_ir_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    out_ir_time = sess.run(ir_time_domain, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+
+    plot_reconstructions(xuv, out_xuv, out_xuv_time)
+    plot_reconstructions(ir, out_ir, out_ir_time)
+
+
+def plot_reconstructions(field, out_f, out_time):
+
+    # plotting
+    fig = plt.figure()
+    gs = fig.add_gridspec(4, 2)
+    # plot the input
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(field.f_cropped, np.real(field.Ef_prop_cropped), color='purple', label='input')
+    ax.plot(field.fmat, np.zeros_like(field.fmat), color='black', alpha=0.5)
+    ax.legend(loc=3)
+    # plot the reconstruced complete xuv in frequency domain
+    ax = fig.add_subplot(gs[1, 0])
+    ax.plot(field.fmat, np.real(field.Ef_prop), label='actual', color='orange')
+    ax.plot(field.fmat, np.real(out_f), label='padded', linestyle='dashed', color='black')
+    ax.legend(loc=3)
+    # plot the actual full xuv spectrum in frequency domain
+    ax = fig.add_subplot(gs[1, 1])
+    ax.plot(field.fmat, np.real(field.Ef_prop), label='actual', color='orange')
+    ax.legend(loc=3)
+    # tensorflow fourier transformed xuv in time
+    ax = fig.add_subplot(gs[2, 0])
+    ax.plot(field.tmat, np.real(out_time), color='blue', label='tf fft of reconstruced')
+    # plot numpy fft of the reconstruced
+    fft_rec = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(out_f)))
+    ax.plot(field.tmat, np.real(fft_rec), color='black', linestyle='dashed', label='numpy fft of padded')
+    ax.legend(loc=3)
+    # plot the actual field in time
+    ax = fig.add_subplot(gs[2,1])
+    ax.plot(field.tmat, np.real(field.Et_prop), color='orange', label='actual')
+    ax.legend(loc=3)
+    # compare the tensorflow ifft and the actual
+    ax = fig.add_subplot(gs[3, 0])
+    ax.plot(field.tmat, np.real(field.Et_prop), color='orange', label='actual')
+    ax.plot(field.tmat, np.real(out_time), color='black', label='tf fft of reconstruced', linestyle='dashed')
+    ax.legend(loc=3)
+
 
 def plot_initial_field(field, timespan):
     fig = plt.figure()
@@ -172,15 +219,17 @@ xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fma
 ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 
 # plot the xuv field
-plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
+# plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
 
 # plot the infrared field
-plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
+# plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
+
+
 
 # construct the field with tensorflow
 
 # placeholders
-xuv_cropped_f = tf.placeholder(tf.complex64, [1, len(xuv.Ef_prop_cropped)])
+xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
 ir_cropped_f = tf.placeholder(tf.complex64, [len(ir.Ef_prop_cropped)])
 
 # constants
@@ -188,18 +237,40 @@ xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
 ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
 
 
-# zero pad the spectrum of ir and xuv input
-paddings = tf.constant([[0,0], [1,2]], dtype=tf.int32)
+# zero pad the spectrum of ir and xuv input to match the full fmat
+# [pad_before , padafter]
+paddings_xuv = tf.constant([[xuv_fmin_index,len(xuv.Ef_prop)-xuv_fmax_index]], dtype=tf.int32)
+padded_xuv_f = tf.pad(xuv_cropped_f, paddings_xuv)
+# same for the IR
+paddings_ir = tf.constant([[ir_fmin_index,len(ir.Ef_prop)-ir_fmax_index]], dtype=tf.int32)
+padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 
-padded = tf.pad(xuv_cropped_f, paddings)
+
+# fourier transform the padded xuv
+# shift
+fftshifted_xuv_f = tf.manip.roll(padded_xuv_f, shift=int(len(xuv.fmat)/2), axis=0)
+# fft
+xuv_time_domain_not_shifted = tf.ifft(fftshifted_xuv_f)
+# shift again
+xuv_time_domain = tf.manip.roll(xuv_time_domain_not_shifted, shift=int(len(xuv.fmat)/2), axis=0)
+
+# fourier transform the padded ir
+# shift
+fftshifted_ir_f = tf.manip.roll(padded_ir_f, shift=int(len(ir.fmat)/2), axis=0)
+# fft
+ir_time_domain_not_shifted = tf.ifft(fftshifted_ir_f)
+# shift again
+ir_time_domain = tf.manip.roll(ir_time_domain_not_shifted, shift=int(len(ir.fmat)/2), axis=0)
 
 
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
-    out = sess.run(padded, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped.reshape(1,-1)})
-    print(out)
-    exit(0)
+
+    check_fft_and_reconstruction()
+
+    # construct streaking trace
+
 
 
 
