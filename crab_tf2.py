@@ -70,14 +70,91 @@ class XUV_Field():
 
 
 
+class IR_Field():
+
+    def __init__(self, N, tmax):
+        self.N = N
+        # calculate parameters in SI units
+        self.lam0 = 1.7 * um    # central wavelength
+        self.f0 = sc.c/self.lam0    # carrier frequency
+        self.T0 = 1/self.f0 # optical cycle
+        # self.t0 = 12 * fs # pulse duration
+        self.t0 = 12 * fs # pulse duration
+        self.ncyc = self.t0/self.T0
+        self.I0 = 1e13 * W/cm**2
+
+        # compute ponderomotive energy
+        self.Up = (sc.elementary_charge**2 * self.I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * self.f0)**2)
+
+        # discretize time matrix
+        self.tmax = tmax
+        self.dt = self.tmax / N
+        self.tmat = self.dt * np.arange(-N/2, N/2, 1)
+        self.tmat_indexes = np.arange(int(-N/2), int(N/2), 1)
+
+        # discretize spectral matrix
+        self.df = 1/(self.dt * N)
+        self.fmat = self.df * np.arange(-N/2, N/2, 1)
+        self.enmat = sc.h * self.fmat
+
+        # convert units to AU
+        self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
+        self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
+        self.df = self.df * sc.physical_constants['atomic unit of time'][0]
+
+        self.T0 = self.T0 / sc.physical_constants['atomic unit of time'][0]
+        self.Up = self.Up / sc.physical_constants['atomic unit of energy'][0]
+        self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
+        self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
+        self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
+
+        self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
+
+        # calculate driving amplitude in AU
+        self.E0 = np.sqrt(4 * self.Up * (2 * np.pi * self.f0)**2)
+
+        # set up the driving IR field amplitude in AU
+        self.Et = self.E0 * np.exp(-2 * np.log(2) * (self.tmat/self.t0)**2) * np.exp(1j * 2 * np.pi * self.f0 * self.tmat)
+
+        # fourier transform the field
+        self.Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
+
+
+class Med():
+
+    def __init__(self):
+        self.Ip_eV = 24.587
+        self.Ip = self.Ip_eV * sc.electron_volt  # joules
+        self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+
+
+
 
 # create two time axes, with the same dt for the xuv and the IR
-global_N = 2**16
-global_tmax = 60e-15
-xuv = XUV_Field(N=N, tmax=tmax)
+xuv = XUV_Field(N=512, tmax=5e-16)
+ir = IR_Field(N=512, tmax=50e-15)
 
-plt.figure(1)
-plt.plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
+
+
+# plot the xuv field
+fig = plt.figure()
+gs = fig.add_gridspec(2,2)
+ax = fig.add_subplot(gs[0,0])
+ax.plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
+ax = fig.add_subplot(gs[1,0])
+ax.plot(xuv.fmat, np.real(xuv.Ef_prop), color='blue')
+
+
+
+# plot the infrared field
+fig = plt.figure()
+gs = fig.add_gridspec(2,2)
+ax = fig.add_subplot(gs[0,0])
+ax.plot(ir.tmat, np.real(ir.Et), color='blue')
+ax = fig.add_subplot(gs[1,0])
+ax.plot(ir.fmat, np.real(ir.Ef), color='blue')
+
+
 plt.show()
 
 
