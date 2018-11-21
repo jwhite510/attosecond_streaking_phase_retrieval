@@ -17,7 +17,7 @@ atts = 1e-18
 
 class XUV_Field():
 
-    def __init__(self, N, tmax, gdd=0.0, tod=0.0, random_phase=None):
+    def __init__(self, N, tmax, start_index, end_index, gdd=0.0, tod=0.0, random_phase=None):
 
         # define parameters in SI units
         self.N = N
@@ -68,11 +68,13 @@ class XUV_Field():
 
         self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
 
+        self.Ef_prop_cropped = self.Ef_prop[start_index:end_index]
+        self.f_cropped = self.fmat[start_index:end_index]
 
 
 class IR_Field():
 
-    def __init__(self, N, tmax):
+    def __init__(self, N, tmax, start_index, end_index):
         self.N = N
         # calculate parameters in SI units
         self.lam0 = 1.7 * um    # central wavelength
@@ -119,6 +121,17 @@ class IR_Field():
         # fourier transform the field
         self.Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
 
+        # add phase ... later
+        self.Ef_prop = self.Ef
+
+        # fourier transform back to time domain
+        self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
+
+
+        # crop the field for input
+        self.Ef_prop_cropped = self.Ef[start_index:end_index]
+        self.f_cropped = self.fmat[start_index:end_index]
+
 
 class Med():
 
@@ -129,34 +142,45 @@ class Med():
 
 
 
+def plot_initial_field(field, timespan):
+    fig = plt.figure()
+    gs = fig.add_gridspec(3, 2)
+    ax = fig.add_subplot(gs[0, 0])
+    ax.plot(field.tmat, np.real(field.Et_prop), color='blue')
+    ax = fig.add_subplot(gs[1, 0])
+    ax.plot(field.fmat, np.real(field.Ef_prop), color='blue')
+    ax = fig.add_subplot(gs[2, 0])
+    ax.plot(field.f_cropped, np.real(field.Ef_prop_cropped), color='blue')
+    ax.text(0, -0.25, 'cropped frequency ({} long)'.format(int(timespan)), transform=ax.transAxes,
+            backgroundcolor='white')
+
+
+# use these indexes to crop the ir and xuv frequency space for input to the neural net
+xuv_fmin_index,  xuv_fmax_index = 274, 321
+ir_fmin_index, ir_fmax_index = 256, 276
+
+# the length of each vector, ir and xuv
+xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
+ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
+
 
 # create two time axes, with the same dt for the xuv and the IR
-xuv = XUV_Field(N=512, tmax=5e-16)
-ir = IR_Field(N=512, tmax=50e-15)
-
-
+xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+ir = IR_Field(N=512, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 
 # plot the xuv field
-fig = plt.figure()
-gs = fig.add_gridspec(2,2)
-ax = fig.add_subplot(gs[0,0])
-ax.plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
-ax = fig.add_subplot(gs[1,0])
-ax.plot(xuv.fmat, np.real(xuv.Ef_prop), color='blue')
-
-
+plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
 
 # plot the infrared field
-fig = plt.figure()
-gs = fig.add_gridspec(2,2)
-ax = fig.add_subplot(gs[0,0])
-ax.plot(ir.tmat, np.real(ir.Et), color='blue')
-ax = fig.add_subplot(gs[1,0])
-ax.plot(ir.fmat, np.real(ir.Ef), color='blue')
+plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
+
+# construct the field with tensorflow
+xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
+
+
+
+
+
 
 
 plt.show()
-
-
-
-
