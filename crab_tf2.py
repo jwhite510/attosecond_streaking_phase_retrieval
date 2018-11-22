@@ -238,7 +238,7 @@ xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
 ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 
-# create two time axes, with the same dt for the xuv and the IR
+# create two time axes for the xuv and ir with different dt
 xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 med = Med()
@@ -335,14 +335,14 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    # check_fft_and_reconstruction()
+    check_fft_and_reconstruction()
 
     # construct streaking trace
     out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
                                ir_cropped_f: ir.Ef_prop_cropped})
 
     plt.figure(999)
-    plt.pcolormesh(out)
+    plt.pcolormesh(out, cmap='jet')
 
 
 
