@@ -230,8 +230,12 @@ def plot_initial_field(field, timespan):
 
 
 # use these indexes to crop the ir and xuv frequency space for input to the neural net
-xuv_fmin_index,  xuv_fmax_index = 270, 325
-ir_fmin_index, ir_fmax_index = 64, 84
+# xuv_fmin_index,  xuv_fmax_index = 270, 325
+# ir_fmin_index, ir_fmax_index = 64, 84
+xuv_n = 512
+ir_n = 256
+xuv_fmin_index,  xuv_fmax_index = 0, xuv_n-1
+ir_fmin_index, ir_fmax_index = 0, ir_n-1
 
 # the length of each vector, ir and xuv
 xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
@@ -239,8 +243,10 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 
 # create two time axes for the xuv and ir with different dt
-xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+# xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 med = Med()
 
 # plot the xuv field
@@ -335,19 +341,98 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    check_fft_and_reconstruction()
+    # check_fft_and_reconstruction()
 
-    # construct streaking trace
+    fig = plt.figure()
+    gs = fig.add_gridspec(6,2)
+
+    # plot cross section of ir term
+    out = sess.run(A_t_integ_t_phase, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                      ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[0, :])
+    ax.pcolormesh(np.real(out[:, :]), cmap='jet')
+
+    span = 20
+    p_section = 100
+
+    # plot the right side of ir term
+    ax = fig.add_subplot(gs[1, 1])
+    ax.pcolormesh(np.real(out[:, -span:]), cmap='jet')
+
+    # plot the left side of ir term
+    ax = fig.add_subplot(gs[1, 0])
+    ax.pcolormesh(np.real(out[:, :span]), cmap='jet')
+
+
+    # plot the cross section of ir_phi term
+    out = sess.run(ir_phi, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                     ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(np.real(out[p_section,:,:]), cmap='jet')
+
+
+    # plot the left and right side of the ir phi term
+    ax = fig.add_subplot(gs[3, 0])
+    ax.pcolormesh(np.real(out[p_section,:, :span]), cmap='jet')
+
+    ax = fig.add_subplot(gs[3, 1])
+    ax.pcolormesh(np.real(out[p_section,:, -span:]), cmap='jet')
+
+    # plot the cross section of xuv
+    # out = sess.run(xuv_time_domain_integrate, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+    #                                   ir_cropped_f: ir.Ef_prop_cropped})
+    # ax = fig.add_subplot(gs[3, :])
+    # ax.plot(np.real(np.squeeze(out)))
+
+    # plot the cross section of the fourier transform
+    out = sess.run(e_fft_tf, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                        ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[4, :])
+    ax.plot(np.real(out[p_section,:,0]))
+
+    # plot the streaking trace
     out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
                                ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[5, :])
+    ax.pcolormesh(out, cmap='jet')
+    plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
 
-    plt.figure(999)
-    plt.pcolormesh(out, cmap='jet')
+    A_t_integ_out = sess.run(A_t_integ, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                               ir_cropped_f: ir.Ef_prop_cropped})
 
 
+# find out where the oscillations are coming from
+#delaymat
+print(np.shape(delaymat))
+print(np.shape(A_t_integ_out))
 
+# fourier transform A_t_integ_out
+a_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(A_t_integ_out)))
 
+# apply phase
+phase_appled_f = delaymat * a_fft.reshape(1,-1)
 
+#inverse fourier transform
+phase_appled_t = np.real(np.fft.fftshift(np.fft.ifft(np.fft.fftshift(phase_appled_f))))
+
+fig = plt.figure()
+gs = fig.add_gridspec(4,2)
+ax = fig.add_subplot(gs[0,:])
+ax.plot(A_t_integ_out)
+
+ax = fig.add_subplot(gs[1,:])
+ax.plot(np.real(a_fft))
+
+ax = fig.add_subplot(gs[2,:])
+ax.pcolormesh(phase_appled_t, cmap='jet')
+
+#  plot left side
+ax = fig.add_subplot(gs[3,0])
+ax.pcolormesh(phase_appled_t[:, :span], cmap='jet')
+
+#  plot right side
+ax = fig.add_subplot(gs[3,1])
+ax.pcolormesh(phase_appled_t[:,-span:], cmap='jet')
 
 
 
