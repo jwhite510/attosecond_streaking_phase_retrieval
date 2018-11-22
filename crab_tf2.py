@@ -257,27 +257,24 @@ med = Med()
 xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
 ir_cropped_f = tf.placeholder(tf.complex64, [len(ir.Ef_prop_cropped)])
 
-# constants
+# define constants
 xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
 ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
-
 
 # zero pad the spectrum of ir and xuv input to match the full fmat
 # [pad_before , padafter]
 paddings_xuv = tf.constant([[xuv_fmin_index,len(xuv.Ef_prop)-xuv_fmax_index]], dtype=tf.int32)
 padded_xuv_f = tf.pad(xuv_cropped_f, paddings_xuv)
+
 # same for the IR
 paddings_ir = tf.constant([[ir_fmin_index,len(ir.Ef_prop)-ir_fmax_index]], dtype=tf.int32)
 padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 
-
 # fourier transform the padded xuv
 xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
 
-
 # fourier transform the padded ir
 ir_time_domain =  tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
-
 
 # calculate A(t) integrals
 A_t = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_time_domain), axis=0)
@@ -285,31 +282,52 @@ flipped1 = tf.reverse(A_t, axis=[0])
 flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
 A_t_integ = tf.reverse(flipped_integral, axis=[0])
 
-
-# constant ionization potential
-I_p = tf.constant(med.Ip, dtype=tf.float32)
-
-
 # construct delay axis
 delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
 delaymat_tf = tf.constant(delaymat, dtype=tf.complex64)
 
-
 # convert to a complex number for fourier transform
 A_t_integ_complex = tf.complex(real=A_t_integ, imag=tf.zeros_like(A_t_integ))
+
 # fourier transform the A integral
 A_t_integ_f = tf_1d_fft(tensor=A_t_integ_complex, shift=int(len(ir.fmat)/2))
-
 
 # apply phase to time shift the A_t integral
 A_t_integ_f_phase = tf.reshape(A_t_integ_f, [1,-1]) * delaymat_tf
 
 # inverse fourier transform the A integral
-A_t_integ_t_phase = tf_1d_ifft(tensor=A_t_integ_f_phase, shift=int(len(ir.fmat)/2), axis=1)
+A_t_integ_t_phase = tf.real(tf_1d_ifft(tensor=A_t_integ_f_phase, shift=int(len(ir.fmat)/2), axis=1))
 
+# make the A_t tensor 3d
+A_t_integ_t_phase3d = tf.expand_dims(A_t_integ_t_phase, 0)
 
+# add momentum vector
+p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
+K = (0.5 * p**2)
 
+# convert to tensorflow
+p_tf = tf.constant(p, dtype=tf.float32)
+K_tf = tf.constant(K, dtype=tf.float32)
 
+# add fourier transform term
+e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1,-1,1))
+e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+
+# add xuv to integrate over
+xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1,-1,1])
+
+# infrared phase term
+p_A_t_integ_t_phase3d = p_tf * A_t_integ_t_phase3d
+ir_phi =  tf.exp(tf.complex(imag=p_A_t_integ_t_phase3d, real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+
+# multiply elements together
+product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+
+# integrate over the xuv time
+integration = tf.constant(xuv.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+
+# absolute square the matrix
+image = tf.square(tf.abs(integration))
 
 
 
@@ -318,60 +336,13 @@ with tf.Session() as sess:
     init.run()
 
     # check_fft_and_reconstruction()
-    # output = sess.run(A_t, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    # plt.figure(99)
-    # plt.plot(ir.tmat, output)
-    #
-    # output = sess.run(flipped1, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    # plt.plot(ir.tmat, output)
-
-    # output = sess.run(delaymat, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    # plt.figure(9)
-    # plt.pcolormesh(output)
-    # plt.show()
-
-    output = sess.run(A_t_integ_t_phase, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    print(np.shape(output))
-    plt.figure(1)
-    plt.pcolormesh(np.real(output))
-    plt.show()
-
-
-    exit(0)
-
-    output = sess.run(delaymat_tf, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    plt.figure(99)
-    plt.pcolormesh(output)
-    plt.show()
-
-
-
-    output = sess.run(A_t_integ, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    plt.figure(10)
-    plt.plot(ir.tmat, np.real(output))
-
-    # numpy fft
-    plt.figure(11)
-    np_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(output)))
-    plt.plot(ir.tmat, np.real(np_fft))
-    plt.plot(ir.tmat, np.imag(np_fft), color='red')
-
-
-    output = sess.run(A_t_integ_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    plt.figure(12)
-    plt.plot(ir.fmat, np.real(output))
-    plt.plot(ir.fmat, np.imag(output), color='red')
-    print(output)
-
-
 
     # construct streaking trace
+    out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                               ir_cropped_f: ir.Ef_prop_cropped})
 
-
-
-
-
-
+    plt.figure(999)
+    plt.pcolormesh(out)
 
 
 
