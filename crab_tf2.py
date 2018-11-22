@@ -141,6 +141,30 @@ class Med():
         self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
 
+def tf_1d_ifft(tensor, shift, axis=0):
+
+    shifted = tf.manip.roll(tensor, shift=shift, axis=axis)
+    # fft
+    time_domain_not_shifted = tf.ifft(shifted)
+    # shift again
+    time_domain = tf.manip.roll(time_domain_not_shifted, shift=shift, axis=axis)
+
+    return time_domain
+
+def tf_1d_fft(tensor, shift, axis=0):
+
+    shifted = tf.manip.roll(tensor, shift=shift, axis=axis)
+    # fft
+    time_domain_not_shifted = tf.fft(shifted)
+    # shift again
+    time_domain = tf.manip.roll(time_domain_not_shifted, shift=shift, axis=axis)
+
+    return time_domain
+
+
+
+
+
 def check_fft_and_reconstruction():
 
     out_xuv = sess.run(padded_xuv_f, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped})
@@ -248,20 +272,11 @@ padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 
 
 # fourier transform the padded xuv
-# shift
-fftshifted_xuv_f = tf.manip.roll(padded_xuv_f, shift=int(len(xuv.fmat)/2), axis=0)
-# fft
-xuv_time_domain_not_shifted = tf.ifft(fftshifted_xuv_f)
-# shift again
-xuv_time_domain = tf.manip.roll(xuv_time_domain_not_shifted, shift=int(len(xuv.fmat)/2), axis=0)
+xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
+
 
 # fourier transform the padded ir
-# shift
-fftshifted_ir_f = tf.manip.roll(padded_ir_f, shift=int(len(ir.fmat)/2), axis=0)
-# fft
-ir_time_domain_not_shifted = tf.ifft(fftshifted_ir_f)
-# shift again
-ir_time_domain = tf.manip.roll(ir_time_domain_not_shifted, shift=int(len(ir.fmat)/2), axis=0)
+ir_time_domain =  tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
 
 
 # calculate A(t) integrals
@@ -276,23 +291,27 @@ I_p = tf.constant(med.Ip, dtype=tf.float32)
 
 
 # construct delay axis
-time_axis = tf.reshape(tf.constant(xuv.tmat, dtype=tf.float32), [-1, 1])
-delay_axis_f = tf.reshape(tf.constant(ir.fmat, dtype=tf.float32), [1, -1])
-delaymat = time_axis * delay_axis_f
+delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
+delaymat_tf = tf.constant(delaymat, dtype=tf.complex64)
 
 
+# convert to a complex number for fourier transform
+A_t_integ_complex = tf.complex(real=A_t_integ, imag=tf.zeros_like(A_t_integ))
 # fourier transform the A integral
-# shift
-fftshifted_A_t_int = tf.manip.roll(A_t_integ, shift=int(len(ir.fmat)/2), axis=0)
-# fft
-complex_A_t_int = tf.complex(real=fftshifted_A_t_int, imag=tf.zeros_like(fftshifted_A_t_int))
-A_t_int_f_not_shifted = tf.fft(complex_A_t_int)
-# shift again
-A_t_int_f = tf.manip.roll(A_t_int_f_not_shifted, shift=int(len(ir.fmat)/2), axis=0)
-# multiply A_t_integral in f space by phase angle of delay matrix
-# tf.reshape(A_t_int_f, [1,-1]) *  #e^phi
-thing = tf.exp(A_t_int_f)
-# thing = tf.exp(1j * A_t_int_f)
+A_t_integ_f = tf_1d_fft(tensor=A_t_integ_complex, shift=int(len(ir.fmat)/2))
+
+
+# apply phase to time shift the A_t integral
+A_t_integ_f_phase = tf.reshape(A_t_integ_f, [1,-1]) * delaymat_tf
+
+# inverse fourier transform the A integral
+A_t_integ_t_phase = tf_1d_ifft(tensor=A_t_integ_f_phase, shift=int(len(ir.fmat)/2), axis=1)
+
+
+
+
+
+
 
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
@@ -311,7 +330,37 @@ with tf.Session() as sess:
     # plt.pcolormesh(output)
     # plt.show()
 
-    output = sess.run(thing, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    output = sess.run(A_t_integ_t_phase, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    print(np.shape(output))
+    plt.figure(1)
+    plt.pcolormesh(np.real(output))
+    plt.show()
+
+
+    exit(0)
+
+    output = sess.run(delaymat_tf, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    plt.figure(99)
+    plt.pcolormesh(output)
+    plt.show()
+
+
+
+    output = sess.run(A_t_integ, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    plt.figure(10)
+    plt.plot(ir.tmat, np.real(output))
+
+    # numpy fft
+    plt.figure(11)
+    np_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(output)))
+    plt.plot(ir.tmat, np.real(np_fft))
+    plt.plot(ir.tmat, np.imag(np_fft), color='red')
+
+
+    output = sess.run(A_t_integ_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    plt.figure(12)
+    plt.plot(ir.fmat, np.real(output))
+    plt.plot(ir.fmat, np.imag(output), color='red')
     print(output)
 
 
