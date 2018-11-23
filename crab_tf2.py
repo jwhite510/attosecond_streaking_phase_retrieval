@@ -164,6 +164,54 @@ def tf_1d_fft(tensor, shift, axis=0):
 
 
 
+def check_corner_errors():
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(6, 2)
+
+    # plot cross section of ir term
+    out = sess.run(A_t_integ_t_phase, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                                 ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[0, :])
+    ax.pcolormesh(np.real(out[:, :]), cmap='jet')
+
+    span = 20
+    p_section = 100
+
+    # plot the right side of ir term
+    ax = fig.add_subplot(gs[1, 1])
+    ax.pcolormesh(np.real(out[:, -span:]), cmap='jet')
+
+    # plot the left side of ir term
+    ax = fig.add_subplot(gs[1, 0])
+    ax.pcolormesh(np.real(out[:, :span]), cmap='jet')
+
+    # plot the cross section of ir_phi term
+    out = sess.run(ir_phi, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                      ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(np.real(out[p_section, :, :]), cmap='jet')
+
+    # plot the left and right side of the ir phi term
+    ax = fig.add_subplot(gs[3, 0])
+    ax.pcolormesh(np.real(out[p_section, :, :span]), cmap='jet')
+
+    ax = fig.add_subplot(gs[3, 1])
+    ax.pcolormesh(np.real(out[p_section, :, -span:]), cmap='jet')
+
+    # plot the cross section of the fourier transform
+    out = sess.run(e_fft_tf, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                        ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[4, :])
+    ax.plot(np.real(out[p_section, :, 0]))
+
+    # plot the streaking trace
+    out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                     ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[5, :])
+    ax.pcolormesh(out, cmap='jet')
+    plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
+
 
 def check_fft_and_reconstruction():
 
@@ -256,7 +304,6 @@ med = Med()
 # plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
 
 
-
 # construct the field with tensorflow
 
 # placeholders
@@ -280,31 +327,24 @@ padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
 
 # fourier transform the padded ir
-ir_time_domain =  tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
-
-# calculate A(t) integrals
-A_t = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_time_domain), axis=0)
-flipped1 = tf.reverse(A_t, axis=[0])
-flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
-A_t_integ = tf.reverse(flipped_integral, axis=[0])
+ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
 
 # construct delay axis
 delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
 delaymat_tf = tf.constant(delaymat, dtype=tf.complex64)
 
-# convert to a complex number for fourier transform
-A_t_integ_complex = tf.complex(real=A_t_integ, imag=tf.zeros_like(A_t_integ))
+# add time delay to ir
+delayed_ir_f = tf.reshape(padded_ir_f, [1,-1]) * delaymat_tf
 
-# fourier transform the A integral
-A_t_integ_f = tf_1d_fft(tensor=A_t_integ_complex, shift=int(len(ir.fmat)/2))
+# inverse fft
+real_delayed_ir = tf.real(tf_1d_ifft(tensor=delayed_ir_f, shift=int(len(ir.fmat)/2), axis=1))
 
-# apply phase to time shift the A_t integral
-A_t_integ_f_phase = tf.reshape(A_t_integ_f, [1,-1]) * delaymat_tf
-
-# inverse fourier transform the A integral
-A_t_integ_t_phase = tf.real(tf_1d_ifft(tensor=A_t_integ_f_phase, shift=int(len(ir.fmat)/2), axis=1))
-
-# make the A_t tensor 3d
+# construct integrals
+# calculate A(t) integrals
+A_t = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(tf.real(real_delayed_ir), axis=1)
+flipped1 = tf.reverse(A_t, axis=[1])
+flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=1)
+A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[1])
 A_t_integ_t_phase3d = tf.expand_dims(A_t_integ_t_phase, 0)
 
 # add momentum vector
@@ -343,97 +383,15 @@ with tf.Session() as sess:
 
     # check_fft_and_reconstruction()
 
-    fig = plt.figure()
-    gs = fig.add_gridspec(6,2)
+    # check_corner_errors()
 
-    # plot cross section of ir term
-    out = sess.run(A_t_integ_t_phase, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                                      ir_cropped_f: ir.Ef_prop_cropped})
-    ax = fig.add_subplot(gs[0, :])
-    ax.pcolormesh(np.real(out[:, :]), cmap='jet')
-
-    span = 20
-    p_section = 100
-
-    # plot the right side of ir term
-    ax = fig.add_subplot(gs[1, 1])
-    ax.pcolormesh(np.real(out[:, -span:]), cmap='jet')
-
-    # plot the left side of ir term
-    ax = fig.add_subplot(gs[1, 0])
-    ax.pcolormesh(np.real(out[:, :span]), cmap='jet')
-
-
-    # plot the cross section of ir_phi term
-    out = sess.run(ir_phi, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                                     ir_cropped_f: ir.Ef_prop_cropped})
-    ax = fig.add_subplot(gs[2, :])
-    ax.pcolormesh(np.real(out[p_section,:,:]), cmap='jet')
-
-
-    # plot the left and right side of the ir phi term
-    ax = fig.add_subplot(gs[3, 0])
-    ax.pcolormesh(np.real(out[p_section,:, :span]), cmap='jet')
-
-    ax = fig.add_subplot(gs[3, 1])
-    ax.pcolormesh(np.real(out[p_section,:, -span:]), cmap='jet')
-
-    # plot the cross section of xuv
-    # out = sess.run(xuv_time_domain_integrate, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-    #                                   ir_cropped_f: ir.Ef_prop_cropped})
-    # ax = fig.add_subplot(gs[3, :])
-    # ax.plot(np.real(np.squeeze(out)))
-
-    # plot the cross section of the fourier transform
-    out = sess.run(e_fft_tf, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                                        ir_cropped_f: ir.Ef_prop_cropped})
-    ax = fig.add_subplot(gs[4, :])
-    ax.plot(np.real(out[p_section,:,0]))
-
-    # plot the streaking trace
     out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                               ir_cropped_f: ir.Ef_prop_cropped})
-    ax = fig.add_subplot(gs[5, :])
+                                     ir_cropped_f: ir.Ef_prop_cropped})
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[:, :])
     ax.pcolormesh(out, cmap='jet')
-    plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
-
-    A_t_integ_out = sess.run(A_t_integ, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                               ir_cropped_f: ir.Ef_prop_cropped})
-
-
-# find out where the oscillations are coming from
-#delaymat
-print(np.shape(delaymat))
-print(np.shape(A_t_integ_out))
-
-# fourier transform A_t_integ_out
-a_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(A_t_integ_out)))
-
-# apply phase
-phase_appled_f = delaymat * a_fft.reshape(1,-1)
-
-#inverse fourier transform
-phase_appled_t = np.real(np.fft.fftshift(np.fft.ifft(np.fft.fftshift(phase_appled_f))))
-
-fig = plt.figure()
-gs = fig.add_gridspec(4,2)
-ax = fig.add_subplot(gs[0,:])
-ax.plot(A_t_integ_out)
-
-ax = fig.add_subplot(gs[1,:])
-ax.plot(np.real(a_fft))
-
-ax = fig.add_subplot(gs[2,:])
-ax.pcolormesh(phase_appled_t, cmap='jet')
-
-#  plot left side
-ax = fig.add_subplot(gs[3,0])
-ax.pcolormesh(phase_appled_t[:, :span], cmap='jet')
-
-#  plot right side
-ax = fig.add_subplot(gs[3,1])
-ax.pcolormesh(phase_appled_t[:,-span:], cmap='jet')
-
 
 
 plt.show()
