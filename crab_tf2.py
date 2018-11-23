@@ -74,7 +74,7 @@ class XUV_Field():
 
 class IR_Field():
 
-    def __init__(self, N, tmax, start_index, end_index):
+    def __init__(self, N, tmax, start_index, end_index, const_phase=0.0):
         self.N = N
         # calculate parameters in SI units
         self.lam0 = 1.7 * um    # central wavelength
@@ -122,14 +122,14 @@ class IR_Field():
         self.Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
 
         # add phase ... later
-        self.Ef_prop = self.Ef
+        self.Ef_prop = self.Ef * np.exp(1j * const_phase)
 
         # fourier transform back to time domain
         self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
 
 
         # crop the field for input
-        self.Ef_prop_cropped = self.Ef[start_index:end_index]
+        self.Ef_prop_cropped = self.Ef_prop[start_index:end_index]
         self.f_cropped = self.fmat[start_index:end_index]
 
 
@@ -210,7 +210,7 @@ def check_corner_errors():
                                      ir_cropped_f: ir.Ef_prop_cropped})
     ax = fig.add_subplot(gs[5, :])
     ax.pcolormesh(out, cmap='jet')
-    plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
+    # plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
 
 
 def check_fft_and_reconstruction():
@@ -232,20 +232,25 @@ def plot_reconstructions(field, out_f, out_time):
     # plot the input
     ax = fig.add_subplot(gs[0, 0])
     ax.plot(field.f_cropped, np.real(field.Ef_prop_cropped), color='purple', label='input')
+    ax.plot(field.f_cropped, np.imag(field.Ef_prop_cropped), color='purple', alpha=0.5)
     ax.plot(field.fmat, np.zeros_like(field.fmat), color='black', alpha=0.5)
     ax.legend(loc=3)
     # plot the reconstruced complete xuv in frequency domain
     ax = fig.add_subplot(gs[1, 0])
     ax.plot(field.fmat, np.real(field.Ef_prop), label='actual', color='orange')
+    ax.plot(field.fmat, np.imag(field.Ef_prop), alpha=0.5, color='orange')
     ax.plot(field.fmat, np.real(out_f), label='padded', linestyle='dashed', color='black')
+    ax.plot(field.fmat, np.imag(out_f), alpha=0.5, linestyle='dashed', color='black')
     ax.legend(loc=3)
     # plot the actual full xuv spectrum in frequency domain
     ax = fig.add_subplot(gs[1, 1])
     ax.plot(field.fmat, np.real(field.Ef_prop), label='actual', color='orange')
+    ax.plot(field.fmat, np.imag(field.Ef_prop), alpha=0.5, color='orange')
     ax.legend(loc=3)
     # tensorflow fourier transformed xuv in time
     ax = fig.add_subplot(gs[2, 0])
     ax.plot(field.tmat, np.real(out_time), color='blue', label='tf fft of reconstruced')
+    # ax.plot(field.tmat, np.imag(out_time), color='blue', alpha=0.5)
     # plot numpy fft of the reconstruced
     fft_rec = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(out_f)))
     ax.plot(field.tmat, np.real(fft_rec), color='black', linestyle='dashed', label='numpy fft of padded')
@@ -278,12 +283,12 @@ def plot_initial_field(field, timespan):
 
 
 # use these indexes to crop the ir and xuv frequency space for input to the neural net
-# xuv_fmin_index,  xuv_fmax_index = 270, 325
-# ir_fmin_index, ir_fmax_index = 64, 84
-xuv_n = 512
-ir_n = 256
-xuv_fmin_index,  xuv_fmax_index = 0, xuv_n-1
-ir_fmin_index, ir_fmax_index = 0, ir_n-1
+xuv_fmin_index,  xuv_fmax_index = 270, 325
+ir_fmin_index, ir_fmax_index = 64, 84
+# xuv_n = 512
+# ir_n = 256
+# xuv_fmin_index,  xuv_fmax_index = 0, xuv_n-1
+# ir_fmin_index, ir_fmax_index = 0, ir_n-1
 
 # the length of each vector, ir and xuv
 xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
@@ -291,10 +296,10 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 
 # create two time axes for the xuv and ir with different dt
-# xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
-xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=2.0)
+# xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+# ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 med = Med()
 
 # plot the xuv field
@@ -381,7 +386,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    # check_fft_and_reconstruction()
+    check_fft_and_reconstruction()
 
     # check_corner_errors()
 
@@ -392,6 +397,7 @@ with tf.Session() as sess:
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[:, :])
     ax.pcolormesh(out, cmap='jet')
+    plt.savefig('./2.png')
 
 
 plt.show()
