@@ -174,6 +174,7 @@ def check_corner_errors():
                                                  ir_cropped_f: ir.Ef_prop_cropped})
     ax = fig.add_subplot(gs[0, :])
     ax.pcolormesh(np.real(out[:, :]), cmap='jet')
+    ax.text(0, 1, 'A_t_integ_t_phase', transform=ax.transAxes, backgroundcolor='white')
 
     span = 20
     p_section = 100
@@ -191,6 +192,7 @@ def check_corner_errors():
                                       ir_cropped_f: ir.Ef_prop_cropped})
     ax = fig.add_subplot(gs[2, :])
     ax.pcolormesh(np.real(out[p_section, :, :]), cmap='jet')
+    ax.text(0, 1, 'ir_phi', transform=ax.transAxes, backgroundcolor='white')
 
     # plot the left and right side of the ir phi term
     ax = fig.add_subplot(gs[3, 0])
@@ -210,7 +212,7 @@ def check_corner_errors():
                                      ir_cropped_f: ir.Ef_prop_cropped})
     ax = fig.add_subplot(gs[5, :])
     ax.pcolormesh(out, cmap='jet')
-    # plt.savefig('./xuv{}_ir{}.png'.format(str(xuv_n), str(ir_n)))
+    plt.savefig('./corners_const_phase/128/64bitfloat/6.png')
 
 
 def check_fft_and_reconstruction():
@@ -282,6 +284,55 @@ def plot_initial_field(field, timespan):
             backgroundcolor='white')
 
 
+def plot_xuv_ir_trace():
+
+    out_xuv_time = sess.run(xuv_time_domain, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped})
+
+    out_ir_time = sess.run(ir_time_domain, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+
+    # trace
+    trace = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                     ir_cropped_f: ir.Ef_prop_cropped})
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(3, 2)
+
+    # plot the ir in time
+    ax = fig.add_subplot(gs[0, :])
+    ax.plot(ir.tmat, np.real(out_ir_time), color='blue')
+
+    # plot the xuv in time
+    ax = fig.add_subplot(gs[1, :])
+    ax.plot(xuv.tmat, np.real(out_xuv_time), color='blue')
+
+    # plot the trace
+    ax = fig.add_subplot(gs[2, :])
+    ax.pcolormesh(trace, cmap='jet')
+
+    plt.savefig('./ir6phase')
+
+
+def check_integrals():
+
+    out = sess.run(A_t_integ_t_phase, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    print(np.shape(out))
+
+    pass
+
+
+
+
+def plot_streaking_trace():
+    out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
+                                     ir_cropped_f: ir.Ef_prop_cropped})
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[:, :])
+    ax.pcolormesh(out, cmap='jet')
+    plt.savefig('./2.png')
+
+
 # use these indexes to crop the ir and xuv frequency space for input to the neural net
 xuv_fmin_index,  xuv_fmax_index = 270, 325
 ir_fmin_index, ir_fmax_index = 64, 84
@@ -297,7 +348,7 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 # create two time axes for the xuv and ir with different dt
 xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=2.0)
+ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=0.0)
 # xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 # ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 med = Med()
@@ -386,18 +437,16 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    check_fft_and_reconstruction()
+    # check_fft_and_reconstruction()
 
     # check_corner_errors()
 
-    out = sess.run(image, feed_dict={xuv_cropped_f: xuv.Ef_prop_cropped,
-                                     ir_cropped_f: ir.Ef_prop_cropped})
+    # plot_xuv_ir_trace()
 
-    fig = plt.figure()
-    gs = fig.add_gridspec(2, 2)
-    ax = fig.add_subplot(gs[:, :])
-    ax.pcolormesh(out, cmap='jet')
-    plt.savefig('./2.png')
+    check_integrals()
+
+
+    # plot_streaking_trace()
 
 
 plt.show()
