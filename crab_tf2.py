@@ -391,6 +391,22 @@ padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 # fourier transform the padded xuv
 xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
 
+
+# zero pad the ir in frequency space to match dt of xuv
+# padded_ir_f
+
+# dt = 1 / (N * df)
+print('ir.df:', ir.df)
+# df * dt = 1/N
+N_new = 1 / (ir.df * xuv.dt)
+print(N_new)
+# exit(0)
+
+
+
+
+
+
 # fourier transform the padded ir
 ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
 
@@ -446,13 +462,20 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
+
+    out = sess.run(padded_ir_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    plt.plot(ir.fmat, np.real(out))
+    plt.show()
+
+
+
     # check_fft_and_reconstruction()
 
     # check_corner_errors()
 
     # plot_xuv_ir_trace()
 
-    check_integrals()
+    # check_integrals()
 
 
     # plot_streaking_trace()
