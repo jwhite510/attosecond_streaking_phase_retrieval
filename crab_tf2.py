@@ -314,10 +314,19 @@ def plot_xuv_ir_trace():
 
 def check_integrals():
 
-    out = sess.run(A_t_integ_t_phase, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    print(np.shape(out))
+    fig = plt.figure()
+    gs = fig.add_gridspec(2,2)
 
-    pass
+
+    # plot A integral
+    ax = fig.add_subplot(gs[0,:])
+    out = sess.run(A_t_integ_t_phase, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(np.real(out[256, :]))
+
+
+    ax = fig.add_subplot(gs[1, :])
+    out = sess.run(ir_time_domain, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(np.real(out))
 
 
 
