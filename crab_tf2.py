@@ -469,57 +469,85 @@ scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex128)
 ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
 
 
-# at this point, the ir is scaled and construced in a dt matching the xuv
-##################################################################
-# things below this need to be changed and updated
+# integrate ir pulse
+A_t = tf.constant(-1.0*xuv.dt, dtype=tf.float64) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+flipped1 = tf.reverse(A_t, axis=[0])
+flipped_integral = tf.constant(-1.0*xuv.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=0)
+A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+# get 0 delay index
+indexes_1d = len(xuv.tmat) * np.arange(0, N_new/len(xuv.tmat)) + (len(xuv.tmat)/2)
+indexes_middle = np.array([indexes_1d]*int(len(xuv.tmat)))
+rangevals = (np.arange(0, len(xuv.tmat), 1) - len(xuv.tmat)/2).reshape(-1,1)
+indexes = indexes_middle + rangevals
+print(indexes)
+
+# gather values from integrated array
+ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
 
 
+
+
+
+
+
+# gather parts to integrate over
+# testarray = tf.constant(np.array([1,2,3,4,5,6,7,8,9,10]))
+
+# part = tf.gather(testarray, [[0,2], [1,9]])
+
+# print(np.array([[0,2], [1,9]]))
+
+
+
+
+####################################################
 
 # construct delay axis
-delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
-delaymat_tf = tf.constant(delaymat, dtype=tf.complex128)
+# delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
+# delaymat_tf = tf.constant(delaymat, dtype=tf.complex128)
 
 # add time delay to ir
-delayed_ir_f = tf.reshape(padded_ir_f, [1,-1]) * delaymat_tf
+# delayed_ir_f = tf.reshape(padded_ir_f, [1,-1]) * delaymat_tf
 
 # inverse fft
-real_delayed_ir = tf.real(tf_1d_ifft(tensor=delayed_ir_f, shift=int(len(ir.fmat)/2), axis=1))
+# real_delayed_ir = tf.real(tf_1d_ifft(tensor=delayed_ir_f, shift=int(len(ir.fmat)/2), axis=1))
 
 # construct integrals
 # calculate A(t) integrals
-A_t = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(tf.real(real_delayed_ir), axis=1)
-flipped1 = tf.reverse(A_t, axis=[1])
-flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=1)
-A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[1])
-A_t_integ_t_phase3d = tf.expand_dims(A_t_integ_t_phase, 0)
+# A_t = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(tf.real(real_delayed_ir), axis=1)
+# flipped1 = tf.reverse(A_t, axis=[1])
+# flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=1)
+# A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[1])
+# A_t_integ_t_phase3d = tf.expand_dims(A_t_integ_t_phase, 0)
 
 # add momentum vector
-p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
-K = (0.5 * p**2)
+# p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
+# K = (0.5 * p**2)
 
 # convert to tensorflow
-p_tf = tf.constant(p, dtype=tf.float64)
-K_tf = tf.constant(K, dtype=tf.float64)
+# p_tf = tf.constant(p, dtype=tf.float64)
+# K_tf = tf.constant(K, dtype=tf.float64)
 
 # add fourier transform term
-e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1,-1,1))
-e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
+# e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1,-1,1))
+# e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
 
 # add xuv to integrate over
-xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1,-1,1])
+# xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1,-1,1])
 
 # infrared phase term
-p_A_t_integ_t_phase3d = p_tf * A_t_integ_t_phase3d
-ir_phi =  tf.exp(tf.complex(imag=p_A_t_integ_t_phase3d, real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+# p_A_t_integ_t_phase3d = p_tf * A_t_integ_t_phase3d
+# ir_phi =  tf.exp(tf.complex(imag=p_A_t_integ_t_phase3d, real=tf.zeros_like(p_A_t_integ_t_phase3d)))
 
 # multiply elements together
-product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+# product = xuv_time_domain_integrate * ir_phi * e_fft_tf
 
 # integrate over the xuv time
-integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
+# integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
 
 # absolute square the matrix
-image = tf.square(tf.abs(integration))
+# image = tf.square(tf.abs(integration))
 
 
 
@@ -527,10 +555,26 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
+    # A_t_out = sess.run(A_t, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # print(np.shape(A_t_out))
+
+
+    # testarray_out = sess.run(testarray, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # print(np.shape(testarray_out))
+    # part_out = sess.run(part, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # print(np.shape(part_out))
+    # print(part_out)
+
+    ir_values_out = sess.run(ir_values, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    # print(np.shape(ir_values_out))
+    # print(ir_values_out)
+
+
+    # exit(0)
 
     # check_fft_and_reconstruction()
 
-    check_padded_time_domain()
+    # check_padded_time_domain()
 
     # check_corner_errors()
 
