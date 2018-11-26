@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import scipy.constants as sc
 import time
 import pickle
+import math
 
 
 # SI units for defining parameters
@@ -49,6 +50,7 @@ class XUV_Field():
         self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0]**2
         self.tod = self.tod / sc.physical_constants['atomic unit of time'][0]**3
         self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
+        self.df = self.df * sc.physical_constants['atomic unit of time'][0]
         self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
         self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
         self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
@@ -160,6 +162,59 @@ def tf_1d_fft(tensor, shift, axis=0):
     time_domain = tf.manip.roll(time_domain_not_shifted, shift=shift, axis=axis)
 
     return time_domain
+
+
+
+
+def check_padded_time_domain():
+    # check accuracy of padding in time domain
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(6, 2)
+
+    ax = fig.add_subplot(gs[0, :])
+    # the 256 timestep signal in time
+    ax.plot(ir.tmat, np.real(ir.Et_prop))
+
+    # F domain and first padded F domain
+    ax = fig.add_subplot(gs[1, :])
+    ir_cropped_f_out = sess.run(ir_cropped_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(ir.f_cropped, np.real(ir_cropped_f_out))
+    ax.plot(ir.fmat, np.zeros_like(ir.fmat), alpha=0.1, color='black')
+
+    # the padded F domain 1
+    ax = fig.add_subplot(gs[2, :])
+    padded_ir_f_out = sess.run(padded_ir_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(ir.fmat, np.real(padded_ir_f_out))
+
+    # the padded F domain 2
+    ax = fig.add_subplot(gs[3, :])
+    padded_ir_2_out = sess.run(padded_ir_2, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(f_pad_2, np.real(padded_ir_2_out))
+
+    ax = fig.add_subplot(gs[4, :])
+    ir_t_matched_dt_out = sess.run(ir_t_matched_dt, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax.plot(t_pad_2, np.real(ir_t_matched_dt_out))
+    # ax.plot(np.real(ir_t_matched_dt_out))
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[:, :])
+    # ax.plot(np.real(ir_t_matched_dt_out))
+    ax.plot(t_pad_2, np.real(ir_t_matched_dt_out), label='tensorflow')
+    ax.legend(loc=3)
+
+    # compare original with smaller dt
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ir_t_matched_dt_scaled_out = sess.run(ir_t_matched_dt_scaled, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
+    ax = fig.add_subplot(gs[0, :])
+    ax.plot(t_pad_2, np.real(ir_t_matched_dt_scaled_out), label='matched, scaled')
+    # ax.plot(t_pad_2, np.real(ir_t_matched_dt_scaled_out), 'r.')
+    ax.plot(ir.tmat, np.real(ir.Et_prop), label='orignal', linestyle='dashed')
+    ax.legend(loc=3)
+
+
 
 
 
@@ -372,12 +427,12 @@ med = Med()
 # construct the field with tensorflow
 
 # placeholders
-xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
-ir_cropped_f = tf.placeholder(tf.complex64, [len(ir.Ef_prop_cropped)])
+xuv_cropped_f = tf.placeholder(tf.complex128, [len(xuv.Ef_prop_cropped)])
+ir_cropped_f = tf.placeholder(tf.complex128, [len(ir.Ef_prop_cropped)])
 
 # define constants
-xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
-ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
+xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float64)
+ir_fmat = tf.constant(ir.fmat, dtype=tf.float64)
 
 # zero pad the spectrum of ir and xuv input to match the full fmat
 # [pad_before , padafter]
@@ -391,28 +446,38 @@ padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 # fourier transform the padded xuv
 xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
 
-
-# zero pad the ir in frequency space to match dt of xuv
-# padded_ir_f
-
-# dt = 1 / (N * df)
-print('ir.df:', ir.df)
-# df * dt = 1/N
-N_new = 1 / (ir.df * xuv.dt)
-print(N_new)
-# exit(0)
-
-
-
-
-
-
 # fourier transform the padded ir
 ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
 
+# zero pad the ir in frequency space to match dt of xuv
+assert ( 1 / (ir.df * xuv.dt) ) - math.ceil(( 1 / (ir.df * xuv.dt) )) < 0.000000001
+N_new = math.ceil(1 / (ir.df * xuv.dt))
+f_pad_2 = ir.df * np.arange(-N_new/2, N_new/2, 1)
+t_pad_2 = xuv.dt * np.arange(-N_new/2, N_new/2, 1)
+N_current = len(ir.fmat)
+pad_2 = (N_new - N_current) / 2
+assert int(pad_2) - pad_2 == 0
+paddings_ir_2 = tf.constant([[int(pad_2),int(pad_2)]], dtype=tf.int32)
+padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+
+# calculate ir with matching dt in time
+ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new/2))
+
+# match the scale of the original
+scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex128)
+
+ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+
+# at this point, the ir is scaled and construced in a dt matching the xuv
+##################################################################
+# things below this need to be changed and updated
+
+
+
 # construct delay axis
 delaymat = np.exp(1j * 2*np.pi * xuv.tmat.reshape(-1, 1) * ir.fmat.reshape(1,-1))
-delaymat_tf = tf.constant(delaymat, dtype=tf.complex64)
+delaymat_tf = tf.constant(delaymat, dtype=tf.complex128)
 
 # add time delay to ir
 delayed_ir_f = tf.reshape(padded_ir_f, [1,-1]) * delaymat_tf
@@ -422,9 +487,9 @@ real_delayed_ir = tf.real(tf_1d_ifft(tensor=delayed_ir_f, shift=int(len(ir.fmat)
 
 # construct integrals
 # calculate A(t) integrals
-A_t = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(tf.real(real_delayed_ir), axis=1)
+A_t = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(tf.real(real_delayed_ir), axis=1)
 flipped1 = tf.reverse(A_t, axis=[1])
-flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=1)
+flipped_integral = tf.constant(-1.0*ir.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=1)
 A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[1])
 A_t_integ_t_phase3d = tf.expand_dims(A_t_integ_t_phase, 0)
 
@@ -433,12 +498,12 @@ p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
 K = (0.5 * p**2)
 
 # convert to tensorflow
-p_tf = tf.constant(p, dtype=tf.float32)
-K_tf = tf.constant(K, dtype=tf.float32)
+p_tf = tf.constant(p, dtype=tf.float64)
+K_tf = tf.constant(K, dtype=tf.float64)
 
 # add fourier transform term
 e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1,-1,1))
-e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
 
 # add xuv to integrate over
 xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1,-1,1])
@@ -451,7 +516,7 @@ ir_phi =  tf.exp(tf.complex(imag=p_A_t_integ_t_phase3d, real=tf.zeros_like(p_A_t
 product = xuv_time_domain_integrate * ir_phi * e_fft_tf
 
 # integrate over the xuv time
-integration = tf.constant(xuv.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
 
 # absolute square the matrix
 image = tf.square(tf.abs(integration))
@@ -463,13 +528,9 @@ with tf.Session() as sess:
     init.run()
 
 
-    out = sess.run(padded_ir_f, feed_dict={ir_cropped_f: ir.Ef_prop_cropped})
-    plt.plot(ir.fmat, np.real(out))
-    plt.show()
-
-
-
     # check_fft_and_reconstruction()
+
+    check_padded_time_domain()
 
     # check_corner_errors()
 
