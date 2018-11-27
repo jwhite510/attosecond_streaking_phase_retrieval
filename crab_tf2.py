@@ -391,6 +391,21 @@ def plot_streaking_trace():
     plt.savefig('./2.png')
 
 
+def view_final_image():
+
+    image_out = sess.run(image, feed_dict={ir_cropped_f: ir.Ef_prop_cropped, xuv_cropped_f: xuv.Ef_prop_cropped})
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[:, :])
+    ax.pcolormesh(image_out, cmap='jet')
+    ax.text(0.1, 0.9, 'const phase:{} rad'.format(ir.const_phase), transform=ax.transAxes, backgroundcolor='white')
+    plt.savefig('./stuff/{}.png'.format(int(ir.const_phase)))
+
+
+
+
+
 # use these indexes to crop the ir and xuv frequency space for input to the neural net
 xuv_fmin_index,  xuv_fmax_index = 270, 325
 ir_fmin_index, ir_fmax_index = 64, 84
@@ -513,14 +528,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     init.run()
 
-    image_out = sess.run(image, feed_dict={ir_cropped_f: ir.Ef_prop_cropped, xuv_cropped_f: xuv.Ef_prop_cropped})
-
-    fig = plt.figure()
-    gs = fig.add_gridspec(2,2)
-    ax = fig.add_subplot(gs[:,:])
-    ax.pcolormesh(image_out, cmap='jet')
-    ax.text(0.1,0.9,'phase:{}'.format(ir.const_phase), transform=ax.transAxes, backgroundcolor='white')
-    plt.savefig('./stuff/{}.png'.format(int(ir.const_phase)))
+    view_final_image()
 
     # check_fft_and_reconstruction()
 
