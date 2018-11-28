@@ -84,17 +84,34 @@ class XUV_Field():
 
 class IR_Field():
 
-    def __init__(self, N, tmax, start_index, end_index, const_phase=0.0):
+    def __init__(self, N, tmax, start_index, end_index, const_phase=0.0, pulse_duration=12.0, clambda=1.7, random_pulse=None):
+
+
+        self.clambda = clambda
+        self.pulse_duration = pulse_duration
+        self.const_phase = const_phase
+
+        if random_pulse:
+            print('overwrite')
+            #overwire
+
+            # define random value between min and max
+            # phase:
+            self.clambda = random_pulse['clambda_range'][0] + np.random.rand()*(random_pulse['clambda_range'][1] - random_pulse['clambda_range'][0])
+            self.pulse_duration = random_pulse['pulse_duration_range'][0] + np.random.rand()*(random_pulse['pulse_duration_range'][1] - random_pulse['pulse_duration_range'][0])
+            self.const_phase = random_pulse['phase_range'][0] + np.random.rand()*(random_pulse['phase_range'][1] - random_pulse['phase_range'][0])
+
+
         self.N = N
         # calculate parameters in SI units
-        self.lam0 = 1.7 * um    # central wavelength
+        self.lam0 = self.clambda * um    # central wavelength
         self.f0 = sc.c/self.lam0    # carrier frequency
         self.T0 = 1/self.f0 # optical cycle
         # self.t0 = 12 * fs # pulse duration
-        self.t0 = 12 * fs # pulse duration
+        self.t0 = self.pulse_duration * fs # pulse duration
         self.ncyc = self.t0/self.T0
         self.I0 = 1e13 * W/cm**2
-        self.const_phase = const_phase
+
 
         # compute ponderomotive energy
         self.Up = (sc.elementary_charge**2 * self.I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * self.f0)**2)
@@ -133,7 +150,7 @@ class IR_Field():
         self.Ef = np.fft.fftshift(np.fft.fft(np.fft.fftshift(self.Et)))
 
         # add phase ... later
-        self.Ef_prop = self.Ef * np.exp(1j * const_phase)
+        self.Ef_prop = self.Ef * np.exp(1j * self.const_phase)
 
         # fourier transform back to time domain
         self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
@@ -407,7 +424,10 @@ def view_final_image():
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[:, :])
     ax.pcolormesh(image_out, cmap='jet')
-    ax.text(0.1, 0.9, 'const phase:{} rad'.format(ir.const_phase), transform=ax.transAxes, backgroundcolor='white')
+    ax.text(0.0, 0.9, 'IR:\nconst phase: {} rad\nclambda: {} um\npulse duration: {} fs'.format(round(ir.const_phase, 2),
+                                                                     round(ir.clambda, 2),
+                                                                     round(ir.pulse_duration, 2)),
+            transform=ax.transAxes, backgroundcolor='white')
     plt.savefig('./stuff/{}.png'.format(int(ir.const_phase)))
 
 
@@ -422,20 +442,45 @@ ir_fmin_index, ir_fmax_index = 64, 84
 # xuv_fmin_index,  xuv_fmax_index = 0, xuv_n-1
 # ir_fmin_index, ir_fmax_index = 0, ir_n-1
 
-# the length of each vector, ir and xuv
+# the length of each vector, ir and xuv for plotting
 xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
 ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
+# for testing without cropping
+# ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+# xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 
-# create two time axes for the xuv and ir with different dt
+
+
+
+# DEFINE THE XUV FIELD
 # xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 
+# random xuv
 xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index,
-                random_phase={'nodes': 100, 'amplitude': 8})
+                random_phase={'nodes': 100, 'amplitude': 6})
 
-ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=0.0)
-# xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-# ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+
+
+
+
+
+## DEFINE THE IR FIELD
+# default ir field
+# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+
+# specific ir field
+# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=0.0,
+#               pulse_duration=10.0, clambda=1.7)
+
+# random ir field
+ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index,
+              random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
+
+
+
+
+
 med = Med()
 
 # plot the xuv field
@@ -542,7 +587,7 @@ with tf.Session() as sess:
 
     view_final_image()
 
-    # check_fft_and_reconstruction()
+    check_fft_and_reconstruction()
 
     # check_padded_time_domain()
 
