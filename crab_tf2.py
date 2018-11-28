@@ -92,9 +92,6 @@ class IR_Field():
         self.const_phase = const_phase
 
         if random_pulse:
-            print('overwrite')
-            #overwire
-
             # define random value between min and max
             # phase:
             self.clambda = random_pulse['clambda_range'][0] + np.random.rand()*(random_pulse['clambda_range'][1] - random_pulse['clambda_range'][0])
@@ -541,11 +538,31 @@ flipped1 = tf.reverse(A_t, axis=[0])
 flipped_integral = tf.constant(-1.0*xuv.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=0)
 A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
 
-# get 0 delay index
-indexes_1d = len(xuv.tmat) * np.arange(0, N_new/len(xuv.tmat)) + (len(xuv.tmat)/2)
-indexes_middle = np.array([indexes_1d]*int(len(xuv.tmat)))
-rangevals = (np.arange(0, len(xuv.tmat), 1) - len(xuv.tmat)/2).reshape(-1,1)
-indexes = indexes_middle + rangevals
+# find middle index point
+middle = int(N_new / 2)
+rangevals = np.array(range(len(xuv.tmat)))-len(xuv.tmat)/2
+middle_indexes = np.array([middle]*len(xuv.tmat)) + rangevals
+
+
+#maximum add to zero before would be out of bounds
+max_steps = int(N_new/2 - len(xuv.tmat)/2)
+
+# use this dt to scale the image size along tau axis
+dtau_index = 300
+
+N_tau = int(max_steps / dtau_index)
+
+if N_tau%2 != 0:
+    N_tau+= -1
+
+tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
+
+# Number of points must be even
+assert N_tau%2==0
+assert type(dtau_index) == int
+assert abs(tau_index[0]) < max_steps
+
+indexes = middle_indexes.reshape(-1,1) + tau_index.reshape(1,-1)
 
 # gather values from integrated array
 ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
@@ -554,6 +571,10 @@ ir_values = tf.expand_dims(ir_values, axis=0)
 # create momentum vector
 p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
 K = (0.5 * p**2)
+
+# image size
+print('N p : ', len(p))
+print('N tau : ', len(tau_index))
 
 # convert to tensorflow
 p_tf = tf.constant(p, dtype=tf.float64)
