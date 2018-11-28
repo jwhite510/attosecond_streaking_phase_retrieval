@@ -475,13 +475,6 @@ ir_frequency_grid_length = ir.fmax_index - ir.fmin_index
 
 med = Med()
 
-# plot the xuv field
-plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
-
-# plot the infrared field
-plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
-
-
 # construct the field with tensorflow
 
 # placeholders
@@ -597,6 +590,14 @@ image = tf.square(tf.abs(integration))
 
 
 if __name__ == "__main__":
+
+
+    # plot the xuv field
+    plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
+
+    # plot the infrared field
+    plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
+
 
     # image size
     print('N p : ', len(p))
