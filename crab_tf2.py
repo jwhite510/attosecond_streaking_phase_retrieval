@@ -420,7 +420,7 @@ def view_final_image():
     fig = plt.figure()
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[:, :])
-    ax.pcolormesh(image_out, cmap='jet')
+    ax.pcolormesh(tau_values, p_values, image_out, cmap='jet')
     ax.text(0.0, 0.9, 'IR:\nconst phase: {} rad\nclambda: {} um\npulse duration: {} fs'.format(round(ir.const_phase, 2),
                                                                      round(ir.clambda, 2),
                                                                      round(ir.pulse_duration, 2)),
@@ -563,6 +563,7 @@ assert type(dtau_index) == int
 assert abs(tau_index[0]) < max_steps
 
 indexes = middle_indexes.reshape(-1,1) + tau_index.reshape(1,-1)
+tau_values = tau_index * xuv.dt # atomic units
 
 # gather values from integrated array
 ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
@@ -570,6 +571,7 @@ ir_values = tf.expand_dims(ir_values, axis=0)
 
 # create momentum vector
 p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
+p_values = np.squeeze(p) # atomic units
 K = (0.5 * p**2)
 
 # image size
