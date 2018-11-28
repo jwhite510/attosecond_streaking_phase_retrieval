@@ -574,9 +574,6 @@ p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
 p_values = np.squeeze(p) # atomic units
 K = (0.5 * p**2)
 
-# image size
-print('N p : ', len(p))
-print('N tau : ', len(tau_index))
 
 # convert to tensorflow
 p_tf = tf.constant(p, dtype=tf.float64)
@@ -605,6 +602,10 @@ image = tf.square(tf.abs(integration))
 
 
 if __name__ == "__main__":
+
+    # image size
+    print('N p : ', len(p))
+    print('N tau : ', len(tau_index))
 
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
