@@ -19,7 +19,11 @@ atts = 1e-18
 
 class XUV_Field():
 
-    def __init__(self, N, tmax, start_index, end_index, gdd=0.0, tod=0.0, random_phase=None):
+    def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0, random_phase=None):
+
+        # start and end indexes
+        self.fmin_index = start_index
+        self.fmax_index = end_index
 
         # define parameters in SI units
         self.N = N
@@ -73,19 +77,25 @@ class XUV_Field():
             phi = f(axis_phase)
             self.Ef_prop = Ef * np.exp(1j * phi)
 
-
+        # set phase angle at f0 to 0
+        f0_index = np.argmin(np.abs(self.f0-self.fmat))
+        f0_angle = np.angle(self.Ef_prop[f0_index])
+        self.Ef_prop = self.Ef_prop * np.exp(-1j * f0_angle)
 
 
         self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
 
-        self.Ef_prop_cropped = self.Ef_prop[start_index:end_index]
-        self.f_cropped = self.fmat[start_index:end_index]
+        self.Ef_prop_cropped = self.Ef_prop[self.fmin_index:self.fmax_index]
+        self.f_cropped = self.fmat[self.fmin_index:self.fmax_index]
 
 
 class IR_Field():
 
-    def __init__(self, N, tmax, start_index, end_index, const_phase=0.0, pulse_duration=12.0, clambda=1.7, random_pulse=None):
+    def __init__(self, N=128, tmax=50e-15, start_index=64, end_index=84, const_phase=0.0, pulse_duration=12.0, clambda=1.7, random_pulse=None):
 
+        # start and end indexes
+        self.fmin_index = start_index
+        self.fmax_index = end_index
 
         self.clambda = clambda
         self.pulse_duration = pulse_duration
@@ -154,8 +164,8 @@ class IR_Field():
 
 
         # crop the field for input
-        self.Ef_prop_cropped = self.Ef_prop[start_index:end_index]
-        self.f_cropped = self.fmat[start_index:end_index]
+        self.Ef_prop_cropped = self.Ef_prop[self.fmin_index:self.fmax_index]
+        self.f_cropped = self.fmat[self.fmin_index:self.fmax_index]
 
 
 class Med():
@@ -431,31 +441,15 @@ def view_final_image():
 
 
 
-# use these indexes to crop the ir and xuv frequency space for input to the neural net
-xuv_fmin_index,  xuv_fmax_index = 270, 325
-ir_fmin_index, ir_fmax_index = 64, 84
-# xuv_n = 512
-# ir_n = 256
-# xuv_fmin_index,  xuv_fmax_index = 0, xuv_n-1
-# ir_fmin_index, ir_fmax_index = 0, ir_n-1
-
-# the length of each vector, ir and xuv for plotting
-xuv_frequency_grid_length = xuv_fmax_index - xuv_fmin_index
-ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
-
-# for testing without cropping
-# ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
-# xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
-
-
-
-
 # DEFINE THE XUV FIELD
-# xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+# transform limited
+# xuv = XUV_Field()
+
+# specific phase
+# xuv = XUV_Field(gdd=500.0, tod=0.0)
 
 # random xuv
-xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index,
-                random_phase={'nodes': 100, 'amplitude': 6})
+xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
 
 
 
@@ -464,19 +458,20 @@ xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fma
 
 ## DEFINE THE IR FIELD
 # default ir field
-# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
+ir = IR_Field()
 
 # specific ir field
-# ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=0.0,
-#               pulse_duration=10.0, clambda=1.7)
+# ir = IR_Field(const_phase=0.0, pulse_duration=10.0, clambda=1.7)
+
 
 # random ir field
-ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index,
-              random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
+# ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
 
 
 
-
+# the length of each vector, ir and xuv for plotting
+xuv_frequency_grid_length = xuv.fmax_index - xuv.fmin_index
+ir_frequency_grid_length = ir.fmax_index - ir.fmin_index
 
 med = Med()
 
@@ -499,11 +494,11 @@ ir_fmat = tf.constant(ir.fmat, dtype=tf.float64)
 
 # zero pad the spectrum of ir and xuv input to match the full fmat
 # [pad_before , padafter]
-paddings_xuv = tf.constant([[xuv_fmin_index,len(xuv.Ef_prop)-xuv_fmax_index]], dtype=tf.int32)
+paddings_xuv = tf.constant([[xuv.fmin_index,len(xuv.Ef_prop)-xuv.fmax_index]], dtype=tf.int32)
 padded_xuv_f = tf.pad(xuv_cropped_f, paddings_xuv)
 
 # same for the IR
-paddings_ir = tf.constant([[ir_fmin_index,len(ir.Ef_prop)-ir_fmax_index]], dtype=tf.int32)
+paddings_ir = tf.constant([[ir.fmin_index,len(ir.Ef_prop)-ir.fmax_index]], dtype=tf.int32)
 padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
 
 # fourier transform the padded xuv
