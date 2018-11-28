@@ -602,23 +602,25 @@ integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, 
 image = tf.square(tf.abs(integration))
 
 
-init = tf.global_variables_initializer()
-with tf.Session() as sess:
-    init.run()
+if __name__ == "__main__":
 
-    view_final_image()
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        init.run()
 
-    check_fft_and_reconstruction()
+        view_final_image()
 
-    # check_padded_time_domain()
+        check_fft_and_reconstruction()
 
-    # check_corner_errors()
+        # check_padded_time_domain()
 
-    # plot_xuv_ir_trace()
+        # check_corner_errors()
 
-    # check_integrals()
+        # plot_xuv_ir_trace()
 
-    # plot_streaking_trace()
+        # check_integrals()
+
+        # plot_streaking_trace()
 
 
-plt.show()
+        plt.show()
