@@ -5,6 +5,7 @@ import scipy.constants as sc
 import time
 import pickle
 import math
+from scipy.interpolate import interp1d
 
 
 # SI units for defining parameters
@@ -30,8 +31,6 @@ class XUV_Field():
         self.tod = tod * atts**3 # TOD
         self.tod_si = self.tod / atts**3
 
-        # number of central time steps to integrate
-        self.span = 512
 
         #discretize
         self.tmax = tmax
@@ -66,7 +65,16 @@ class XUV_Field():
 
         # apply the random phase if specified
         if random_phase:
-            print('apply random phase')
+            # define phase vector
+            self.nodes = random_phase['amplitude'] * (np.random.rand(random_phase['nodes']) - 0.5)
+            axis_nodes = np.linspace(0, self.N, random_phase['nodes'])
+            axis_phase = np.array(range(self.N))
+            f = interp1d(axis_nodes, self.nodes, kind='cubic')
+            phi = f(axis_phase)
+            self.Ef_prop = Ef * np.exp(1j * phi)
+
+
+
 
         self.Et_prop = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(self.Ef_prop)))
 
@@ -420,17 +428,21 @@ ir_frequency_grid_length = ir_fmax_index - ir_fmin_index
 
 
 # create two time axes for the xuv and ir with different dt
-xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+# xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
+
+xuv = XUV_Field(N=512, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index,
+                random_phase={'nodes': 100, 'amplitude': 8})
+
 ir = IR_Field(N=128, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index, const_phase=0.0)
 # xuv = XUV_Field(N=xuv_n, tmax=5e-16, start_index=xuv_fmin_index, end_index=xuv_fmax_index)
 # ir = IR_Field(N=ir_n, tmax=50e-15, start_index=ir_fmin_index, end_index=ir_fmax_index)
 med = Med()
 
 # plot the xuv field
-# plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
+plot_initial_field(field=xuv, timespan=int(xuv_frequency_grid_length))
 
 # plot the infrared field
-# plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
+plot_initial_field(field=ir, timespan=int(ir_frequency_grid_length))
 
 
 # construct the field with tensorflow
