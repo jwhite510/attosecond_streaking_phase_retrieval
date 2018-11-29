@@ -339,7 +339,7 @@ if __name__ == "__main__":
     modelname = '2_test'
     print('starting ' + modelname)
     # save this file
-    shutil.copyfile('./network.py', './models/network_{}.py'.format(modelname))
+    shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
 
     fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
     plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
