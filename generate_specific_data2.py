@@ -63,20 +63,98 @@ if __name__ == "__main__":
     specific_traces = {'xuv': [], 'ir': []}
 
 
-    xuv = XUV_Field(tod=8000, gdd=500)
+    # xuv = XUV_Field(tod=8000, gdd=500)
+    xuv = XUV_Field()
+    # xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
 
-    # trace 1
+    # trace 0
     ir = IR_Field()
     specific_traces['xuv'].append(xuv)
     specific_traces['ir'].append(ir)
 
-    # trace 2
-    ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
+    # trace 1
+    # ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
+    ir = IR_Field(clambda=2.0)
     specific_traces['xuv'].append(xuv)
     specific_traces['ir'].append(ir)
 
+    # trace 2
+    # ir = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi), 'clambda_range': (1.2, 2.3), 'pulse_duration_range': (7.0, 12.0)})
+    ir = IR_Field(clambda=1.3)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+
+    # test with increasing gdd
+
     # trace 3
-    ir = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi), 'clambda_range': (1.2, 2.3), 'pulse_duration_range': (7.0, 12.0)})
+    ir = IR_Field()
+    xuv = XUV_Field()
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 4
+    ir = IR_Field()
+    xuv = XUV_Field(gdd=1000)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 5
+    ir = IR_Field()
+    xuv = XUV_Field(gdd=-1000)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 6
+    ir = IR_Field()
+    xuv = XUV_Field(tod=10000)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 7
+    ir = IR_Field()
+    xuv = XUV_Field(tod=-10000)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+
+
+    # show constant xuv with variable IR
+    # trace 8
+    ir = IR_Field(clambda=1.2)
+    xuv = XUV_Field()
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 9
+    ir = IR_Field(clambda=1.7)
+    xuv = XUV_Field()
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 10
+    ir = IR_Field(clambda=2.0)
+    xuv = XUV_Field()
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+
+    # show constant xuv (chirped) with variable IR
+    # trace 11
+    xuv = XUV_Field(gdd=1000)
+    ir = IR_Field(clambda=1.2)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 12
+    xuv = XUV_Field(gdd=1000)
+    ir = IR_Field(clambda=1.7)
+    specific_traces['xuv'].append(xuv)
+    specific_traces['ir'].append(ir)
+
+    # trace 13
+    xuv = XUV_Field(gdd=1000)
+    ir = IR_Field(clambda=2.0)
     specific_traces['xuv'].append(xuv)
     specific_traces['ir'].append(ir)
 
