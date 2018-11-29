@@ -172,7 +172,7 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
     print("avg : ", (1 / len(mses)) * np.sum(np.array(mses)))
 
     # save image
-    dir = "/home/zom/PythonProjects/attosecond_streaking_phase_retrieval/nnpictures/" + modelname + "/" + set + "/"
+    dir = "./nnpictures/" + modelname + "/" + set + "/"
     if not os.path.isdir(dir):
         os.makedirs(dir)
     fig.savefig(dir + str(epoch) + ".png")
