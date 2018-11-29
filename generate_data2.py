@@ -59,12 +59,12 @@ def generate_samples(n_samples, filename):
             xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
 
             # generate a random IR pulse
-            # ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                             'clambda_range': (1.2,2.3),
-            #                             'pulse_duration_range':(7.0,12.0)})
+            ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
+                                         'clambda_range': (1.2,2.3),
+                                         'pulse_duration_range':(7.0,12.0)})
 
             # generate a default IR pulse
-            ir_sample = IR_Field()
+            #ir_sample = IR_Field()
 
             # generate the streaking trace
             if i % 500 == 0:
@@ -73,7 +73,7 @@ def generate_samples(n_samples, filename):
                 time1 = time.time()
 
                 trace = sess.run(image,feed_dict={
-                                                ir_cropped_f: ir.Ef_prop_cropped,
+                                                ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                 xuv_cropped_f: xuv_sample.Ef_prop_cropped})
 
                 strace = scale_trace(trace)
@@ -84,7 +84,7 @@ def generate_samples(n_samples, filename):
 
             else:
                 trace = sess.run(image, feed_dict={
-                                                    ir_cropped_f: ir.Ef_prop_cropped,
+                                                    ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                     xuv_cropped_f: xuv_sample.Ef_prop_cropped})
                 strace = scale_trace(trace)
 
