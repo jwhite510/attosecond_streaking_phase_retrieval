@@ -74,7 +74,7 @@ def generate_samples(n_samples, filename):
 
                 trace = sess.run(image,feed_dict={
                                                 ir_cropped_f: ir.Ef_prop_cropped,
-                                                xuv_cropped_f: xuv.Ef_prop_cropped})
+                                                xuv_cropped_f: xuv_sample.Ef_prop_cropped})
 
                 strace = scale_trace(trace)
 
@@ -85,7 +85,7 @@ def generate_samples(n_samples, filename):
             else:
                 trace = sess.run(image, feed_dict={
                                                     ir_cropped_f: ir.Ef_prop_cropped,
-                                                    xuv_cropped_f: xuv.Ef_prop_cropped})
+                                                    xuv_cropped_f: xuv_sample.Ef_prop_cropped})
                 strace = scale_trace(trace)
 
 
