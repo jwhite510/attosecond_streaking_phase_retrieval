@@ -226,6 +226,97 @@ def multires_layer(input, input_channels, filter_sizes):
     return concat_layer
 
 
+def create_sample_plot(samples_per_plot=3):
+
+    fig = plt.figure(figsize=(14, 8))
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
+                            wspace=0.1, hspace=0.1)
+    gs = fig.add_gridspec(4,int(samples_per_plot*2))
+
+    plot_rows = []
+    for i in range(samples_per_plot):
+
+        column_axes = {}
+
+        column_axes['actual_ir'] = fig.add_subplot(gs[0, 2*i])
+        column_axes['actual_xuv'] = fig.add_subplot(gs[0, 2*i+1])
+
+        column_axes['input_trace'] = fig.add_subplot(gs[1, 2*i:2*i+2])
+
+        column_axes['predict_ir'] = fig.add_subplot(gs[2, 2*i])
+        column_axes['predict_xuv'] = fig.add_subplot(gs[2, 2*i+1])
+
+        column_axes['reconstruct'] = fig.add_subplot(gs[3, 2*i:2*i+2])
+
+        plot_rows.append(column_axes)
+
+    return plot_rows, fig
+
+
+def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
+
+    # get find where in the vector is the ir and xuv
+
+
+    for j, index in enumerate(indexes):
+
+        prediction = pred_in[index]
+        mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+
+
+        axes[j]['input_trace'].cla()
+        axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values)), cmap='jet')
+
+        axes[j]['actual_xuv'].cla()
+        axes[j]['actual_xuv'].plot(y_in[index])
+
+        axes[j]['predict_xuv'].cla()
+        axes[j]['predict_xuv'].plot(prediction)
+
+
+        # save image
+        dir = "./nnpictures/" + modelname + "/" + set + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        figure.savefig(dir + str(epoch) + ".png")
+
+
+def update_plots():
+
+    batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
+    predictions = sess.run(y_pred, feed_dict={x: batch_x_train})
+
+    plot_predictions2(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
+                      axes=trainplot1, figure=trainfig1, epoch=i + 1, set='train_data_1')
+
+    plot_predictions2(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[3, 4, 5],
+                      axes=trainplot2, figure=trainfig2, epoch=i + 1, set='train_data_2')
+
+    batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+    predictions = sess.run(y_pred, feed_dict={x: batch_x_test})
+
+    plot_predictions2(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[0, 1, 2],
+                      axes=testplot1, figure=testfig1, epoch=i + 1, set='test_data_1')
+
+    plot_predictions2(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[3, 4, 5],
+                      axes=testplot2, figure=testfig2, epoch=i + 1, set='test_data_2')
+
+    plt.show()
+    plt.pause(0.001)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -341,13 +432,13 @@ if __name__ == "__main__":
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
 
-    fig1, ax1 = plt.subplots(3, 6, figsize=(14, 8))
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
-                        wspace=0.1, hspace=0.1)
 
-    fig2, ax2 = plt.subplots(3, 6, figsize=(14, 8))
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
-                        wspace=0.1, hspace=0.1)
+    # create figures for showing results
+    testplot1, testfig1 = create_sample_plot()
+    testplot2, testfig2 = create_sample_plot()
+
+    trainplot1, trainfig1 = create_sample_plot()
+    trainplot2, trainfig2 = create_sample_plot()
 
     plt.ion()
 
@@ -357,8 +448,6 @@ if __name__ == "__main__":
         writer = tf.summary.FileWriter("./tensorboard_graph/" + modelname)
 
 
-        # print('hello')
-        # images = sess.run(x_image, feed_dict={x:batch_x})
 
         for i in range(epochs):
             print("Epoch : {}".format(i+1))
@@ -402,19 +491,7 @@ if __name__ == "__main__":
             if (i + 1) % 20 == 0 or (i + 1) <= 15:
                 # update the plot
 
-                batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-                plot_predictions(x_in=batch_x_train, y_in=batch_y_train, axis=ax1, fig=fig1,
-                                 set="train", modelname=modelname, epoch=i + 1, inputtype=get_data.imagetype)
-
-
-                batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-                plot_predictions(x_in=batch_x_test, y_in=batch_y_test, axis=ax2, fig=fig2,
-                                 set="test", modelname=modelname, epoch=i + 1, inputtype=get_data.imagetype)
-
-
-                plt.show()
-                plt.pause(0.001)
-
+                update_plots()
 
             # return the index to 0
             get_data.batch_index = 0
