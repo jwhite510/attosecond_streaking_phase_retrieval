@@ -203,12 +203,12 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
 
 
 def init_weights(shape):
-    init_random_dist = tf.truncated_normal(shape, stddev=0.1)
+    init_random_dist = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float64)
     return tf.Variable(init_random_dist)
 
 
 def init_bias(shape):
-    init_bias_vals = tf.constant(0.1, shape=shape)
+    init_bias_vals = tf.constant(0.1, shape=shape, dtype=tf.float64)
     return tf.Variable(init_bias_vals)
 
 
@@ -416,12 +416,12 @@ def separate_xuv_ir_vec(xuv_ir_vec):
 
 
 # placeholders
-x = tf.placeholder(tf.float32, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
+x = tf.placeholder(tf.float64, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
 
 xuv_input_length = int(len(crab_tf2.xuv.Ef_prop_cropped)*2)
 ir_input_length = int(len(crab_tf2.ir.Ef_prop_cropped)*2)
 total_input_length = xuv_input_length + ir_input_length
-y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
+y_true = tf.placeholder(tf.float64, shape=[None, total_input_length])
 
 
 #input image
@@ -449,7 +449,7 @@ if network == 1:
     full_layer_one = normal_full_layer(convo_3_flat, 512)
 
     #dropout
-    hold_prob = tf.placeholder_with_default(1.0, shape=())
+    hold_prob = tf.placeholder_with_default(tf.constant(1.0, dtype=tf.float64), shape=())
     dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
 
