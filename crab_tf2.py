@@ -552,8 +552,10 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
 
     # absolute square the matrix
-    image = tf.square(tf.abs(integration))
+    image_not_scaled = tf.square(tf.abs(integration))
 
+    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
+    image = scaled / tf.reduce_max(scaled)
 
     return image
 
