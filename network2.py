@@ -286,8 +286,8 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
 
         prediction = pred_in[index]
         mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
-        print(mse)
-        print(str(mse))
+        # print(mse)
+        # print(str(mse))
 
 
         xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
