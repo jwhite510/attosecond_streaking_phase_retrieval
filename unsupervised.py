@@ -8,59 +8,74 @@ import numpy as np
 import  matplotlib.pyplot as plt
 
 
+def create_plots():
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(4,2)
+
+    axes = {}
+
+    axes['input_image'] = fig.add_subplot(gs[1,:])
+    axes['input_xuv'] = fig.add_subplot(gs[0,1])
+    axes['input_ir'] = fig.add_subplot(gs[0,0])
+
+    axes['generated_image'] = fig.add_subplot(gs[3,:])
+    axes['predicted_xuv'] = fig.add_subplot(gs[2, 1])
+    axes['predicted_ir'] = fig.add_subplot(gs[2, 0])
+
+    return axes
+
+
+def update_plots(generated_image, input_image, actual_fields, predicted_fields):
+
+    iteration = i+1
+
+    axes['input_ir'].cla()
+    axes['input_ir'].plot(np.real(actual_fields['ir_f']), color='blue')
+    axes['input_ir'].plot(np.imag(actual_fields['ir_f']), color='red')
+
+    axes['input_xuv'].cla()
+    axes['input_xuv'].plot(np.real(actual_fields['xuv_f']), color='blue')
+    axes['input_xuv'].plot(np.imag(actual_fields['xuv_f']), color='red')
+
+    axes['input_image'].cla()
+    axes['input_image'].pcolormesh(input_image)
+
+
+    axes['predicted_xuv'].cla()
+    axes['predicted_xuv'].plot(np.real(predicted_fields['xuv_f']), color='blue')
+    axes['predicted_xuv'].plot(np.imag(predicted_fields['xuv_f']), color='red')
+
+    axes['predicted_ir'].cla()
+    axes['predicted_ir'].plot(np.real(predicted_fields['ir_f']), color='blue')
+    axes['predicted_ir'].plot(np.imag(predicted_fields['ir_f']), color='red')
+
+
+    axes['generated_image'].cla()
+    axes['generated_image'].pcolormesh(generated_image)
+    axes['generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['generated_image'].transAxes, backgroundcolor='white')
+
+    plt.pause(0.001)
+
+
 def get_trace(index, filename):
 
     with tables.open_file(filename, mode='r') as hdf5_file:
 
         trace = hdf5_file.root.trace[index,:]
 
-    return trace
+        actual_fields = {}
 
+        # actual_fields['ir_t'] = hdf5_file.root.ir_t[index,:]
+        actual_fields['ir_f'] = hdf5_file.root.ir_f[index,:]
 
-
-def tf_seperate_xuv_ir_vec(tensor):
-    pass
-
-
-
-
-
-
-
-
-# define cost function as MSE between generated streaking trace
-
-
-# dont forget, image needs to be normalized in tf
-generated_trace = tf.reshape(crab_tf2.image, [1, -1])
-
-
-
-# calculate generated_trace in tensorflow completely from input of x
-
-# all information about pulses
-print(network2.y_pred)
-
-# convert this to complex xuv and ir
-
-
-#make tensorflow tensors for the input xuv and ir
-# image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f, ir_cropped_f_in=ir_cropped_f)
-
-
-
-# use this to generate streaking trace
-
-
-
-exit(0)
+        # actual_fields['xuv_t'] = hdf5_file.root.xuv_t[index, :]
+        actual_fields['xuv_f'] = hdf5_file.root.xuv_f[index, :]
 
 
 
 
-
-
-losses = tf.losses.mean_squared_error(labels=network2.x, predictions=generated_trace)
+    return trace.reshape(1,-1), actual_fields
 
 
 
@@ -72,22 +87,49 @@ for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
 
 
 # get the trace
-trace = get_trace(index=0, filename='attstrace_test2_processed.hdf5').reshape(1,-1)
+trace, actual_fields = get_trace(index=0, filename='attstrace_test2_processed.hdf5')
 
 
+axes = create_plots()
 
+plt.ion()
 with tf.Session() as sess:
 
     saver = tf.train.Saver()
     saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
 
+
+
+    iterations = 1000
+    for i in range(iterations):
+
+        # generate an image from the input image
+        generated_image = sess.run(network2.image, feed_dict={network2.x: trace})
+        trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
+        predicted_fields_vector = sess.run(network2.y_pred, feed_dict={network2.x: trace})
+
+
+        predicted_fields = {}
+        predicted_fields['xuv_f'],predicted_fields['ir_f'] = network2.separate_xuv_ir_vec(predicted_fields_vector[0])
+
+        # plot the trace and generated image
+        update_plots(generated_image, trace_2d, actual_fields, predicted_fields)
+
+        # train the network to reduce the error
+        sess.run(network2.u_train, feed_dict={network2.x: trace})
+
+
+
+
+
+
     # retrieve output from network
-    ir_xuv_output = sess.run(network2.y_pred, feed_dict={network2.x: trace})
+    # ir_xuv_output = sess.run(network2.y_pred, feed_dict={network2.x: trace})
 
     # plot streaking trace of the output
-    xuv_pred, ir_pred = network2.separate_xuv_ir_vec(ir_xuv_output[0])
-    generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
-                                                          crab_tf2.xuv_cropped_f: xuv_pred})
+    # xuv_pred, ir_pred = network2.separate_xuv_ir_vec(ir_xuv_output[0])
+    # generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
+    #                                                       crab_tf2.xuv_cropped_f: xuv_pred})
 
 
 
