@@ -414,6 +414,21 @@ def separate_xuv_ir_vec(xuv_ir_vec):
     return xuv, ir
 
 
+def tf_seperate_xuv_ir_vec(tensor):
+
+    xuv_real = tensor[0][:int(xuv_input_length / 2)]
+    xuv_imag = tensor[0][int(xuv_input_length / 2):int(xuv_input_length)]
+
+    ir_real = tensor[0][int(xuv_input_length):int(xuv_input_length + (ir_input_length / 2))]
+    ir_imag = tensor[0][int(xuv_input_length + (ir_input_length / 2)):]
+
+    xuv = tf.complex(real=xuv_real, imag=xuv_imag)
+    ir = tf.complex(real=ir_real, imag=ir_imag)
+
+    return xuv, ir
+
+
+
 
 # placeholders
 x = tf.placeholder(tf.float64, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
@@ -460,6 +475,13 @@ if network == 1:
 
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
     train = optimizer.minimize(loss)
+
+    # create graph for the unsupervised learning
+    xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+    image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+    u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+    u_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    u_train = u_optimizer.minimize(u_losses)
 
 
 elif network == 2:
