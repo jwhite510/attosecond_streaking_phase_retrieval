@@ -23,14 +23,6 @@ def plot_opened_file(xuv_t, ir_t, trace):
 
 
 
-def scale_trace(strace):
-
-    strace_scaled = strace - np.min(strace)
-    strace_scaled = strace_scaled / np.max(strace_scaled)
-
-    return strace_scaled
-
-
 def generate_samples(n_samples, filename):
     print('creating file: ' + filename)
 
@@ -72,21 +64,19 @@ def generate_samples(n_samples, filename):
                 # generate the FROG trace
                 time1 = time.time()
 
-                trace = sess.run(image,feed_dict={
+                strace = sess.run(image,feed_dict={
                                                 ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                 xuv_cropped_f: xuv_sample.Ef_prop_cropped})
 
-                strace = scale_trace(trace)
 
                 time2 = time.time()
                 duration = time2 - time1
                 print('duration: {} s'.format(round(duration, 4)))
 
             else:
-                trace = sess.run(image, feed_dict={
+                strace = sess.run(image, feed_dict={
                                                     ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                     xuv_cropped_f: xuv_sample.Ef_prop_cropped})
-                strace = scale_trace(trace)
 
 
 
