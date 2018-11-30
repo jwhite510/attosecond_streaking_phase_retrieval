@@ -41,6 +41,14 @@ class GetData():
             xuv_imag_batch = np.imag(hdf5_file.root.xuv_f[self.batch_index:self.batch_index + self.batch_size, :])
             xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
 
+            ir_real_batch = np.real(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
+            ir_imag_batch = np.imag(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
+            ir_appended_batch = np.append(ir_real_batch, ir_imag_batch, 1)
+
+            xuv_ir_appended = np.append(xuv_appended_batch, ir_appended_batch, 1)
+
+            # xuv, ir = separate_xuv_ir_vec(xuv_ir_appended[0])
+
         if self.imagetype == 'rawtrace':
             trace_batch = hdf5_file.root.trace[self.batch_index:self.batch_index + self.batch_size, :]
 
@@ -49,7 +57,7 @@ class GetData():
 
         self.batch_index += self.batch_size
 
-        return  trace_batch, xuv_appended_batch
+        return  trace_batch, xuv_ir_appended
 
 
     def next_batch_random(self):
@@ -89,12 +97,20 @@ class GetData():
             xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:, :])
             xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
 
+            ir_real_eval = np.real(hdf5_file.root.ir_f[:, :])
+            ir_imag_eval = np.imag(hdf5_file.root.ir_f[:, :])
+            ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
+
+            xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+
+
+
         if self.imagetype == 'rawtrace':
             trace_eval = hdf5_file.root.trace[:, :]
 
         hdf5_file.close()
 
-        return trace_eval, xuv_appended_eval
+        return trace_eval, xuv_ir_appended
 
 
 
@@ -108,12 +124,20 @@ class GetData():
             xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:samples, :])
             xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
 
+            ir_real_eval = np.real(hdf5_file.root.ir_f[:samples, :])
+            ir_imag_eval = np.imag(hdf5_file.root.ir_f[:samples, :])
+            ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
+
+            xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+
+
+
         if self.imagetype == 'rawtrace':
             trace_eval = hdf5_file.root.trace[:samples, :]
 
         hdf5_file.close()
 
-        return trace_eval, xuv_appended_eval
+        return trace_eval, xuv_ir_appended
 
 
 def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
@@ -261,17 +285,30 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
     for j, index in enumerate(indexes):
 
         prediction = pred_in[index]
-        mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+        # mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+
+        xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
+        xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
 
 
         axes[j]['input_trace'].cla()
         axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values)), cmap='jet')
 
         axes[j]['actual_xuv'].cla()
-        axes[j]['actual_xuv'].plot(y_in[index])
+        axes[j]['actual_xuv'].plot(np.real(xuv_in), color='blue')
+        axes[j]['actual_xuv'].plot(np.imag(xuv_in), color='red')
 
         axes[j]['predict_xuv'].cla()
-        axes[j]['predict_xuv'].plot(prediction)
+        axes[j]['predict_xuv'].plot(np.real(xuv_pred), color='blue')
+        axes[j]['predict_xuv'].plot(np.imag(xuv_pred), color='red')
+
+        axes[j]['actual_ir'].cla()
+        axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
+        axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
+
+        axes[j]['predict_ir'].cla()
+        axes[j]['predict_ir'].plot(np.real(ir_pred), color='blue')
+        axes[j]['predict_ir'].plot(np.imag(ir_pred), color='red')
 
 
         # save image
@@ -330,10 +367,30 @@ def show_loading_bar():
         dots += 1
 
 
+def separate_xuv_ir_vec(xuv_ir_vec):
+
+
+    xuv_real = xuv_ir_vec[:int(xuv_input_length/2)]
+    xuv_imag = xuv_ir_vec[int(xuv_input_length/2):int(xuv_input_length)]
+
+    ir_real = xuv_ir_vec[int(xuv_input_length):int(xuv_input_length+(ir_input_length/2))]
+    ir_imag = xuv_ir_vec[int(xuv_input_length+(ir_input_length/2)):]
+
+    xuv = xuv_real + 1j * xuv_imag
+    ir = ir_real + 1j * ir_imag
+
+
+    return xuv, ir
+
+
 
 # placeholders
 x = tf.placeholder(tf.float32, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
-y_true = tf.placeholder(tf.float32, shape=[None, int(len(crab_tf2.xuv.Ef_prop_cropped)*2)])
+
+xuv_input_length = int(len(crab_tf2.xuv.Ef_prop_cropped)*2)
+ir_input_length = int(len(crab_tf2.ir.Ef_prop_cropped)*2)
+total_input_length = xuv_input_length + ir_input_length
+y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 
 
 #input image
@@ -365,7 +422,7 @@ if network == 1:
     dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
 
-    y_pred = normal_full_layer(dropout_layer, int(len(crab_tf2.xuv.Ef_prop_cropped)*2))
+    y_pred = normal_full_layer(dropout_layer, total_input_length)
     #y_pred = normal_full_layer(full_layer_one, 128)
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
