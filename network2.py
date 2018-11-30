@@ -285,7 +285,10 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
     for j, index in enumerate(indexes):
 
         prediction = pred_in[index]
-        # mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+        mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+        print(mse)
+        print(str(mse))
+
 
         xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
         xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
@@ -293,22 +296,50 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
 
         axes[j]['input_trace'].cla()
         axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values)), cmap='jet')
+        axes[j]['input_trace'].text(0.0, 1.0, 'input_trace', transform=axes[j]['input_trace'].transAxes,backgroundcolor='white')
+        axes[j]['input_trace'].set_xticks([])
+        axes[j]['input_trace'].set_yticks([])
 
         axes[j]['actual_xuv'].cla()
         axes[j]['actual_xuv'].plot(np.real(xuv_in), color='blue')
         axes[j]['actual_xuv'].plot(np.imag(xuv_in), color='red')
+        axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['actual_xuv'].set_xticks([])
+        axes[j]['actual_xuv'].set_yticks([])
 
         axes[j]['predict_xuv'].cla()
         axes[j]['predict_xuv'].plot(np.real(xuv_pred), color='blue')
         axes[j]['predict_xuv'].plot(np.imag(xuv_pred), color='red')
+        axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
+                                   transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['predict_xuv'].set_xticks([])
+        axes[j]['predict_xuv'].set_yticks([])
 
         axes[j]['actual_ir'].cla()
         axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
         axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
+        axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
+        axes[j]['actual_ir'].set_xticks([])
+        axes[j]['actual_ir'].set_yticks([])
 
         axes[j]['predict_ir'].cla()
         axes[j]['predict_ir'].plot(np.real(ir_pred), color='blue')
         axes[j]['predict_ir'].plot(np.imag(ir_pred), color='red')
+        axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
+        axes[j]['predict_ir'].set_xticks([])
+        axes[j]['predict_ir'].set_yticks([])
+
+        # calculate generated streaking trace
+        generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
+                                                              crab_tf2.xuv_cropped_f: xuv_pred})
+
+        axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
+        axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
+        axes[j]['reconstruct'].set_xticks([])
+        axes[j]['reconstruct'].set_yticks([])
+
+
 
 
         # save image
