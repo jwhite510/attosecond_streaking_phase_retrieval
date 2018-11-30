@@ -18,6 +18,51 @@ def get_trace(index, filename):
 
 
 
+def tf_seperate_xuv_ir_vec(tensor):
+    pass
+
+
+
+
+
+
+
+
+# define cost function as MSE between generated streaking trace
+
+
+# dont forget, image needs to be normalized in tf
+generated_trace = tf.reshape(crab_tf2.image, [1, -1])
+
+
+
+# calculate generated_trace in tensorflow completely from input of x
+
+# all information about pulses
+print(network2.y_pred)
+
+# convert this to complex xuv and ir
+
+
+#make tensorflow tensors for the input xuv and ir
+# image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f, ir_cropped_f_in=ir_cropped_f)
+
+
+
+# use this to generate streaking trace
+
+
+
+exit(0)
+
+
+
+
+
+
+losses = tf.losses.mean_squared_error(labels=network2.x, predictions=generated_trace)
+
+
 
 # copy the model to a new version to use for unsupervised learning
 modelname = '2_test'
