@@ -305,18 +305,29 @@ def update_plots():
     plt.pause(0.001)
 
 
+def add_tensorboard_values():
+    # view the mean squared error of the train data
+    batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+    print("test MSE: ", sess.run(loss, feed_dict={x: batch_x_test, y_true: batch_y_test}))
+    summ = sess.run(test_mse_tb, feed_dict={x: batch_x_test, y_true: batch_y_test})
+    writer.add_summary(summ, global_step=i + 1)
+
+    # view the mean squared error of the train data
+    batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
+    print("train MSE: ", sess.run(loss, feed_dict={x: batch_x_train, y_true: batch_y_train}))
+    summ = sess.run(train_mse_tb, feed_dict={x: batch_x_train, y_true: batch_y_train})
+    writer.add_summary(summ, global_step=i + 1)
+
+    writer.flush()
 
 
-
-
-
-
-
-
-
-
-
-
+def show_loading_bar():
+    global dots
+    # display loading bar
+    percent = 50 * get_data.batch_index / get_data.samples
+    if percent - dots > 1:
+        print(".", end="", flush=True)
+        dots += 1
 
 
 
@@ -409,9 +420,6 @@ elif network == 2:
     train = optimizer.minimize(loss)
 
 
-
-
-
 if __name__ == "__main__":
 
     init = tf.global_variables_initializer()
@@ -420,13 +428,16 @@ if __name__ == "__main__":
     get_data = GetData(batch_size=10)
 
 
+    # initialize mse tracking objects
     test_mse_tb = tf.summary.scalar("test_mse", loss)
-
     train_mse_tb = tf.summary.scalar("train_mse", loss)
 
+
+    # saver and set epoch number to run
     saver = tf.train.Saver()
     epochs = 200
 
+    # set the name of the neural net test run and save the settigns
     modelname = '2_test'
     print('starting ' + modelname)
     # save this file
@@ -443,24 +454,20 @@ if __name__ == "__main__":
     plt.ion()
 
     with tf.Session() as sess:
+
         sess.run(init)
 
         writer = tf.summary.FileWriter("./tensorboard_graph/" + modelname)
 
-
-
         for i in range(epochs):
+
             print("Epoch : {}".format(i+1))
 
             # iterate through every sample in the training set
             dots = 0
             while get_data.batch_index < get_data.samples:
 
-                # display loading bar
-                percent = 50 * get_data.batch_index / get_data.samples
-                if percent - dots > 1:
-                    print(".", end="", flush=True)
-                    dots += 1
+                show_loading_bar()
 
                 # retrieve data
                 batch_x, batch_y = get_data.next_batch()
@@ -473,29 +480,16 @@ if __name__ == "__main__":
 
             print("")
 
-            # view the mean squared error of the train data
-            batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-            print("test MSE: ", sess.run(loss, feed_dict={x: batch_x_test, y_true: batch_y_test}))
-            summ = sess.run(test_mse_tb, feed_dict={x: batch_x_test, y_true: batch_y_test})
-            writer.add_summary(summ, global_step=i + 1)
-
-            # view the mean squared error of the train data
-            batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-            print("train MSE: ", sess.run(loss, feed_dict={x: batch_x_train, y_true: batch_y_train}))
-            summ = sess.run(train_mse_tb, feed_dict={x: batch_x_train, y_true: batch_y_train})
-            writer.add_summary(summ, global_step=i+1)
-
-            writer.flush()
+            add_tensorboard_values()
 
             # every x steps plot predictions
             if (i + 1) % 20 == 0 or (i + 1) <= 15:
-                # update the plot
 
+                # update the plot
                 update_plots()
 
             # return the index to 0
             get_data.batch_index = 0
-
 
 
         saver.save(sess, "models/" + modelname + ".ckpt")
