@@ -437,8 +437,125 @@ def view_final_image():
             transform=ax.transAxes, backgroundcolor='white')
     plt.savefig('./stuff/{}.png'.format(int(ir.const_phase)))
 
+def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
+
+    global p
+    global tau_index
+    global tau_values
+    global p_values
+    global padded_xuv_f
+    global xuv_time_domain
+    global padded_ir_f
+    global ir_time_domain
 
 
+
+
+    # define constants
+    xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float64)
+    ir_fmat = tf.constant(ir.fmat, dtype=tf.float64)
+
+    # zero pad the spectrum of ir and xuv input to match the full fmat
+    # [pad_before , padafter]
+    paddings_xuv = tf.constant([[xuv.fmin_index, len(xuv.Ef_prop) - xuv.fmax_index]], dtype=tf.int32)
+    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+
+    # same for the IR
+    paddings_ir = tf.constant([[ir.fmin_index, len(ir.Ef_prop) - ir.fmax_index]], dtype=tf.int32)
+    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
+
+    # fourier transform the padded xuv
+    xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat) / 2))
+
+    # fourier transform the padded ir
+    ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat) / 2))
+
+    # zero pad the ir in frequency space to match dt of xuv
+    assert (1 / (ir.df * xuv.dt)) - math.ceil((1 / (ir.df * xuv.dt))) < 0.000000001
+    N_new = math.ceil(1 / (ir.df * xuv.dt))
+    f_pad_2 = ir.df * np.arange(-N_new / 2, N_new / 2, 1)
+    t_pad_2 = xuv.dt * np.arange(-N_new / 2, N_new / 2, 1)
+    N_current = len(ir.fmat)
+    pad_2 = (N_new - N_current) / 2
+    assert int(pad_2) - pad_2 == 0
+    paddings_ir_2 = tf.constant([[int(pad_2), int(pad_2)]], dtype=tf.int32)
+    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+
+    # calculate ir with matching dt in time
+    ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
+
+    # match the scale of the original
+    scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex128)
+
+    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+    # integrate ir pulse
+    A_t = tf.constant(-1.0 * xuv.dt, dtype=tf.float64) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+    flipped1 = tf.reverse(A_t, axis=[0])
+    flipped_integral = tf.constant(-1.0 * xuv.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=0)
+    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+    # find middle index point
+    middle = int(N_new / 2)
+    rangevals = np.array(range(len(xuv.tmat))) - len(xuv.tmat) / 2
+    middle_indexes = np.array([middle] * len(xuv.tmat)) + rangevals
+
+    # maximum add to zero before would be out of bounds
+    max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
+
+    # use this dt to scale the image size along tau axis
+    dtau_index = 300
+
+    N_tau = int(max_steps / dtau_index)
+
+    if N_tau % 2 != 0:
+        N_tau += -1
+
+    tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
+
+    # Number of points must be even
+    assert N_tau % 2 == 0
+    assert type(dtau_index) == int
+    assert abs(tau_index[0]) < max_steps
+
+    indexes = middle_indexes.reshape(-1, 1) + tau_index.reshape(1, -1)
+    tau_values = tau_index * xuv.dt  # atomic units
+
+    # gather values from integrated array
+    ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
+    ir_values = tf.expand_dims(ir_values, axis=0)
+
+    # create momentum vector
+    p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1)
+    p_values = np.squeeze(p)  # atomic units
+    K = (0.5 * p ** 2)
+
+    # convert to tensorflow
+    p_tf = tf.constant(p, dtype=tf.float64)
+    K_tf = tf.constant(K, dtype=tf.float64)
+
+    # 3d ir mat
+    p_A_t_integ_t_phase3d = p_tf * ir_values
+    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+
+    # add fourier transform term
+    e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1, -1, 1))
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
+
+    # add xuv to integrate over
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
+
+    # multiply elements together
+    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+
+    # integrate over the xuv time
+    integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
+
+    # absolute square the matrix
+    image = tf.square(tf.abs(integration))
+
+
+    return image
 
 
 # DEFINE THE XUV FIELD
@@ -481,112 +598,13 @@ med = Med()
 xuv_cropped_f = tf.placeholder(tf.complex128, [len(xuv.Ef_prop_cropped)])
 ir_cropped_f = tf.placeholder(tf.complex128, [len(ir.Ef_prop_cropped)])
 
-# define constants
-xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float64)
-ir_fmat = tf.constant(ir.fmat, dtype=tf.float64)
 
-# zero pad the spectrum of ir and xuv input to match the full fmat
-# [pad_before , padafter]
-paddings_xuv = tf.constant([[xuv.fmin_index,len(xuv.Ef_prop)-xuv.fmax_index]], dtype=tf.int32)
-padded_xuv_f = tf.pad(xuv_cropped_f, paddings_xuv)
-
-# same for the IR
-paddings_ir = tf.constant([[ir.fmin_index,len(ir.Ef_prop)-ir.fmax_index]], dtype=tf.int32)
-padded_ir_f = tf.pad(ir_cropped_f, paddings_ir)
-
-# fourier transform the padded xuv
-xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat)/2))
-
-# fourier transform the padded ir
-ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat)/2))
-
-# zero pad the ir in frequency space to match dt of xuv
-assert ( 1 / (ir.df * xuv.dt) ) - math.ceil(( 1 / (ir.df * xuv.dt) )) < 0.000000001
-N_new = math.ceil(1 / (ir.df * xuv.dt))
-f_pad_2 = ir.df * np.arange(-N_new/2, N_new/2, 1)
-t_pad_2 = xuv.dt * np.arange(-N_new/2, N_new/2, 1)
-N_current = len(ir.fmat)
-pad_2 = (N_new - N_current) / 2
-assert int(pad_2) - pad_2 == 0
-paddings_ir_2 = tf.constant([[int(pad_2),int(pad_2)]], dtype=tf.int32)
-padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
-
-# calculate ir with matching dt in time
-ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new/2))
-
-# match the scale of the original
-scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex128)
-
-ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+# build the tf graph with the inputs
+image = build_graph(xuv_cropped_f_in=xuv_cropped_f, ir_cropped_f_in=ir_cropped_f)
 
 
-# integrate ir pulse
-A_t = tf.constant(-1.0*xuv.dt, dtype=tf.float64) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
-flipped1 = tf.reverse(A_t, axis=[0])
-flipped_integral = tf.constant(-1.0*xuv.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=0)
-A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
-
-# find middle index point
-middle = int(N_new / 2)
-rangevals = np.array(range(len(xuv.tmat)))-len(xuv.tmat)/2
-middle_indexes = np.array([middle]*len(xuv.tmat)) + rangevals
 
 
-#maximum add to zero before would be out of bounds
-max_steps = int(N_new/2 - len(xuv.tmat)/2)
-
-# use this dt to scale the image size along tau axis
-dtau_index = 300
-
-N_tau = int(max_steps / dtau_index)
-
-if N_tau%2 != 0:
-    N_tau+= -1
-
-tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
-
-# Number of points must be even
-assert N_tau%2==0
-assert type(dtau_index) == int
-assert abs(tau_index[0]) < max_steps
-
-indexes = middle_indexes.reshape(-1,1) + tau_index.reshape(1,-1)
-tau_values = tau_index * xuv.dt # atomic units
-
-# gather values from integrated array
-ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
-ir_values = tf.expand_dims(ir_values, axis=0)
-
-# create momentum vector
-p = np.linspace(3, 6.5, 200).reshape(-1,1,1)
-p_values = np.squeeze(p) # atomic units
-K = (0.5 * p**2)
-
-
-# convert to tensorflow
-p_tf = tf.constant(p, dtype=tf.float64)
-K_tf = tf.constant(K, dtype=tf.float64)
-
-# 3d ir mat
-p_A_t_integ_t_phase3d = p_tf * ir_values
-ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
-
-
-# add fourier transform term
-e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1,-1,1))
-e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
-
-# add xuv to integrate over
-xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1,-1,1])
-
-# multiply elements together
-product = xuv_time_domain_integrate * ir_phi * e_fft_tf
-
-# integrate over the xuv time
-integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
-
-# absolute square the matrix
-image = tf.square(tf.abs(integration))
 
 
 if __name__ == "__main__":
