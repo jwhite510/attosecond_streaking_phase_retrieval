@@ -6,11 +6,12 @@ import glob
 import tables
 import numpy as np
 import  matplotlib.pyplot as plt
+import os
 
 
 def create_plots():
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(7,10))
     gs = fig.add_gridspec(4,2)
 
     axes = {}
@@ -28,6 +29,19 @@ def create_plots():
 
 def update_plots(generated_image, input_image, actual_fields, predicted_fields):
 
+    # set phase angle to 0
+    # find angle 0
+    index_0_angle = 25
+    #plt.figure(999)
+    #plt.plot(np.real(actual_fields['xuv_f']), color='blue')
+    #plt.plot(np.imag(actual_fields['xuv_f']), color='red')
+    #plt.plot(np.unwrap(np.angle(actual_fields['xuv_f'])), color='green')
+    #plt.plot([index_0_angle,index_0_angle], [-1, 1])
+    #plt.ioff()
+    #plt.show()
+
+    actual_fields['xuv_f'] = actual_fields['xuv_f'] * np.exp(-1j * np.angle(actual_fields['xuv_f'][index_0_angle]))
+
     iteration = i+1
 
     # calculate loss
@@ -38,29 +52,56 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['input_ir'].cla()
     axes['input_ir'].plot(np.real(actual_fields['ir_f']), color='blue')
     axes['input_ir'].plot(np.imag(actual_fields['ir_f']), color='red')
+    axes['input_ir'].text(0.0, 1.05, 'actual IR', transform = axes['input_ir'].transAxes, backgroundcolor='white')
+    axes['input_ir'].set_yticks([])
+    axes['input_ir'].set_xticks([])
 
     axes['input_xuv'].cla()
     axes['input_xuv'].plot(np.real(actual_fields['xuv_f']), color='blue')
     axes['input_xuv'].plot(np.imag(actual_fields['xuv_f']), color='red')
+    axes['input_xuv'].plot([index_0_angle, index_0_angle], [0.5,-0.5], alpha=0.3, linestyle='dashed', color='black')
+    axes['input_xuv'].text(0.0, 1.05, 'actual XUV', transform=axes['input_xuv'].transAxes, backgroundcolor='white')
+    axes['input_xuv'].set_yticks([])
+    axes['input_xuv'].set_xticks([])
 
     axes['input_image'].cla()
-    axes['input_image'].pcolormesh(input_image)
+    axes['input_image'].pcolormesh(input_image, cmap='jet')
+    axes['input_image'].text(0.0, 1.05, 'input trace', transform=axes['input_image'].transAxes, backgroundcolor='white')
+    axes['input_image'].set_yticks([])
+    axes['input_image'].set_xticks([])
 
 
     axes['predicted_xuv'].cla()
     axes['predicted_xuv'].plot(np.real(predicted_fields['xuv_f']), color='blue')
     axes['predicted_xuv'].plot(np.imag(predicted_fields['xuv_f']), color='red')
+    axes['predicted_xuv'].text(0.0, 1.05, 'predicted XUV', transform=axes['predicted_xuv'].transAxes, backgroundcolor='white')
+    axes['predicted_xuv'].plot([index_0_angle, index_0_angle], [0.5, -0.5], alpha=0.3, linestyle='dashed', color='black')
+    axes['predicted_xuv'].set_yticks([])
+    axes['predicted_xuv'].set_xticks([])
 
     axes['predicted_ir'].cla()
     axes['predicted_ir'].plot(np.real(predicted_fields['ir_f']), color='blue')
     axes['predicted_ir'].plot(np.imag(predicted_fields['ir_f']), color='red')
+    axes['predicted_ir'].text(0.0, 1.05, 'predicted IR', transform=axes['predicted_ir'].transAxes,
+                               backgroundcolor='white')
+    axes['predicted_ir'].set_yticks([])
+    axes['predicted_ir'].set_xticks([])
 
 
     axes['generated_image'].cla()
-    axes['generated_image'].pcolormesh(generated_image)
+    axes['generated_image'].pcolormesh(generated_image, cmap='jet')
     axes['generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['generated_image'].transAxes, backgroundcolor='white')
-    axes['generated_image'].text(0.0, 0.0, 'loss: {}'.format(loss_value),
+    axes['generated_image'].text(0.0, -0.1, 'streaking trace MSE: {}'.format(loss_value),
                                  transform=axes['generated_image'].transAxes, backgroundcolor='white')
+    axes['generated_image'].set_yticks([])
+    axes['generated_image'].set_xticks([])
+
+    # save image
+    dir = "./nnpictures/unsupervised/" + modelname + "/" + run_name + "/"
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
+    plt.savefig(dir + str(iteration) + ".png")
+
 
     plt.pause(0.001)
 
@@ -93,23 +134,36 @@ def add_tensorboard_values():
     writer.flush()
 
 
+def generate_images_and_plot():
+    # generate an image from the input image
+    generated_image = sess.run(network2.image, feed_dict={network2.x: trace})
+    trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
+    predicted_fields_vector = sess.run(network2.y_pred, feed_dict={network2.x: trace})
+
+    predicted_fields = {}
+    predicted_fields['xuv_f'], predicted_fields['ir_f'] = network2.separate_xuv_ir_vec(predicted_fields_vector[0])
+
+    # plot the trace and generated image
+    update_plots(generated_image, trace_2d, actual_fields, predicted_fields)
+
+
 # run name
 # can do multiple run names for the same model
-run_name = '1'
+run_name = 'index1_5k_iterations_2'
 
 
 # copy the model to a new version to use for unsupervised learning
-modelname = '2_test'
+modelname = 'unsupervised_11'
 for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
     file_newname = file.replace(modelname, modelname+'_unsupervised')
     shutil.copy(file, file_newname)
 
 
 # get the trace
-trace, actual_fields = get_trace(index=0, filename='attstrace_test2_processed.hdf5')
+trace, actual_fields = get_trace(index=1, filename='attstrace_test2_processed.hdf5')
 
 # create mse tb measurer
-unsupervised_mse_tb = tf.summary.scalar("test_mse", network2.u_losses)
+unsupervised_mse_tb = tf.summary.scalar("streaking_trace_mse", network2.u_losses)
 
 
 axes = create_plots()
@@ -124,26 +178,21 @@ with tf.Session() as sess:
 
 
 
-    iterations = 1000
+    iterations = 5000
     for i in range(iterations):
 
-        # generate an image from the input image
-        generated_image = sess.run(network2.image, feed_dict={network2.x: trace})
-        trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
-        predicted_fields_vector = sess.run(network2.y_pred, feed_dict={network2.x: trace})
+        #learningrate = 0.00001 * (iterations/250)*0.1
 
+        if (i + 1) % 20 == 0 or (i + 1) <= 15:
 
-        predicted_fields = {}
-        predicted_fields['xuv_f'],predicted_fields['ir_f'] = network2.separate_xuv_ir_vec(predicted_fields_vector[0])
+            generate_images_and_plot()
 
-        # plot the trace and generated image
-        update_plots(generated_image, trace_2d, actual_fields, predicted_fields)
 
         # add tensorbaord values
         add_tensorboard_values()
 
         # train the network to reduce the error
-        sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.001})
+        sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001})
 
 
 
