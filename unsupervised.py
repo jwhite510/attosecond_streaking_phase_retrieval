@@ -143,7 +143,7 @@ with tf.Session() as sess:
         add_tensorboard_values()
 
         # train the network to reduce the error
-        sess.run(network2.u_train, feed_dict={network2.x: trace})
+        sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.001})
 
 
 
