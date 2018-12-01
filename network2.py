@@ -480,7 +480,8 @@ if network == 1:
     xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
     image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
     u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
-    u_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    u_LR = tf.placeholder( tf.float64, shape=[])
+    u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     u_train = u_optimizer.minimize(u_losses)
 
 
