@@ -90,6 +90,7 @@ def add_tensorboard_values():
 
     summ = sess.run(unsupervised_mse_tb, feed_dict={network2.x: trace})
     writer.add_summary(summ, global_step=i + 1)
+    writer.flush()
 
 
 # run name
