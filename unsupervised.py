@@ -92,6 +92,11 @@ def add_tensorboard_values():
     writer.add_summary(summ, global_step=i + 1)
 
 
+# run name
+# can do multiple run names for the same model
+run_name = '1'
+
+
 # copy the model to a new version to use for unsupervised learning
 modelname = '2_test'
 for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
@@ -111,7 +116,7 @@ axes = create_plots()
 plt.ion()
 with tf.Session() as sess:
 
-    writer = tf.summary.FileWriter("./tensorboard_graph_u/" + modelname)
+    writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
 
     saver = tf.train.Saver()
     saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
