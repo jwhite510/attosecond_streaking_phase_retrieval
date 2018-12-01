@@ -1,4 +1,5 @@
 import crab_tf2
+xuv_time_domain_func = crab_tf2.xuv_time_domain
 import shutil
 import network2
 import tensorflow as tf
@@ -11,18 +12,22 @@ import os
 
 def create_plots():
 
-    fig = plt.figure(figsize=(7,10))
-    gs = fig.add_gridspec(4,2)
+    fig = plt.figure(figsize=(10,10))
+    gs = fig.add_gridspec(4,3)
 
     axes = {}
 
     axes['input_image'] = fig.add_subplot(gs[1,:])
+    axes['input_xuv_time'] = fig.add_subplot(gs[0,2])
     axes['input_xuv'] = fig.add_subplot(gs[0,1])
     axes['input_ir'] = fig.add_subplot(gs[0,0])
 
     axes['generated_image'] = fig.add_subplot(gs[3,:])
+    axes['predicted_xuv_time'] = fig.add_subplot(gs[2, 2])
     axes['predicted_xuv'] = fig.add_subplot(gs[2, 1])
     axes['predicted_ir'] = fig.add_subplot(gs[2, 0])
+
+    # add time plots
 
     return axes
 
@@ -40,7 +45,11 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     #plt.ioff()
     #plt.show()
 
-    actual_fields['xuv_f'] = actual_fields['xuv_f'] * np.exp(-1j * np.angle(actual_fields['xuv_f'][index_0_angle]))
+    xuv_actual_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: actual_fields['xuv_f']})
+    xuv_predicted_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: predicted_fields['xuv_f']})
+
+    # set phase angle to 0
+    predicted_fields['xuv_f'] = predicted_fields['xuv_f'] * np.exp(-1j * np.angle(predicted_fields['xuv_f'][index_0_angle]))
 
     iteration = i+1
 
@@ -64,6 +73,15 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['input_xuv'].set_yticks([])
     axes['input_xuv'].set_xticks([])
 
+
+    axes['input_xuv_time'].cla()
+    axes['input_xuv_time'].text(0.0, 1.05, 'actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
+    axes['input_xuv_time'].plot(np.real(xuv_actual_time), color='blue', alpha=0.5)
+    axes['input_xuv_time'].plot(np.abs(xuv_actual_time), color='black')
+    axes['input_xuv_time'].set_yticks([])
+    axes['input_xuv_time'].set_xticks([])
+
+
     axes['input_image'].cla()
     axes['input_image'].pcolormesh(input_image, cmap='jet')
     axes['input_image'].text(0.0, 1.05, 'input trace', transform=axes['input_image'].transAxes, backgroundcolor='white')
@@ -78,6 +96,17 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['predicted_xuv'].plot([index_0_angle, index_0_angle], [0.5, -0.5], alpha=0.3, linestyle='dashed', color='black')
     axes['predicted_xuv'].set_yticks([])
     axes['predicted_xuv'].set_xticks([])
+
+
+    axes['predicted_xuv_time'].cla()
+    axes['predicted_xuv_time'].text(0.0, 1.05, 'predicted XUV E(t)', transform=axes['predicted_xuv_time'].transAxes,
+                                backgroundcolor='white')
+    axes['predicted_xuv_time'].plot(np.real(xuv_predicted_time), color='blue', alpha=0.5)
+    axes['predicted_xuv_time'].plot(np.abs(xuv_predicted_time), color='black')
+
+    axes['predicted_xuv_time'].set_yticks([])
+    axes['predicted_xuv_time'].set_xticks([])
+
 
     axes['predicted_ir'].cla()
     axes['predicted_ir'].plot(np.real(predicted_fields['ir_f']), color='blue')
@@ -149,7 +178,7 @@ def generate_images_and_plot():
 
 # run name
 # can do multiple run names for the same model
-run_name = 'index1_5k_iterations_2'
+run_name = 'index2_5k_iterations'
 
 
 # copy the model to a new version to use for unsupervised learning
@@ -160,7 +189,7 @@ for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
 
 
 # get the trace
-trace, actual_fields = get_trace(index=1, filename='attstrace_test2_processed.hdf5')
+trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
 
 # create mse tb measurer
 unsupervised_mse_tb = tf.summary.scalar("streaking_trace_mse", network2.u_losses)
