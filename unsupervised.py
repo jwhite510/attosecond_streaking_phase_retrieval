@@ -176,52 +176,59 @@ def generate_images_and_plot():
     update_plots(generated_image, trace_2d, actual_fields, predicted_fields)
 
 
-# run name
-# can do multiple run names for the same model
-run_name = 'index2_5k_iterations'
-
-
-# copy the model to a new version to use for unsupervised learning
-modelname = 'unsupervised_11'
-for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
-    file_newname = file.replace(modelname, modelname+'_unsupervised')
-    shutil.copy(file, file_newname)
-
-
-# get the trace
-trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
-
-# create mse tb measurer
-unsupervised_mse_tb = tf.summary.scalar("streaking_trace_mse", network2.u_losses)
-
-
-axes = create_plots()
-
-plt.ion()
-with tf.Session() as sess:
-
-    writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
-
-    saver = tf.train.Saver()
-    saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
 
 
 
-    iterations = 5000
-    for i in range(iterations):
 
-        #learningrate = 0.00001 * (iterations/250)*0.1
-
-        if (i + 1) % 20 == 0 or (i + 1) <= 15:
-
-            generate_images_and_plot()
+if __name__ == "__main__":
 
 
-        # add tensorbaord values
-        add_tensorboard_values()
+    # run name
+    # can do multiple run names for the same model
+    run_name = 'index2_5k_iterations'
 
-        # train the network to reduce the error
-        sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001})
+
+    # copy the model to a new version to use for unsupervised learning
+    modelname = 'unsupervised_11'
+    for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
+        file_newname = file.replace(modelname, modelname+'_unsupervised')
+        shutil.copy(file, file_newname)
+
+
+    # get the trace
+    trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
+
+    # create mse tb measurer
+    unsupervised_mse_tb = tf.summary.scalar("streaking_trace_mse", network2.u_losses)
+
+
+    axes = create_plots()
+
+    plt.ion()
+    with tf.Session() as sess:
+
+        writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
+
+        saver = tf.train.Saver()
+        saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
+
+
+
+        iterations = 5000
+        for i in range(iterations):
+
+            #learningrate = 0.00001 * (iterations/250)*0.1
+
+            if (i + 1) % 20 == 0 or (i + 1) <= 15:
+
+                generate_images_and_plot()
+
+
+            # add tensorbaord values
+            add_tensorboard_values()
+
+            # train the network to reduce the error
+            sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001})
 
 
 
