@@ -5,11 +5,12 @@ import network2
 import unsupervised
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.constants as sc
 
 
 def create_plots():
 
-    fig = plt.figure(figsize=(10,6))
+    fig = plt.figure(figsize=(10,6.5))
     gs = fig.add_gridspec(2,4)
 
     axes = {}
@@ -56,68 +57,50 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     print('iteration: {}'.format(iteration))
     print('loss_value: ', loss_value)
 
-    # axes['input_ir'].cla()
-    # axes['input_ir'].plot(np.real(actual_fields['ir_f']), color='blue')
-    # axes['input_ir'].plot(np.imag(actual_fields['ir_f']), color='red')
-    # axes['input_ir'].text(0.0, 1.05, 'actual IR', transform = axes['input_ir'].transAxes, backgroundcolor='white')
-    # axes['input_ir'].set_yticks([])
-    # axes['input_ir'].set_xticks([])
-
-    # axes['input_xuv'].cla()
-    # axes['input_xuv'].plot(np.real(actual_fields['xuv_f']), color='blue')
-    # axes['input_xuv'].plot(np.imag(actual_fields['xuv_f']), color='red')
-    # axes['input_xuv'].plot([index_0_angle, index_0_angle], [0.5,-0.5], alpha=0.3, linestyle='dashed', color='black')
-    # axes['input_xuv'].text(0.0, 1.05, 'actual XUV', transform=axes['input_xuv'].transAxes, backgroundcolor='white')
-    # axes['input_xuv'].set_yticks([])
-    # axes['input_xuv'].set_xticks([])
-
-
+    xuv_t_vals_si = crab_tf2.xuv.tmat * sc.physical_constants['atomic unit of time'][0]
     axes['input_xuv_time'].cla()
-    axes['input_xuv_time'].text(0.0, 1.05, 'actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
-    axes['input_xuv_time'].plot(crab_tf2.xuv.tmat, np.real(xuv_actual_time), color='blue', alpha=0.5)
-    axes['input_xuv_time'].plot(crab_tf2.xuv.tmat, np.abs(xuv_actual_time), color='black')
-    # axes['input_xuv_time'].set_yticks([])
-    # axes['input_xuv_time'].set_xticks([])
+    axes['input_xuv_time'].text(0.0, 1.05, 'Actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
+    axes['input_xuv_time'].plot(xuv_t_vals_si*1e18, np.real(xuv_actual_time), color='blue', alpha=0.5)
+    axes['input_xuv_time'].plot(xuv_t_vals_si*1e18, np.abs(xuv_actual_time), color='black')
+    axes['input_xuv_time'].set_xlabel("time [as]")
+    axes['input_xuv_time'].set_ylabel("Electric Field [arbitrary units]")
+    axes['input_xuv_time'].yaxis.tick_right()
+    axes['input_xuv_time'].yaxis.set_label_position("right")
+    axes['input_xuv_time'].set_yticks([0.02, 0.01, 0, -0.01, -0.02])
 
 
     axes['input_image'].cla()
-    axes['input_image'].pcolormesh(crab_tf2.tau_values, crab_tf2.p_values, input_image, cmap='jet')
-    axes['input_image'].text(0.0, 1.05, 'input trace', transform=axes['input_image'].transAxes, backgroundcolor='white')
-    # axes['input_image'].set_yticks([])
-    # axes['input_image'].set_xticks([])
-
-
-    # axes['predicted_xuv'].cla()
-    # axes['predicted_xuv'].plot(np.real(predicted_fields['xuv_f']), color='blue')
-    # axes['predicted_xuv'].plot(np.imag(predicted_fields['xuv_f']), color='red')
-    # axes['predicted_xuv'].text(0.0, 1.05, 'predicted XUV', transform=axes['predicted_xuv'].transAxes, backgroundcolor='white')
-    # axes['predicted_xuv'].plot([index_0_angle, index_0_angle], [0.5, -0.5], alpha=0.3, linestyle='dashed', color='black')
-    # axes['predicted_xuv'].set_yticks([])
-    # axes['predicted_xuv'].set_xticks([])
+    tauvalues_si = crab_tf2.tau_values * sc.physical_constants['atomic unit of time'][0]
+    axes['input_image'].pcolormesh(tauvalues_si*1e15, crab_tf2.p_values, input_image, cmap='jet')
+    axes['input_image'].text(0.0, 1.05, 'Input Streaking Trace', transform=axes['input_image'].transAxes, backgroundcolor='white')
+    axes['input_image'].set_ylabel("momentum [atomic units]")
+    axes['input_image'].set_xlabel("delay [fs]")
 
 
     axes['predicted_xuv_time'].cla()
-    axes['predicted_xuv_time'].text(0.0, 1.05, 'predicted XUV E(t)', transform=axes['predicted_xuv_time'].transAxes,
+    axes['predicted_xuv_time'].text(0.0, 1.05, 'Predicted XUV E(t)', transform=axes['predicted_xuv_time'].transAxes,
                                 backgroundcolor='white')
-    axes['predicted_xuv_time'].plot(crab_tf2.xuv.tmat, np.real(xuv_predicted_time), color='blue', alpha=0.5)
-    axes['predicted_xuv_time'].plot(crab_tf2.xuv.tmat, np.abs(xuv_predicted_time), color='black')
+    axes['predicted_xuv_time'].plot(xuv_t_vals_si*1e18, np.real(xuv_predicted_time), color='blue', alpha=0.5, label='Real E(t)')
+    axes['predicted_xuv_time'].plot(xuv_t_vals_si*1e18, np.abs(xuv_predicted_time), color='black', label='|E(t)|')
+    axes['predicted_xuv_time'].set_xlabel("time [as]")
+    axes['predicted_xuv_time'].set_ylabel("Electric Field [arbitrary units]")
+    axes['predicted_xuv_time'].legend(bbox_to_anchor=(0.5, -0.4), ncol=2, loc='center')
+    #axes['predicted_xuv_time'].legend(loc=4)
+    axes['predicted_xuv_time'].yaxis.tick_right()
+    axes['predicted_xuv_time'].yaxis.set_label_position("right")
+    axes['predicted_xuv_time'].set_yticks([0.02, 0.01, 0, -0.01, -0.02])
 
-
-
-    # axes['predicted_ir'].cla()
-    # axes['predicted_ir'].plot(np.real(predicted_fields['ir_f']), color='blue')
-    # axes['predicted_ir'].plot(np.imag(predicted_fields['ir_f']), color='red')
-    # axes['predicted_ir'].text(0.0, 1.05, 'predicted IR', transform=axes['predicted_ir'].transAxes,
-    #                            backgroundcolor='white')
-    # axes['predicted_ir'].set_yticks([])
-    # axes['predicted_ir'].set_xticks([])
 
 
     axes['generated_image'].cla()
-    axes['generated_image'].pcolormesh(crab_tf2.tau_values, crab_tf2.p_values, generated_image, cmap='jet')
-    axes['generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['generated_image'].transAxes, backgroundcolor='white')
-    axes['generated_image'].text(0.0, 0.1, 'streaking trace MSE: {}'.format(loss_value),
+    axes['generated_image'].pcolormesh(tauvalues_si*1e15, crab_tf2.p_values, generated_image, cmap='jet')
+    axes['generated_image'].text(0.0, 1.05, 'Generated Streaking Trace', transform=axes['generated_image'].transAxes, backgroundcolor='white')
+    #axes['generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['generated_image'].transAxes, backgroundcolor='white')
+
+    axes['generated_image'].text(0.1, 0.1, 'MSE: {}'.format(str(loss_value)),
                                  transform=axes['generated_image'].transAxes, backgroundcolor='white')
+    axes['generated_image'].set_ylabel("momentum [atomic units]")
+    axes['generated_image'].set_xlabel("delay [fs]")
 
     # save image
     # dir = "./nnpictures/unsupervised/" + modelname + "/" + run_name + "/"
@@ -126,7 +109,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     # plt.savefig(dir + str(iteration) + ".png")
 
 
-    plt.subplots_adjust(left=0.05, right=0.95, hspace=0.2, wspace=0.2)
+    plt.subplots_adjust(left=0.08, right=0.92, hspace=0.4, wspace=0.3, bottom=0.18)
     plt.show()
 
 
@@ -152,7 +135,7 @@ if __name__ == "__main__":
 
 
     # make unsupervised learning plot
-    modelname = '2_test'
+    modelname = 'unsupervised_highres'
 
     # get the trace
     trace, actual_fields = unsupervised.get_trace(index=2, filename='attstrace_test2_processed.hdf5')
