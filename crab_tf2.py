@@ -504,9 +504,10 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
 
     # use this dt to scale the image size along tau axis
-    dtau_index = 300
+    dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
+    N_tau = 80
 
     if N_tau % 2 != 0:
         N_tau += -1
