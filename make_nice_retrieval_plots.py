@@ -10,8 +10,8 @@ import scipy.constants as sc
 
 def create_plots():
 
-    fig = plt.figure(figsize=(10,6.5))
-    gs = fig.add_gridspec(2,4)
+    fig = plt.figure(figsize=(10,6.5*(3/2)))
+    gs = fig.add_gridspec(3,4)
 
     axes = {}
 
@@ -20,8 +20,11 @@ def create_plots():
     # axes['input_xuv'] = fig.add_subplot(gs[0,1])
     # axes['input_ir'] = fig.add_subplot(gs[0,0])
 
-    axes['generated_image'] = fig.add_subplot(gs[1,0:3])
-    axes['predicted_xuv_time'] = fig.add_subplot(gs[1, 3])
+    axes['initial_generated_image'] = fig.add_subplot(gs[1, 0:3])
+    axes['initial_predicted_xuv_time'] = fig.add_subplot(gs[1, 3])
+
+    axes['generated_image'] = fig.add_subplot(gs[2,0:3])
+    axes['predicted_xuv_time'] = fig.add_subplot(gs[2, 3])
     # axes['predicted_xuv'] = fig.add_subplot(gs[2, 1])
     # axes['predicted_ir'] = fig.add_subplot(gs[2, 0])
 
@@ -59,7 +62,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
 
     xuv_t_vals_si = crab_tf2.xuv.tmat * sc.physical_constants['atomic unit of time'][0]
     axes['input_xuv_time'].cla()
-    axes['input_xuv_time'].text(0.0, 1.05, 'Actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
+    axes['input_xuv_time'].text(0.5, 1.05, 'Actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white', ha='center')
     axes['input_xuv_time'].plot(xuv_t_vals_si*1e18, np.real(xuv_actual_time), color='blue', alpha=0.5)
     axes['input_xuv_time'].plot(xuv_t_vals_si*1e18, np.abs(xuv_actual_time), color='black')
     axes['input_xuv_time'].set_xlabel("time [as]")
@@ -67,19 +70,23 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['input_xuv_time'].yaxis.tick_right()
     axes['input_xuv_time'].yaxis.set_label_position("right")
     axes['input_xuv_time'].set_yticks([0.02, 0.01, 0, -0.01, -0.02])
+    axes['input_xuv_time'].set_ylim(-0.03, 0.03)
 
 
     axes['input_image'].cla()
     tauvalues_si = crab_tf2.tau_values * sc.physical_constants['atomic unit of time'][0]
     axes['input_image'].pcolormesh(tauvalues_si*1e15, crab_tf2.p_values, input_image, cmap='jet')
+    axes['input_image'].text(-0.07, 1.07, 'a)',
+                                 transform=axes['input_image'].transAxes, backgroundcolor='white',
+                                 weight='bold')
     axes['input_image'].text(0.0, 1.05, 'Input Streaking Trace', transform=axes['input_image'].transAxes, backgroundcolor='white')
     axes['input_image'].set_ylabel("momentum [atomic units]")
     axes['input_image'].set_xlabel("delay [fs]")
 
 
     axes['predicted_xuv_time'].cla()
-    axes['predicted_xuv_time'].text(0.0, 1.05, 'Predicted XUV E(t)', transform=axes['predicted_xuv_time'].transAxes,
-                                backgroundcolor='white')
+    axes['predicted_xuv_time'].text(0.5, 1.05, 'Predicted XUV E(t) After Unsupervised Learning', transform=axes['predicted_xuv_time'].transAxes,
+                                backgroundcolor='white', ha='center')
     axes['predicted_xuv_time'].plot(xuv_t_vals_si*1e18, np.real(xuv_predicted_time), color='blue', alpha=0.5, label='Real E(t)')
     axes['predicted_xuv_time'].plot(xuv_t_vals_si*1e18, np.abs(xuv_predicted_time), color='black', label='|E(t)|')
     axes['predicted_xuv_time'].set_xlabel("time [as]")
@@ -89,12 +96,16 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['predicted_xuv_time'].yaxis.tick_right()
     axes['predicted_xuv_time'].yaxis.set_label_position("right")
     axes['predicted_xuv_time'].set_yticks([0.02, 0.01, 0, -0.01, -0.02])
+    axes['predicted_xuv_time'].set_ylim(-0.03, 0.03)
 
 
 
     axes['generated_image'].cla()
     axes['generated_image'].pcolormesh(tauvalues_si*1e15, crab_tf2.p_values, generated_image, cmap='jet')
-    axes['generated_image'].text(0.0, 1.05, 'Generated Streaking Trace', transform=axes['generated_image'].transAxes, backgroundcolor='white')
+    axes['generated_image'].text(-0.07, 1.07, 'c)',
+                                 transform=axes['generated_image'].transAxes, backgroundcolor='white',
+                                 weight='bold')
+    axes['generated_image'].text(0.0, 1.05, 'Generated Streaking Trace After Unsupervised Learning', transform=axes['generated_image'].transAxes, backgroundcolor='white')
     #axes['generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['generated_image'].transAxes, backgroundcolor='white')
 
     axes['generated_image'].text(0.1, 0.1, 'MSE: {}'.format(str(loss_value)),
@@ -109,8 +120,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     # plt.savefig(dir + str(iteration) + ".png")
 
 
-    plt.subplots_adjust(left=0.08, right=0.92, hspace=0.4, wspace=0.3, bottom=0.18)
-    plt.show()
+    plt.subplots_adjust(left=0.08, right=0.92, hspace=0.4, wspace=0.3, bottom=0.15, top=0.9)
 
 
 
@@ -155,6 +165,50 @@ def create_sample_plot(samples_per_plot=3):
     return plot_rows, fig
 
 
+def generate_initial_generated_image():
+
+    generated_image = sess.run(network2.image, feed_dict={network2.x: trace})
+    trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
+    predicted_fields_vector = sess.run(network2.y_pred, feed_dict={network2.x: trace})
+
+    predicted_fields = {}
+    predicted_fields['xuv_f'], predicted_fields['ir_f'] = network2.separate_xuv_ir_vec(predicted_fields_vector[0])
+
+    xuv_predicted_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: predicted_fields['xuv_f']})
+
+    loss_value = sess.run(network2.u_losses, feed_dict={network2.x: trace})
+
+    xuv_t_vals_si = crab_tf2.xuv.tmat * sc.physical_constants['atomic unit of time'][0]
+
+    axes['initial_predicted_xuv_time'].cla()
+    axes['initial_predicted_xuv_time'].text(0.5, 1.05, 'Predicted XUV E(t) After Supervised Learning', transform=axes['initial_predicted_xuv_time'].transAxes,
+                                backgroundcolor='white', ha='center')
+    axes['initial_predicted_xuv_time'].plot(xuv_t_vals_si * 1e18, np.real(xuv_predicted_time), color='blue', alpha=0.5)
+    axes['initial_predicted_xuv_time'].plot(xuv_t_vals_si * 1e18, np.abs(xuv_predicted_time), color='black')
+    axes['initial_predicted_xuv_time'].set_xlabel("time [as]")
+    axes['initial_predicted_xuv_time'].set_ylabel("Electric Field [arbitrary units]")
+    axes['initial_predicted_xuv_time'].yaxis.tick_right()
+    axes['initial_predicted_xuv_time'].yaxis.set_label_position("right")
+    axes['initial_predicted_xuv_time'].set_yticks([0.02, 0.01, 0, -0.01, -0.02])
+    axes['initial_predicted_xuv_time'].set_ylim(-0.03, 0.03)
+
+    tauvalues_si = crab_tf2.tau_values * sc.physical_constants['atomic unit of time'][0]
+
+    axes['initial_generated_image'].cla()
+    axes['initial_generated_image'].pcolormesh(tauvalues_si * 1e15, crab_tf2.p_values, generated_image, cmap='jet')
+    axes['initial_generated_image'].text(0.0, 1.05, 'Generated Streaking Trace After Supervised Learning', transform=axes['initial_generated_image'].transAxes,
+                                 backgroundcolor='white')
+    axes['initial_generated_image'].text(-0.07, 1.07, 'b)',
+                             transform=axes['initial_generated_image'].transAxes, backgroundcolor='white',
+                             weight='bold')
+    # axes['initial_generated_image'].text(0.0, 1.0, 'iteration: {}'.format(iteration), transform = axes['initial_generated_image'].transAxes, backgroundcolor='white')
+
+    axes['initial_generated_image'].text(0.1, 0.1, 'MSE: {}'.format(str(loss_value)),
+                                 transform=axes['initial_generated_image'].transAxes, backgroundcolor='white')
+    axes['initial_generated_image'].set_ylabel("momentum [atomic units]")
+    axes['initial_generated_image'].set_xlabel("delay [fs]")
+
+
 
 
 def unsupervised_plot():
@@ -181,6 +235,11 @@ def unsupervised_plot():
         saver.restore(sess, './models/{}.ckpt'.format(modelname + '_unsupervised'))
 
         generate_images_and_plot()
+
+        #restore the model without unsupervised learning
+        saver.restore(sess, './models/{}.ckpt'.format(modelname))
+
+        generate_initial_generated_image()
 
 
 
@@ -346,6 +405,8 @@ if __name__ == "__main__":
     #tf.reset_default_graph()
 
     #supervised_plot()
+
+    plt.show()
 
 
 
