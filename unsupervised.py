@@ -185,11 +185,11 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'index2_5k_iterations'
+    run_name = 'index2_5k_iterations_newdataset'
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'unsupervised_11'
+    modelname = 'unsupervised_highres'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
@@ -229,6 +229,9 @@ if __name__ == "__main__":
 
             # train the network to reduce the error
             sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001})
+
+
+        saver.save(sess, './models/{}.ckpt'.format(modelname + '_unsupervised'))
 
 
 
