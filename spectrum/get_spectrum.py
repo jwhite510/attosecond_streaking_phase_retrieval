@@ -42,6 +42,8 @@ y = np.insert(y, 0, 0)
 hertz = np.insert(hertz, -1, 6e17)
 y = np.insert(y, -1, 0)
 y[y<0] = 0
+f0 = hertz[np.argmax(y)]
+
 
 
 plt.plot(hertz, y, color='red')
@@ -67,10 +69,26 @@ plt.plot(tmat, np.real(linear_E_t))
 # plt.plot(np.real(linear_E_t))
 
 
+# crop the xuv field
+plt.figure(4)
+plt.plot(fmat, Ef, color='red', alpha=0.5)
+indexmin = 270
+indexmax = 325
+
+plt.plot(fmat[indexmin:indexmax], Ef[indexmin:indexmax], color='red')
+
+
+
+
 pickle_files = {}
 pickle_files['tmat'] = tmat
 pickle_files['fmat'] = fmat
 pickle_files['Ef'] = Ef
+pickle_files['indexmin'] = indexmin
+pickle_files['indexmax'] = indexmax
+pickle_files['f0'] = f0
+pickle_files['N'] = N
+pickle_files['dt'] = dt
 
 # write the data to a pickle
 with open('../measured_spectrum.p', 'wb') as file:
