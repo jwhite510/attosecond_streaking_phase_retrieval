@@ -19,49 +19,83 @@ atts = 1e-18
 
 class XUV_Field():
 
-    def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0, random_phase=None):
+    def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0,
+                 random_phase=None, measured_spectrum=None):
 
-        # start and end indexes
-        self.fmin_index = start_index
-        self.fmax_index = end_index
+        if not measured_spectrum:
 
-        # define parameters in SI units
-        self.N = N
-        self.f0 = 80e15
-        self.T0 = 1/self.f0 # optical cycle
-        self.t0 = 20e-18 # pulse duration
-        self.gdd = gdd * atts**2 # gdd
-        self.gdd_si = self.gdd / atts**2
-        self.tod = tod * atts**3 # TOD
-        self.tod_si = self.tod / atts**3
+            # start and end indexes
+            self.fmin_index = start_index
+            self.fmax_index = end_index
+
+            # define parameters in SI units
+            self.N = N
+            self.f0 = 80e15
+            self.T0 = 1/self.f0 # optical cycle
+            self.t0 = 20e-18 # pulse duration
+            self.gdd = gdd * atts**2 # gdd
+            self.gdd_si = self.gdd / atts**2
+            self.tod = tod * atts**3 # TOD
+            self.tod_si = self.tod / atts**3
 
 
-        #discretize
-        self.tmax = tmax
-        self.dt = self.tmax / N
-        self.tmat = self.dt * np.arange(-N/2, N/2, 1)
+            #discretize
+            self.tmax = tmax
+            self.dt = self.tmax / N
+            self.tmat = self.dt * np.arange(-N/2, N/2, 1)
 
-        # discretize the streaking xuv field spectral matrix
-        self.df = 1/(self.dt * N)
-        self.fmat = self.df * np.arange(-N/2, N/2, 1)
-        self.enmat = sc.h * self.fmat
+            # discretize the streaking xuv field spectral matrix
+            self.df = 1/(self.dt * N)
+            self.fmat = self.df * np.arange(-N/2, N/2, 1)
+            self.enmat = sc.h * self.fmat
 
-        # convert to AU
-        self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
-        self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
-        self.T0 = self.T0 / sc.physical_constants['atomic unit of time'][0]
-        self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0]**2
-        self.tod = self.tod / sc.physical_constants['atomic unit of time'][0]**3
-        self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
-        self.df = self.df * sc.physical_constants['atomic unit of time'][0]
-        self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
-        self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
-        self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
+            # convert to AU
+            self.t0 = self.t0 / sc.physical_constants['atomic unit of time'][0]
+            self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
+            self.T0 = self.T0 / sc.physical_constants['atomic unit of time'][0]
+            self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0]**2
+            self.tod = self.tod / sc.physical_constants['atomic unit of time'][0]**3
+            self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
+            self.df = self.df * sc.physical_constants['atomic unit of time'][0]
+            self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
+            self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
+            self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
 
-        # calculate bandwidth from fwhm
-        self.bandwidth = 0.44 / self.t0
+            # calculate bandwidth from fwhm
+            self.bandwidth = 0.44 / self.t0
 
-        Ef = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth) ** 2)
+            Ef = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth) ** 2)
+
+        else:
+
+            # start and end indexes
+            self.fmin_index = measured_spectrum['indexmin']
+            self.fmax_index = measured_spectrum['indexmax']
+
+            # define parameters in SI units
+            self.N = measured_spectrum['N']
+            self.gdd = gdd * atts ** 2  # gdd
+            self.gdd_si = self.gdd / atts ** 2
+            self.tod = tod * atts ** 3  # TOD
+            self.tod_si = self.tod / atts ** 3
+            self.f0 = measured_spectrum['f0']
+
+            # discretize
+            self.dt = measured_spectrum['dt']
+            self.tmat = measured_spectrum['tmat']
+            self.fmat = measured_spectrum['fmat']
+            self.enmat = sc.h * self.fmat
+
+            # convert to AU
+            self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0] ** 2
+            self.tod = self.tod / sc.physical_constants['atomic unit of time'][0] ** 3
+            self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
+            self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
+            self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
+            self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
+
+            Ef = measured_spectrum['Ef']
+
 
         # apply the TOD and GDD phase if specified
         phi = (1/2) * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2 + (1/6) * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3
@@ -607,6 +641,12 @@ def remove_linear_phase(xuv_f, plotting=False):
     return xuv_f_adjusted
 
 
+
+
+# retrieve xuv spectrum
+with open('measured_spectrum.p', 'rb') as file:
+    spectrum_data = pickle.load(file)
+
 # DEFINE THE XUV FIELD
 # transform limited
 # xuv = XUV_Field()
@@ -615,7 +655,10 @@ def remove_linear_phase(xuv_f, plotting=False):
 # xuv = XUV_Field(gdd=500.0, tod=0.0)
 
 # random xuv
-xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
+# xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
+
+# random xuv with measured spectrum
+xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
 
 
 
