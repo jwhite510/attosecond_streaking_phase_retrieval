@@ -111,7 +111,7 @@ class XUV_Field():
             phi = f(axis_phase)
             self.Ef_prop = Ef * np.exp(1j * phi)
 
-        self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
+        # self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
 
         # set phase angle at f0 to 0
         f0_index = np.argmin(np.abs(self.f0-self.fmat))
@@ -540,7 +540,8 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
 
     # use this dt to scale the image size along tau axis
-    dtau_index = 75
+    dtau_index = 40 # to match measured
+    # dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
     N_tau = 80
@@ -563,7 +564,8 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     ir_values = tf.expand_dims(ir_values, axis=0)
 
     # create momentum vector
-    p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1)
+    # p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
+    p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
     p_values = np.squeeze(p)  # atomic units
     K = (0.5 * p ** 2)
 
