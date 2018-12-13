@@ -77,6 +77,8 @@ class XUV_Field():
             phi = f(axis_phase)
             self.Ef_prop = Ef * np.exp(1j * phi)
 
+        self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=True)
+
         # set phase angle at f0 to 0
         f0_index = np.argmin(np.abs(self.f0-self.fmat))
         f0_angle = np.angle(self.Ef_prop[f0_index])
@@ -559,6 +561,50 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     image = scaled / tf.reduce_max(scaled)
 
     return image
+
+
+def remove_linear_phase(xuv_f, plotting=False):
+
+    if plotting:
+        plt.figure(33)
+        plt.plot(np.real(xuv_f), color='blue')
+        plt.plot(np.imag(xuv_f), color='red')
+
+    # move intensity peak to center
+    Et_prop_before_centered = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(xuv_f)))
+    # find intensity peak
+    center_index = int(len(Et_prop_before_centered) / 2)
+
+    intensity_peak_index = np.argmin(np.abs(np.max(np.abs(Et_prop_before_centered)) - np.abs(Et_prop_before_centered)))
+    if plotting:
+        plt.figure(34)
+        plt.plot(np.abs(Et_prop_before_centered))
+        plt.plot([center_index, center_index], [-0.025, 0.025])
+        plt.plot([intensity_peak_index, intensity_peak_index], [-0.025, 0.025], color='blue')
+
+    roll_num = center_index - intensity_peak_index
+    if roll_num > 0:
+        Et_prop_before_centered[-roll_num:] = 0.0
+    if roll_num < 0:
+        Et_prop_before_centered[:-roll_num] = 0.0
+
+    rolled_Et = np.roll(Et_prop_before_centered, roll_num)
+
+    if plotting:
+        plt.figure(35)
+        plt.plot(np.abs(rolled_Et))
+        plt.plot([center_index, center_index], [-0.025, 0.025])
+        plt.plot([intensity_peak_index, intensity_peak_index], [-0.025, 0.025], color='blue')
+
+    # reverse foutier transform again
+    xuv_f_adjusted = np.fft.fftshift(np.fft.fft(np.fft.fftshift(rolled_Et)))
+
+    if plotting:
+        plt.figure(36)
+        plt.plot(np.real(xuv_f_adjusted), color='blue')
+        plt.plot(np.imag(xuv_f_adjusted), color='red')
+
+    return xuv_f_adjusted
 
 
 # DEFINE THE XUV FIELD
