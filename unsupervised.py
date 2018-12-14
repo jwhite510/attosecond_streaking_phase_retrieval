@@ -8,6 +8,45 @@ import tables
 import numpy as np
 import  matplotlib.pyplot as plt
 import os
+import csv
+from scipy import interpolate
+import scipy.constants as sc
+
+
+
+def get_measured_trace():
+    filepath = './experimental_data/53asstreakingdata.csv'
+    with open(filepath) as csvfile:
+        reader = csv.reader(csvfile)
+        matrix = np.array(list(reader))
+
+        Energy = matrix[4:, 0].astype('float')
+        Delay = matrix[2, 2:].astype('float')
+        Values = matrix[4:, 2:].astype('float')
+
+
+    # map the function onto a grid matching the training data
+    interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
+    timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
+    delay_new = np.arange(Delay[0], Delay[-1], timespan/160)
+    energy_new = np.linspace(Energy[0], Energy[-1], 200)
+    values_new = interp2(delay_new, energy_new)
+
+    # interpolate to momentum [a.u]
+    energy_new_joules = energy_new * sc.electron_volt # joules
+    energy_new_au = energy_new_joules / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    momentum_new_au = np.sqrt(2 * energy_new_au)
+    interp2_momentum = interpolate.interp2d(delay_new, momentum_new_au, values_new, kind='linear')
+
+    # interpolate onto linear momentum axis
+    N = len(momentum_new_au)
+    momentum_linear = np.linspace(momentum_new_au[0], momentum_new_au[-1], N)
+    values_lin_momentum = interp2_momentum(delay_new, momentum_linear)
+
+
+    return delay_new, momentum_linear, values_lin_momentum
+
+
 
 
 def create_plots():
@@ -45,7 +84,9 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     #plt.ioff()
     #plt.show()
 
-    xuv_actual_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: actual_fields['xuv_f']})
+    if actual_fields:
+        xuv_actual_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: actual_fields['xuv_f']})
+
     xuv_predicted_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: predicted_fields['xuv_f']})
 
     # set phase angle to 0
@@ -58,28 +99,30 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     print('iteration: {}'.format(iteration))
     print('loss_value: ', loss_value)
 
-    axes['input_ir'].cla()
-    axes['input_ir'].plot(np.real(actual_fields['ir_f']), color='blue')
-    axes['input_ir'].plot(np.imag(actual_fields['ir_f']), color='red')
-    axes['input_ir'].text(0.0, 1.05, 'actual IR', transform = axes['input_ir'].transAxes, backgroundcolor='white')
-    axes['input_ir'].set_yticks([])
-    axes['input_ir'].set_xticks([])
 
-    axes['input_xuv'].cla()
-    axes['input_xuv'].plot(np.real(actual_fields['xuv_f']), color='blue')
-    axes['input_xuv'].plot(np.imag(actual_fields['xuv_f']), color='red')
-    axes['input_xuv'].plot([index_0_angle, index_0_angle], [0.5,-0.5], alpha=0.3, linestyle='dashed', color='black')
-    axes['input_xuv'].text(0.0, 1.05, 'actual XUV', transform=axes['input_xuv'].transAxes, backgroundcolor='white')
-    axes['input_xuv'].set_yticks([])
-    axes['input_xuv'].set_xticks([])
+    if actual_fields:
+        axes['input_ir'].cla()
+        axes['input_ir'].plot(np.real(actual_fields['ir_f']), color='blue')
+        axes['input_ir'].plot(np.imag(actual_fields['ir_f']), color='red')
+        axes['input_ir'].text(0.0, 1.05, 'actual IR', transform = axes['input_ir'].transAxes, backgroundcolor='white')
+        axes['input_ir'].set_yticks([])
+        axes['input_ir'].set_xticks([])
+
+        axes['input_xuv'].cla()
+        axes['input_xuv'].plot(np.real(actual_fields['xuv_f']), color='blue')
+        axes['input_xuv'].plot(np.imag(actual_fields['xuv_f']), color='red')
+        axes['input_xuv'].plot([index_0_angle, index_0_angle], [0.5,-0.5], alpha=0.3, linestyle='dashed', color='black')
+        axes['input_xuv'].text(0.0, 1.05, 'actual XUV', transform=axes['input_xuv'].transAxes, backgroundcolor='white')
+        axes['input_xuv'].set_yticks([])
+        axes['input_xuv'].set_xticks([])
 
 
-    axes['input_xuv_time'].cla()
-    axes['input_xuv_time'].text(0.0, 1.05, 'actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
-    axes['input_xuv_time'].plot(np.real(xuv_actual_time), color='blue', alpha=0.5)
-    axes['input_xuv_time'].plot(np.abs(xuv_actual_time), color='black')
-    axes['input_xuv_time'].set_yticks([])
-    axes['input_xuv_time'].set_xticks([])
+        axes['input_xuv_time'].cla()
+        axes['input_xuv_time'].text(0.0, 1.05, 'actual XUV E(t)', transform=axes['input_xuv_time'].transAxes, backgroundcolor='white')
+        axes['input_xuv_time'].plot(np.real(xuv_actual_time), color='blue', alpha=0.5)
+        axes['input_xuv_time'].plot(np.abs(xuv_actual_time), color='black')
+        axes['input_xuv_time'].set_yticks([])
+        axes['input_xuv_time'].set_xticks([])
 
 
     axes['input_image'].cla()
@@ -185,18 +228,23 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'index2_5k_iterations_newdataset'
+    run_name = 'experimental_retrieval'
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'unsupervised_highres'
+    modelname = 'measured_data'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
 
 
     # get the trace
-    trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
+    #trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
+
+    # get trace from experimental
+    _, _, trace = get_measured_trace()
+    trace = trace.reshape(1, -1)
+    actual_fields = None
 
     # create mse tb measurer
     unsupervised_mse_tb = tf.summary.scalar("streaking_trace_mse", network2.u_losses)
