@@ -203,12 +203,12 @@ def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
 
 
 def init_weights(shape):
-    init_random_dist = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float64)
+    init_random_dist = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float32)
     return tf.Variable(init_random_dist)
 
 
 def init_bias(shape):
-    init_bias_vals = tf.constant(0.1, shape=shape, dtype=tf.float64)
+    init_bias_vals = tf.constant(0.1, shape=shape, dtype=tf.float32)
     return tf.Variable(init_bias_vals)
 
 
@@ -431,12 +431,12 @@ def tf_seperate_xuv_ir_vec(tensor):
 
 
 # placeholders
-x = tf.placeholder(tf.float64, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
+x = tf.placeholder(tf.float32, shape=[None, int(len(crab_tf2.p_values)*len(crab_tf2.tau_values))])
 
 xuv_input_length = int(len(crab_tf2.xuv.Ef_prop_cropped)*2)
 ir_input_length = int(len(crab_tf2.ir.Ef_prop_cropped)*2)
 total_input_length = xuv_input_length + ir_input_length
-y_true = tf.placeholder(tf.float64, shape=[None, total_input_length])
+y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 
 
 #input image
@@ -464,7 +464,7 @@ if network == 1:
     full_layer_one = normal_full_layer(convo_3_flat, 512)
 
     #dropout
-    hold_prob = tf.placeholder_with_default(tf.constant(1.0, dtype=tf.float64), shape=())
+    hold_prob = tf.placeholder_with_default(tf.constant(1.0, dtype=tf.float32), shape=())
     dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
 
@@ -480,7 +480,7 @@ if network == 1:
     xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
     image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
     u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
-    u_LR = tf.placeholder( tf.float64, shape=[])
+    u_LR = tf.placeholder( tf.float32, shape=[])
     u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     u_train = u_optimizer.minimize(u_losses)
 
@@ -549,7 +549,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = '2_test'
+    modelname = 'measured_data_32'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
