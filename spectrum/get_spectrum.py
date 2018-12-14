@@ -60,6 +60,8 @@ Ef = interpolator(fmat)
 
 plt.figure(2)
 plt.plot(fmat, Ef)
+plt.xlabel('frequency [Hz]')
+plt.ylabel('Amplitude')
 # plt.plot(Ef)
 
 linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef)))
