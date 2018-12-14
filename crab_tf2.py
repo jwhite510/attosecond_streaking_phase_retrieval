@@ -677,7 +677,7 @@ xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=s
 
 ## DEFINE THE IR FIELD
 # default ir field
-ir = IR_Field()
+#ir = IR_Field()
 
 # specific ir field
 # ir = IR_Field(const_phase=0.0, pulse_duration=10.0, clambda=1.7)
