@@ -488,8 +488,8 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
 
     # define constants
-    xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float64)
-    ir_fmat = tf.constant(ir.fmat, dtype=tf.float64)
+    xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
+    ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
 
     # zero pad the spectrum of ir and xuv input to match the full fmat
     # [pad_before , padafter]
@@ -521,14 +521,14 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
 
     # match the scale of the original
-    scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex128)
+    scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex64)
 
     ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
 
     # integrate ir pulse
-    A_t = tf.constant(-1.0 * xuv.dt, dtype=tf.float64) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+    A_t = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
     flipped1 = tf.reverse(A_t, axis=[0])
-    flipped_integral = tf.constant(-1.0 * xuv.dt, dtype=tf.float64) * tf.cumsum(flipped1, axis=0)
+    flipped_integral = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
     A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
 
     # find middle index point
@@ -570,8 +570,8 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     K = (0.5 * p ** 2)
 
     # convert to tensorflow
-    p_tf = tf.constant(p, dtype=tf.float64)
-    K_tf = tf.constant(K, dtype=tf.float64)
+    p_tf = tf.constant(p, dtype=tf.float32)
+    K_tf = tf.constant(K, dtype=tf.float32)
 
     # 3d ir mat
     p_A_t_integ_t_phase3d = p_tf * ir_values
@@ -579,7 +579,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
     # add fourier transform term
     e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1, -1, 1))
-    e_fft_tf = tf.constant(e_fft, dtype=tf.complex128)
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
 
     # add xuv to integrate over
     xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
@@ -588,7 +588,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     product = xuv_time_domain_integrate * ir_phi * e_fft_tf
 
     # integrate over the xuv time
-    integration = tf.constant(xuv.dt, dtype=tf.complex128) * tf.reduce_sum(product, axis=1)
+    integration = tf.constant(xuv.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
 
     # absolute square the matrix
     image_not_scaled = tf.square(tf.abs(integration))
@@ -689,8 +689,8 @@ med = Med()
 # construct the field with tensorflow
 
 # placeholders
-xuv_cropped_f = tf.placeholder(tf.complex128, [len(xuv.Ef_prop_cropped)])
-ir_cropped_f = tf.placeholder(tf.complex128, [len(ir.Ef_prop_cropped)])
+xuv_cropped_f = tf.placeholder(tf.complex64, [len(xuv.Ef_prop_cropped)])
+ir_cropped_f = tf.placeholder(tf.complex64, [len(ir.Ef_prop_cropped)])
 
 
 # build the tf graph with the inputs
