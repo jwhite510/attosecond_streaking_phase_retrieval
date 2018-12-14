@@ -127,15 +127,11 @@ class XUV_Field():
 
 class IR_Field():
 
-    def __init__(self, N=128, tmax=50e-15, start_index=64, end_index=84, const_phase=0.0, pulse_duration=12.0, clambda=1.7, random_pulse=None):
+    def __init__(self, N=128, tmax=50e-15, start_index=64, end_index=84, const_phase=0.0, pulse_duration=12.0, clambda=1.7, I0 = 1.0, random_pulse=None):
 
         # start and end indexes
         self.fmin_index = start_index
         self.fmax_index = end_index
-
-        self.clambda = clambda
-        self.pulse_duration = pulse_duration
-        self.const_phase = const_phase
 
         if random_pulse:
             # define random value between min and max
@@ -143,6 +139,17 @@ class IR_Field():
             self.clambda = random_pulse['clambda_range'][0] + np.random.rand()*(random_pulse['clambda_range'][1] - random_pulse['clambda_range'][0])
             self.pulse_duration = random_pulse['pulse_duration_range'][0] + np.random.rand()*(random_pulse['pulse_duration_range'][1] - random_pulse['pulse_duration_range'][0])
             self.const_phase = random_pulse['phase_range'][0] + np.random.rand()*(random_pulse['phase_range'][1] - random_pulse['phase_range'][0])
+            self.I0_sc = random_pulse['I_range'][0] + np.random.rand()*(random_pulse['I_range'][1] - random_pulse['I_range'][0])
+            self.I0 = self.I0_sc * 1e13 * W / cm ** 2
+
+        else:
+
+            self.clambda = clambda
+            self.pulse_duration = pulse_duration
+            self.const_phase = const_phase
+            self.I0 = I0 * 1e13 * W / cm ** 2
+            #self.I0 = 1 * 1e13 * W / cm ** 2
+
 
 
         self.N = N
@@ -153,7 +160,7 @@ class IR_Field():
         # self.t0 = 12 * fs # pulse duration
         self.t0 = self.pulse_duration * fs # pulse duration
         self.ncyc = self.t0/self.T0
-        self.I0 = 1e13 * W/cm**2
+
 
 
         # compute ponderomotive energy
@@ -467,11 +474,12 @@ def view_final_image():
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[:, :])
     ax.pcolormesh(tau_values, p_values, image_out, cmap='jet')
-    ax.text(0.0, 0.9, 'IR:\nconst phase: {} rad\nclambda: {} um\npulse duration: {} fs'.format(round(ir.const_phase, 2),
+    ax.text(0.0, 0.9, 'IR:\nI: {}\nconst phase: {} rad\nclambda: {} um\npulse duration: {} fs'.format(round(ir.I0_sc, 2), round(ir.const_phase, 2),
                                                                      round(ir.clambda, 2),
                                                                      round(ir.pulse_duration, 2)),
             transform=ax.transAxes, backgroundcolor='white')
     plt.savefig('./stuff/{}.png'.format(int(ir.const_phase)))
+
 
 def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
@@ -676,7 +684,8 @@ ir = IR_Field()
 
 
 # random ir field
-# ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0)})
+ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0),
+                            'I_range':(0.5,1.0)})
 
 
 
