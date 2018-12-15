@@ -48,7 +48,11 @@ def generate_samples(n_samples, filename):
         for i in range(n_samples):
 
             # generate a random xuv pulse
-            xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
+            # xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
+
+            # random with only taylor coefs
+            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200},
+                            measured_spectrum=spectrum_data)
 
             # generate a random IR pulse
             ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
