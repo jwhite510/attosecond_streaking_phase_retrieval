@@ -6,6 +6,7 @@ import time
 import pickle
 import math
 from scipy.interpolate import interp1d
+import math
 
 
 # SI units for defining parameters
@@ -20,7 +21,7 @@ atts = 1e-18
 class XUV_Field():
 
     def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0,
-                 random_phase=None, measured_spectrum=None):
+                 random_phase=None, measured_spectrum=None, random_phase_taylor=None):
 
         if not measured_spectrum:
 
@@ -88,6 +89,7 @@ class XUV_Field():
 
             # convert to AU
             self.gdd = self.gdd / sc.physical_constants['atomic unit of time'][0] ** 2
+            self.f0 = self.f0 * sc.physical_constants['atomic unit of time'][0]
             self.tod = self.tod / sc.physical_constants['atomic unit of time'][0] ** 3
             self.dt = self.dt / sc.physical_constants['atomic unit of time'][0]
             self.tmat = self.tmat / sc.physical_constants['atomic unit of time'][0]
@@ -110,6 +112,42 @@ class XUV_Field():
             f = interp1d(axis_nodes, self.nodes, kind='cubic')
             phi = f(axis_phase)
             self.Ef_prop = Ef * np.exp(1j * phi)
+
+        elif random_phase_taylor:
+            # generate random phase for
+            taylor_coefficients = random_phase_taylor['coefs']
+            # generate value for coefficients
+            coef_values = np.random.rand(3) - 0.5
+            coef_values = coef_values * random_phase_taylor['amplitude']
+            # linear phase always 0
+            coef_values[0] = 0
+            coef_values = coef_values.reshape(-1, 1)
+
+            # calculate factorials
+            orders = np.array(range(taylor_coefficients))+1
+            terms = np.array(orders).reshape(-1, 1)
+            add_thing = np.arange(0, len(terms), 1).reshape(1, -1)
+            triangle = np.tril(terms - add_thing)
+            triangle[triangle==0] = 1
+            exponents = orders.reshape(-1, 1)
+            # print(triangle)
+
+            # loop ...
+            factorial = np.ones(shape=(taylor_coefficients, 1))
+            i = 0
+            while i < np.shape(triangle)[1]:
+                factorial = factorial * triangle[:, i].reshape(-1, 1)
+                i+=1
+
+            # x axis
+            taylor_fmat = (self.fmat - self.f0).reshape(1, -1)
+
+            taylor_terms = coef_values * (1/factorial) * taylor_fmat**exponents
+
+            taylor_series = np.sum(taylor_terms, axis=0)
+
+            self.Ef_prop = Ef * np.exp(1j * taylor_series)
+
 
         # self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
 
@@ -668,7 +706,13 @@ with open('measured_spectrum.p', 'rb') as file:
 # xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6})
 
 # random xuv with measured spectrum
-xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
+# xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
+
+
+xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200},
+                measured_spectrum=spectrum_data)
+
+# xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200})
 
 
 
