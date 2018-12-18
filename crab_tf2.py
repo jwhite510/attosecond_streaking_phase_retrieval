@@ -117,10 +117,12 @@ class XUV_Field():
             # generate random phase for
             taylor_coefficients = random_phase_taylor['coefs']
             # generate value for coefficients
-            coef_values = np.random.rand(3) - 0.5
+            coef_values = np.random.rand(taylor_coefficients) - 0.5
             coef_values = coef_values * random_phase_taylor['amplitude']
             # linear phase always 0
             coef_values[0] = 0
+            # gdd set to 0
+#            coef_values[1] = 0
             coef_values = coef_values.reshape(-1, 1)
 
             # calculate factorials
