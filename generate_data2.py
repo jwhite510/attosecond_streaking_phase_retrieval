@@ -55,13 +55,13 @@ def generate_samples(n_samples, filename):
                             measured_spectrum=spectrum_data)
 
             # generate a random IR pulse
-            ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-                                         'clambda_range': (1.2,2.3),
-                                         'pulse_duration_range':(7.0,12.0),
-                                               'I_range': (0.05, 0.6)})
+            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
+                                         #'clambda_range': (1.2,2.3),
+                                         #'pulse_duration_range':(7.0,12.0),
+                                               #'I_range': (0.05, 0.6)})
 
             # generate a default IR pulse
-            #ir_sample = IR_Field()
+            ir_sample = IR_Field()
 
             # generate the streaking trace
             if i % 500 == 0:
