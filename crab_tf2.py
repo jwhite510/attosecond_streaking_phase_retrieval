@@ -187,6 +187,7 @@ class IR_Field():
             self.clambda = clambda
             self.pulse_duration = pulse_duration
             self.const_phase = const_phase
+            self.I0_sc = I0
             self.I0 = I0 * 1e13 * W / cm ** 2
             #self.I0 = 1 * 1e13 * W / cm ** 2
 
@@ -588,7 +589,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
 
     # use this dt to scale the image size along tau axis
-    dtau_index = 40 # to match measured
+    dtau_index = 20 # to match measured
     # dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
@@ -723,15 +724,15 @@ xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200},
 
 ## DEFINE THE IR FIELD
 # default ir field
-#ir = IR_Field()
+ir = IR_Field()
 
 # specific ir field
 # ir = IR_Field(const_phase=0.0, pulse_duration=10.0, clambda=1.7)
 
 
 # random ir field
-ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0),
-                            'I_range':(0.5,1.0)})
+# ir = IR_Field(random_pulse={'phase_range':(0,2*np.pi), 'clambda_range': (1.2,2.3), 'pulse_duration_range':(7.0,12.0),
+#                             'I_range':(0.5,1.0)})
 
 
 

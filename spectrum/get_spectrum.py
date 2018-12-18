@@ -22,7 +22,7 @@ Intensity = np.array(Intensity)
 
 # define tmat and famt
 N = 512
-tmax = 400e-18
+tmax = 800e-18
 dt = 2 * tmax / N
 tmat = dt * np.arange(-N/2, N/2, 1)
 df = 1 / (N * dt)
@@ -52,8 +52,8 @@ Ef_interp = interpolator(fmat)
 linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
 
 # set the indexes for cropped input
-indexmin = 270
-indexmax = 325
+indexmin = 280
+indexmax = 405
 
 
 
