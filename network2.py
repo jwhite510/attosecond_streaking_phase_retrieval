@@ -264,11 +264,13 @@ def create_sample_plot(samples_per_plot=3):
 
         column_axes['actual_ir'] = fig.add_subplot(gs[0, 2*i])
         column_axes['actual_xuv'] = fig.add_subplot(gs[0, 2*i+1])
+        column_axes['actual_xuv_twinx'] = column_axes['actual_xuv'].twinx()
 
         column_axes['input_trace'] = fig.add_subplot(gs[1, 2*i:2*i+2])
 
         column_axes['predict_ir'] = fig.add_subplot(gs[2, 2*i])
         column_axes['predict_xuv'] = fig.add_subplot(gs[2, 2*i+1])
+        column_axes['predict_xuv_twinx'] = column_axes['predict_xuv'].twinx()
 
         column_axes['reconstruct'] = fig.add_subplot(gs[3, 2*i:2*i+2])
 
@@ -301,15 +303,25 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
         axes[j]['input_trace'].set_yticks([])
 
         axes[j]['actual_xuv'].cla()
-        axes[j]['actual_xuv'].plot(np.real(xuv_in), color='blue')
-        axes[j]['actual_xuv'].plot(np.imag(xuv_in), color='red')
+        axes[j]['actual_xuv_twinx'].cla()
+        axes[j]['actual_xuv'].plot(np.real(xuv_in), color='blue', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.imag(xuv_in), color='red', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.abs(xuv_in), color='black')
+        # plot the phase
+        axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(xuv_in)), color='green')
+        axes[j]['actual_xuv_twinx'].tick_params(axis='y', colors='green')
         axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
         axes[j]['actual_xuv'].set_xticks([])
         axes[j]['actual_xuv'].set_yticks([])
 
         axes[j]['predict_xuv'].cla()
-        axes[j]['predict_xuv'].plot(np.real(xuv_pred), color='blue')
-        axes[j]['predict_xuv'].plot(np.imag(xuv_pred), color='red')
+        axes[j]['predict_xuv_twinx'].cla()
+        axes[j]['predict_xuv'].plot(np.real(xuv_pred), color='blue', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.imag(xuv_pred), color='red', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.abs(xuv_pred), color='black')
+        #plot the phase
+        axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(xuv_pred)), color='green')
+        axes[j]['predict_xuv_twinx'].tick_params(axis='y', colors='green')
         axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
         axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
                                    transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
@@ -549,7 +561,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'measured_data_32'
+    modelname = 'gdd_larger_tmax_default_ir_gddtod_phaseplots'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
