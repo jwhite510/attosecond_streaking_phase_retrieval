@@ -439,6 +439,18 @@ def tf_seperate_xuv_ir_vec(tensor):
 
     return xuv, ir
 
+def normalize_and_max_pool(layer):
+    print('layer: ', layer)
+
+    normalized = tf.contrib.layers.layer_norm(layer)
+    print('normalized: ', normalized)
+
+    max_pooled = tf.layers.max_pooling2d(normalized, strides=1, pool_size=3, padding='SAME')
+
+    return max_pooled
+
+
+
 
 
 
@@ -454,7 +466,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 1
+network = 3
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -542,6 +554,54 @@ elif network == 2:
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
     train = optimizer.minimize(loss)
 
+elif network == 3:
+
+    print('setting up alexnet')
+
+    convo_1 = convolutional_layer(x_image, shape=[11, 11, 1, 96], activate='none', stride=[4, 4])
+    convo_1_out = normalize_and_max_pool(convo_1)
+
+    convo_2 = convolutional_layer(convo_1_out, shape=[5, 5, 96, 256], activate='none', stride=[3, 3])
+    convo_2_out = normalize_and_max_pool(convo_2)
+
+    convo_3_out = convolutional_layer(convo_2_out, shape=[3, 3, 256, 384], activate='none', stride=[2, 2])
+
+    convo_4_out = convolutional_layer(convo_3_out, shape=[3, 3, 384, 384], activate='none', stride=[2, 2])
+
+    convo_5_out = convolutional_layer(convo_4_out, shape=[3, 3, 384, 256], activate='none', stride=[2, 2])
+
+    convo_5_flat = tf.contrib.layers.flatten(convo_5_out)
+
+    # dense layer 1
+    full_layer_one = normal_full_layer(convo_5_flat, 512)
+
+    # dropout
+    hold_prob = tf.placeholder_with_default(tf.constant(1.0, dtype=tf.float32), shape=())
+    dropout_layer1 = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+    # full layer 2
+    full_layer_two = normal_full_layer(dropout_layer1, 512)
+
+    # dropout
+    dropout_layer2 = tf.nn.dropout(full_layer_two, keep_prob=hold_prob)
+
+    # final layer
+    y_pred = normal_full_layer(dropout_layer2, total_input_length)
+
+
+    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    train = optimizer.minimize(loss)
+
+    # create graph for the unsupervised learning
+    xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+    image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+    u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+    u_LR = tf.placeholder(tf.float32, shape=[])
+    u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    u_train = u_optimizer.minimize(u_losses)
+
 
 if __name__ == "__main__":
 
@@ -561,7 +621,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'gdd_larger_tmax_default_ir_gddtod_phaseplots'
+    modelname = 'larger_tmax_default_ir_linearphase1'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
