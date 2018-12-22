@@ -21,7 +21,7 @@ hertz = np.array(joules / sc.h)
 Intensity = np.array(Intensity)
 
 # define tmat and famt
-N = 512
+N = 1024
 tmax = 800e-18
 dt = 2 * tmax / N
 tmat = dt * np.arange(-N/2, N/2, 1)
@@ -30,9 +30,9 @@ fmat = df * np.arange(-N/2, N/2, 1)
 
 
 # pad the retrieved values with zeros to interpolate later
-hertz = np.insert(hertz, 0, -6e17)
+hertz = np.insert(hertz, 0, -6e18)
 Intensity = np.insert(Intensity, 0, 0)
-hertz = np.insert(hertz, -1, 6e17)
+hertz = np.insert(hertz, -1, 6e18)
 Intensity = np.insert(Intensity, -1, 0)
 Intensity[Intensity<0] = 0
 
@@ -52,8 +52,9 @@ Ef_interp = interpolator(fmat)
 linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
 
 # set the indexes for cropped input
-indexmin = 280
-indexmax = 405
+span = 405 - 280
+indexmin = 540
+indexmax = int(indexmin + span)
 
 
 
