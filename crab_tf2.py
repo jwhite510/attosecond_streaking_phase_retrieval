@@ -21,7 +21,8 @@ atts = 1e-18
 class XUV_Field():
 
     def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0,
-                 random_phase=None, measured_spectrum=None, random_phase_taylor=None):
+                 random_phase=None, measured_spectrum=None, random_phase_taylor=None,
+                 f0=80e15, t0=20e-18):
 
         if not measured_spectrum:
 
@@ -31,9 +32,9 @@ class XUV_Field():
 
             # define parameters in SI units
             self.N = N
-            self.f0 = 80e15
+            self.f0 = f0
             self.T0 = 1/self.f0 # optical cycle
-            self.t0 = 20e-18 # pulse duration
+            self.t0 = t0 # pulse duration
             self.gdd = gdd * atts**2 # gdd
             self.gdd_si = self.gdd / atts**2
             self.tod = tod * atts**3 # TOD
