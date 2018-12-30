@@ -48,20 +48,48 @@ def generate_samples(n_samples, filename):
         for i in range(n_samples):
 
             # generate a random xuv pulse
-            # xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
+            #xuv_sample = XUV_Field(random_phase={'nodes': 50, 'amplitude': 6}, measured_spectrum=spectrum_data)
+
+            #plt.figure(999)
+            #plt.plot(np.real(xuv_sample.Et_prop))
+            #plt.ioff()
+            #plt.show()
+            #exit(0)
 
             # random with only taylor coefs
-            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200},
-                            measured_spectrum=spectrum_data)
+            #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200},
+                           #measured_spectrum=spectrum_data)
+
+            # xuv sample to match the measured spectrum, but with gaussian
+            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 100},
+                                   f0=10.0e16, tmax=8e-16, N=1024,
+                                   start_index=spectrum_data['indexmin'],
+                                   end_index=spectrum_data['indexmax'])
+
+            #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
+
+
+            #plt.figure(444)
+            #plt.plot(np.real(xuv_sample.Et_prop))
+            #plt.ioff()
+            #plt.show()
+            #exit(0)
 
             # generate a random IR pulse
             #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-                                         #'clambda_range': (1.2,2.3),
-                                         #'pulse_duration_range':(7.0,12.0),
-                                               #'I_range': (0.05, 0.6)})
+            #                             'clambda_range': (1.2,2.3),
+            #                             'pulse_duration_range':(7.0,12.0),
+            #                                   'I_range': (0.05, 0.6)})
+
+
+            # generate IR pulses with random phase only
+            ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
+                                        'clambda_range': (1.7,1.7),
+                                        'pulse_duration_range':(12.0,12.0),
+                                              'I_range': (1.0, 1.0)})
 
             # generate a default IR pulse
-            ir_sample = IR_Field()
+            #ir_sample = IR_Field()
 
             # generate the streaking trace
             if i % 500 == 0:
