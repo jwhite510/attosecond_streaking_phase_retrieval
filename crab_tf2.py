@@ -590,11 +590,11 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
 
     # use this dt to scale the image size along tau axis
-    dtau_index = 40 # to match measured
+    dtau_index = 84 # to match measured
     # dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
-    N_tau = 80
+    N_tau = 40
 
     if N_tau % 2 != 0:
         N_tau += -1
@@ -771,6 +771,8 @@ if __name__ == "__main__":
     # image size
     print('N p : ', len(p))
     print('N tau : ', len(tau_index))
+    tau_values_si = tau_values * sc.physical_constants['atomic unit of time'][0] * 1e18
+    print('XUV dt: ', (tau_values_si[-1] - tau_values_si[-2]), 'attoseconds')
 
     init = tf.global_variables_initializer()
     with tf.Session() as sess:

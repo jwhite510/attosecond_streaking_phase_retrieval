@@ -1,5 +1,28 @@
 from crab_tf2 import *
 import tables
+import scipy.constants as sc
+
+
+
+
+
+def add_shot_noise(trace_sample):
+
+    # set the maximum counts for the image
+    counts_min, counts_max = 50, 200
+    # maximum counts between two values
+    counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
+
+    discrete_trace = np.round(trace_sample*counts)
+
+    noise = np.random.poisson(lam=discrete_trace) - discrete_trace
+
+    noisy_trace = discrete_trace + noise
+
+    noisy_trace_normalized = noisy_trace / np.max(noisy_trace)
+
+    return noisy_trace_normalized
+
 
 
 def plot_opened_file(xuv_t, ir_t, trace):
@@ -69,6 +92,7 @@ def generate_processed_traces(filename):
                 trace_sample = unprocessed_datafile.root.trace[index, :].reshape(len(p_values), len(tau_values))
 
                 # PROCESS DATA HERE
+                trace_sample = add_shot_noise(trace_sample)
                 # processed_trace / sample = process(trace_sample)
 
 
@@ -92,7 +116,7 @@ if __name__ == "__main__":
     generate_processed_traces(filename='attstrace_test2.hdf5')
 
     # test opening the file
-    index = 0
+    index = 20
     test_open_file = 'attstrace_train2_processed.hdf5'
     # test_open_file = 'attstrace_test2_processed.hdf5'
     with tables.open_file(test_open_file, mode='r') as processed_data:
