@@ -497,7 +497,7 @@ if network == 1:
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     train = optimizer.minimize(loss)
 
     # create graph for the unsupervised learning
@@ -551,7 +551,7 @@ elif network == 2:
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     train = optimizer.minimize(loss)
 
 elif network == 3:
@@ -621,7 +621,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'larger_tmax_default_ir_linearphase1'
+    modelname = 'gaussian_dtau130as_without_noise_constant_ir'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
