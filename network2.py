@@ -591,7 +591,7 @@ elif network == 3:
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     train = optimizer.minimize(loss)
 
     # create graph for the unsupervised learning
