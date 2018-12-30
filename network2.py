@@ -466,7 +466,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 3
+network = 1
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
