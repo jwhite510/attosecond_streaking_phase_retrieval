@@ -20,11 +20,16 @@ def get_run(filename):
 
 
 filenames = []
-filenames.append('./12_28_18_pictures/run_reg_conv_net_lr0001-tag-train_mse.csv')
-filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_lr0001-tag-train_mse.csv')
-filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_twodense_lr0001-tag-train_mse.csv')
-filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_onedense1024_lr0001-tag-train_mse.csv')
-filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_normalized_lr0001-tag-train_mse.csv')
+#filenames.append('./12_28_18_pictures/run_reg_conv_net_lr0001-tag-train_mse.csv')
+#filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_lr0001-tag-train_mse.csv')
+#filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_twodense_lr0001-tag-train_mse.csv')
+#filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_onedense1024_lr0001-tag-train_mse.csv')
+#filenames.append('./12_28_18_pictures/run_reg_conv_net_ir_randomphase_normalized_lr0001-tag-train_mse.csv')
+filenames.append('./gaussian_random_ir_phase_result/run_gaussian_ir_constantphase_lr0001-tag-train_mse.csv')
+filenames.append('./gaussian_random_ir_phase_result/run_gaussian_ir_randomphase_lr0001-tag-train_mse.csv')
+filenames.append('./gaussian_random_ir_phase_result/run_gaussian_ir_randomphase_lr0001_moresteps-tag-train_mse.csv')
+
+
 
 fig, ax = plt.subplots(1, 1, figsize=(10,5))
 
@@ -33,7 +38,7 @@ for i, filename in enumerate(filenames):
     step, mse = get_run(filename)
     run_name = filename.split('/')[2].split('-tag-')[0]
     ax.plot(step, mse, label=run_name)
-    ax.set_ylim(0, 0.03)
+    ax.set_ylim(0, 0.004)
     ax.set_xlabel('Step')
     ax.set_ylabel('MSE')
     ax.legend()
