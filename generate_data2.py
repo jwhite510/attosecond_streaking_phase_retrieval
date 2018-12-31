@@ -69,10 +69,11 @@ def generate_samples(n_samples, filename):
                            #measured_spectrum=spectrum_data)
 
             # xuv sample to match the measured spectrum, but with gaussian
-            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 10},
+            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 7},
                                    f0=10.0e16, tmax=8e-16, N=1024,
                                    start_index=spectrum_data['indexmin'],
                                    end_index=spectrum_data['indexmax'])
+            #plt.ioff()
             #plt.figure(356)
             #plt.plot(xuv_sample.Et_prop)
             #plt.show()
