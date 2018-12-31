@@ -621,7 +621,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'gaussian_dtau130as_without_noise_constant_ir'
+    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -670,6 +670,9 @@ if __name__ == "__main__":
 
                 # update the plot
                 update_plots()
+
+                # save model
+                saver.save(sess, "models/" + modelname + ".ckpt")
 
             # return the index to 0
             get_data.batch_index = 0
