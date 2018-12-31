@@ -119,13 +119,13 @@ class XUV_Field():
             taylor_coefficients = random_phase_taylor['coefs']
             # generate value for coefficients
             coef_values = np.random.rand(taylor_coefficients) - 0.5
-            coef_values = coef_values * random_phase_taylor['amplitude']
-            # linear phase always 0
-            coef_values[0] = 0
 
             # scale the higher order terms
             coef_exponents = np.array(range(random_phase_taylor['coefs'])) + 1.0
-            coef_values = coef_values**coef_exponents
+
+            # linear phase always 0
+            coef_values[0] = 0
+            coef_values = coef_values * random_phase_taylor['amplitude']**coef_exponents
 
             # gdd set to 0
 #            coef_values[1] = 0
