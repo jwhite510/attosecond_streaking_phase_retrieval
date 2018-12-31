@@ -28,8 +28,11 @@ def get_measured_trace():
     # map the function onto a grid matching the training data
     interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
     timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
-    delay_new = np.arange(Delay[0], Delay[-1], timespan/160)
+    # make it 200 Energy, 80 delay
+    delay_new = np.arange(Delay[0], Delay[-1], timespan/80)
     energy_new = np.linspace(Energy[0], Energy[-1], 200)
+
+
     values_new = interp2(delay_new, energy_new)
 
     # interpolate to momentum [a.u]
@@ -232,7 +235,7 @@ if __name__ == "__main__":
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'measured_data'
+    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
