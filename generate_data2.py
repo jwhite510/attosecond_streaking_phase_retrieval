@@ -2,6 +2,14 @@ from crab_tf2 import *
 import tables
 
 
+def update_plots(axes, xuv, ir, trace):
+
+    ax[0].cla()
+    ax[0].pcolormesh(trace, cmap='jet')
+    ax[1].cla()
+    ax[1].plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
+    plt.pause(0.001)
+
 
 def plot_opened_file(xuv_t, ir_t, trace):
 
@@ -104,6 +112,7 @@ def generate_samples(n_samples, filename):
                 strace = sess.run(image,feed_dict={
                                                 ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                 xuv_cropped_f: xuv_sample.Ef_prop_cropped})
+                update_plots(axes=ax, xuv=xuv_sample, ir=ir_sample, trace=strace)
 
 
                 time2 = time.time()
@@ -131,6 +140,9 @@ def generate_samples(n_samples, filename):
 
 
 if __name__ == "__main__":
+
+    plt.ion()
+    _, ax = plt.subplots(2,1, figsize=(5,5))
 
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
