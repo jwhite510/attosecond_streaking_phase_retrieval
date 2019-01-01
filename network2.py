@@ -466,7 +466,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 1
+network = 2
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -547,7 +547,7 @@ elif network == 2:
     hold_prob = tf.placeholder_with_default(1.0, shape=())
     dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
-    y_pred = normal_full_layer(dropout_layer, 128)
+    y_pred = normal_full_layer(dropout_layer, total_input_length)
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
@@ -629,7 +629,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001'
+    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001_cubicphase_80ksamples_multiresnet'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
