@@ -157,7 +157,7 @@ class XUV_Field():
             self.Ef_prop = Ef * np.exp(1j * taylor_series)
 
 
-        # self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
+        self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
 
         # set phase angle at f0 to 0
         f0_index = np.argmin(np.abs(self.f0-self.fmat))
@@ -666,14 +666,21 @@ def remove_linear_phase(xuv_f, plotting=False):
     # find intensity peak
     center_index = int(len(Et_prop_before_centered) / 2)
 
+    # move the centroid to center
+    sig_abs = np.abs(Et_prop_before_centered)
+    # find the centroid
+    centroid = int(np.sum(sig_abs * np.array(range(len(sig_abs)))) / np.sum(sig_abs))
+
     intensity_peak_index = np.argmin(np.abs(np.max(np.abs(Et_prop_before_centered)) - np.abs(Et_prop_before_centered)))
+
+
     if plotting:
         plt.figure(34)
         plt.plot(np.abs(Et_prop_before_centered))
         plt.plot([center_index, center_index], [-0.025, 0.025])
-        plt.plot([intensity_peak_index, intensity_peak_index], [-0.025, 0.025], color='blue')
+        plt.plot([centroid, centroid], [-0.025, 0.025], color='blue')
 
-    roll_num = center_index - intensity_peak_index
+    roll_num = center_index - centroid
     if roll_num > 0:
         Et_prop_before_centered[-roll_num:] = 0.0
     if roll_num < 0:
@@ -685,7 +692,7 @@ def remove_linear_phase(xuv_f, plotting=False):
         plt.figure(35)
         plt.plot(np.abs(rolled_Et))
         plt.plot([center_index, center_index], [-0.025, 0.025])
-        plt.plot([intensity_peak_index, intensity_peak_index], [-0.025, 0.025], color='blue')
+        plt.plot([centroid, centroid], [-0.025, 0.025], color='blue')
 
     # reverse foutier transform again
     xuv_f_adjusted = np.fft.fftshift(np.fft.fft(np.fft.fftshift(rolled_Et)))
@@ -718,7 +725,7 @@ with open('measured_spectrum.p', 'rb') as file:
 # xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
 
 
-xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200},
+xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 7},
                 measured_spectrum=spectrum_data)
 
 # xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200})
