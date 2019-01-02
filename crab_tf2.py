@@ -157,7 +157,7 @@ class XUV_Field():
             self.Ef_prop = Ef * np.exp(1j * taylor_series)
 
 
-        self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
+        #self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
 
         # set phase angle at f0 to 0
         f0_index = np.argmin(np.abs(self.f0-self.fmat))
