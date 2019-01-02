@@ -237,14 +237,14 @@ def normal_full_layer(input_layer, size):
     return tf.matmul(input_layer, W) + b
 
 
-def multires_layer(input, input_channels, filter_sizes):
+def multires_layer(input, input_channels, filter_sizes, stride=1):
 
     # list of layers
     filters = []
     for filter_size in filter_sizes:
         # create filter
         filters.append(convolutional_layer(input, shape=[filter_size, filter_size,
-                        input_channels, input_channels], activate='relu', stride=[1, 1]))
+                        input_channels, input_channels], activate='relu', stride=[stride, stride]))
 
     concat_layer = tf.concat(filters, axis=3)
     return concat_layer
@@ -252,9 +252,9 @@ def multires_layer(input, input_channels, filter_sizes):
 
 def create_sample_plot(samples_per_plot=3):
 
-    fig = plt.figure(figsize=(14, 8))
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05,
-                            wspace=0.1, hspace=0.1)
+    fig = plt.figure(figsize=(16, 8))
+    plt.subplots_adjust(left=0.04, right=0.96, top=0.92, bottom=0.05,
+                            wspace=0.2, hspace=0.1)
     gs = fig.add_gridspec(4,int(samples_per_plot*2))
 
     plot_rows = []
@@ -279,7 +279,7 @@ def create_sample_plot(samples_per_plot=3):
     return plot_rows, fig
 
 
-def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
+def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net_name):
 
     # get find where in the vector is the ir and xuv
 
@@ -332,6 +332,15 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set):
         axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
         axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
         axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
+
+        if j == 0:
+
+            axes[j]['actual_ir'].text(0.5, 1.25, net_name, transform=axes[j]['actual_ir'].transAxes,
+                                      backgroundcolor='white')
+
+            axes[j]['actual_ir'].text(0.5, 1.1, set, transform=axes[j]['actual_ir'].transAxes,
+                                      backgroundcolor='white')
+
         axes[j]['actual_ir'].set_xticks([])
         axes[j]['actual_ir'].set_yticks([])
 
@@ -367,19 +376,23 @@ def update_plots():
     predictions = sess.run(y_pred, feed_dict={x: batch_x_train})
 
     plot_predictions2(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
-                      axes=trainplot1, figure=trainfig1, epoch=i + 1, set='train_data_1')
+                      axes=trainplot1, figure=trainfig1, epoch=i + 1, set='train_data_1',
+                      net_name=modelname)
 
     plot_predictions2(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[3, 4, 5],
-                      axes=trainplot2, figure=trainfig2, epoch=i + 1, set='train_data_2')
+                      axes=trainplot2, figure=trainfig2, epoch=i + 1, set='train_data_2',
+                      net_name=modelname)
 
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
     predictions = sess.run(y_pred, feed_dict={x: batch_x_test})
 
     plot_predictions2(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[0, 1, 2],
-                      axes=testplot1, figure=testfig1, epoch=i + 1, set='test_data_1')
+                      axes=testplot1, figure=testfig1, epoch=i + 1, set='test_data_1',
+                      net_name=modelname)
 
     plot_predictions2(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[3, 4, 5],
-                      axes=testplot2, figure=testfig2, epoch=i + 1, set='test_data_2')
+                      axes=testplot2, figure=testfig2, epoch=i + 1, set='test_data_2',
+                      net_name=modelname)
 
     plt.show()
     plt.pause(0.001)
@@ -466,7 +479,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 2
+network = 5
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -611,6 +624,66 @@ elif network == 3:
     u_train = u_optimizer.minimize(u_losses)
 
 
+elif network == 4:
+    print("setting up densely connected multires convolutional network")
+
+    multires_filters = [11, 7, 5, 3, 2, 1]
+    convolutional_outputs = 16
+
+    multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters, stride=2)
+
+
+    layer_two = multires_layer(input=multires_layer_1, input_channels=int(multires_layer_1.get_shape()[3]),
+                               filter_sizes=multires_filters)
+    conv_layer_2 = convolutional_layer(layer_two,
+                                       shape=[1, 1, int(len(multires_filters)**2),
+                                              convolutional_outputs], activate='relu', stride=[1, 1])
+    # .... to be completed
+
+
+
+elif network == 5:
+
+    print("setting up densely connected regular convolutional network")
+
+    convo_1 = convolutional_layer(x_image, shape=[4, 4, 1, 32], activate='none', stride=[2, 2])
+
+    convo_2 = convolutional_layer(convo_1, shape=[4, 4, 32, 32], activate='none', stride=[1, 1])
+
+    convo_3 = convolutional_layer(tf.concat([convo_2, convo_1], axis=3),
+                                  shape=[4, 4, 64, 32], activate='none', stride=[1, 1])
+
+    convo_4 = convolutional_layer(tf.concat([convo_3, convo_2, convo_1], axis=3),
+                                  shape=[4, 4, 96, 32], activate='none', stride=[1, 1])
+
+    convo_5 = convolutional_layer(tf.concat([convo_4, convo_3, convo_2, convo_1], axis=3),
+                                  shape=[4, 4, 128, 32], activate='none', stride=[1, 1])
+
+    convo_5_flat = tf.contrib.layers.flatten(convo_5)
+
+    full_layer_one = normal_full_layer(convo_5_flat, 512)
+
+    # dropout
+    hold_prob = tf.placeholder_with_default(tf.constant(1.0, dtype=tf.float32), shape=())
+    dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+    y_pred = normal_full_layer(dropout_layer, total_input_length)
+
+    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    train = optimizer.minimize(loss)
+
+    # create graph for the unsupervised learning
+    xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+    image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+    u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+    u_LR = tf.placeholder(tf.float32, shape=[])
+    u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    u_train = u_optimizer.minimize(u_losses)
+
+
+
 if __name__ == "__main__":
 
     init = tf.global_variables_initializer()
@@ -629,7 +702,7 @@ if __name__ == "__main__":
     epochs = 200
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001_cubicphase_80ksamples_multiresnet'
+    modelname = 'gaussian_dtau130as_with_noise_randomirphase_lr0001_GDDTOD_80ksamples_denseconvnet'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
