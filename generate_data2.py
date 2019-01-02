@@ -2,12 +2,19 @@ from crab_tf2 import *
 import tables
 
 
-def update_plots(axes, xuv, ir, trace):
+def update_plots(axes, xuv, ir, trace, threshold, threshindexes):
 
     ax[0].cla()
     ax[0].pcolormesh(trace, cmap='jet')
     ax[1].cla()
-    ax[1].plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
+#    ax[1].plot(xuv.tmat, np.real(xuv.Et_prop), color='blue')
+    ax[1].plot(np.real(xuv.Et_prop), color='blue')
+    maxval = np.max(np.abs(xuv.Et_prop))
+    ax[1].plot([threshindexes[0], threshindexes[0]], [maxval, -maxval], color='black')
+    ax[1].plot([threshindexes[1], threshindexes[1]], [maxval, -maxval], color='black')
+    ax[1].plot([threshindexes[0], threshindexes[1]], [threshold, threshold], color='red', linestyle='dashed')
+
+
     plt.pause(0.001)
 
 
@@ -73,11 +80,36 @@ def generate_samples(n_samples, filename):
                                    f0=10.0e16, tmax=8e-16, N=1024,
                                    start_index=spectrum_data['indexmin'],
                                    end_index=spectrum_data['indexmax'])
-            #plt.ioff()
-            #plt.figure(356)
-            #plt.plot(xuv_sample.Et_prop)
-            #plt.show()
-            #exit(0)
+
+
+            # xuv sample to match the measured spectrum, but with gaussian
+            #xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6},
+            #                       f0=10.0e16, tmax=8e-16, N=1024,
+            #                       start_index=spectrum_data['indexmin'],
+            #                       end_index=spectrum_data['indexmax'])
+
+            # check to make sure the signal decreases in time
+            #indexmin = 100
+            #indexmax = 924
+            indexmin = 200
+            indexmax = 824
+            value_1 = np.abs(xuv_sample.Et_prop)[indexmin]
+            value_2 = np.abs(xuv_sample.Et_prop)[indexmax]
+            threshold = np.max(np.abs(xuv_sample.Et_prop)) / 20
+
+            if value_1 > threshold or value_2 > threshold:
+                plt.ioff()
+                plt.figure(356)
+                plt.plot(xuv_sample.Et_prop)
+                plt.plot([indexmin, indexmin], [-np.max(xuv_sample.Et_prop), np.max(xuv_sample.Et_prop)], color='black')
+                plt.plot([indexmax, indexmax], [-np.max(xuv_sample.Et_prop), np.max(xuv_sample.Et_prop)], color='black')
+                plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
+                plt.show()
+                exit(0)
+
+
+
+
 
             #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
 
@@ -96,13 +128,13 @@ def generate_samples(n_samples, filename):
 
 
             # generate IR pulses with random phase only
-            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                            'clambda_range': (1.7,1.7),
-            #                            'pulse_duration_range':(12.0,12.0),
-            #                                  'I_range': (1.0, 1.0)})
+            ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
+                                        'clambda_range': (1.7,1.7),
+                                        'pulse_duration_range':(12.0,12.0),
+                                              'I_range': (1.0, 1.0)})
 
             # generate a default IR pulse
-            ir_sample = IR_Field()
+            #ir_sample = IR_Field()
 
             # generate the streaking trace
             if i % 500 == 0:
@@ -113,7 +145,8 @@ def generate_samples(n_samples, filename):
                 strace = sess.run(image,feed_dict={
                                                 ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                 xuv_cropped_f: xuv_sample.Ef_prop_cropped})
-                update_plots(axes=ax, xuv=xuv_sample, ir=ir_sample, trace=strace)
+                update_plots(axes=ax, xuv=xuv_sample, ir=ir_sample, trace=strace,
+                             threshold=threshold, threshindexes=(indexmin, indexmax))
 
 
                 time2 = time.time()
