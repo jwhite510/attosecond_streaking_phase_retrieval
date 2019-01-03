@@ -2,6 +2,37 @@ from crab_tf2 import *
 import tables
 
 
+
+
+def check_time_boundary(indexmin, indexmax, threshold, xuv):
+    global bad_samples
+    # check to make sure the signal decreases in time
+    # indexmin = 100
+    # indexmax = 924
+    value_1 = np.abs(xuv.Et_prop)[indexmin]
+    value_2 = np.abs(xuv.Et_prop)[indexmax]
+
+
+    if value_1 > threshold or value_2 > threshold:
+        bad_samples+=1
+        #plt.figure(356)
+        #plt.cla()
+        #plt.plot(np.real(xuv.Et_prop))
+        #plt.plot([indexmin, indexmin], [-np.max(np.real(xuv.Et_prop)), np.max(np.real(xuv.Et_prop))], color='black')
+        #plt.plot([indexmax, indexmax], [-np.max(np.real(xuv.Et_prop)), np.max(np.real(xuv.Et_prop))], color='black')
+        #plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
+        #plt.text(0.1, 0.8, 'bad samples:{}'.format(bad_samples), transform=plt.gca().transAxes)
+        #plt.show()
+        #plt.pause(0.001)
+        return False
+
+    return True
+
+
+
+
+
+
 def update_plots(axes, xuv, ir, trace, threshold, threshindexes):
 
     ax[0].cla()
@@ -71,47 +102,48 @@ def generate_samples(n_samples, filename):
             #plt.show()
             #exit(0)
 
-            # random with only taylor coefs
-            #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200},
-                           #measured_spectrum=spectrum_data)
-
-            # xuv sample to match the measured spectrum, but with gaussian
-            xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 7},
-                                   f0=10.0e16, tmax=8e-16, N=1024,
-                                   start_index=spectrum_data['indexmin'],
-                                   end_index=spectrum_data['indexmax'])
-
-
-            # xuv sample to match the measured spectrum, but with gaussian
-            #xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6},
-            #                       f0=10.0e16, tmax=8e-16, N=1024,
-            #                       start_index=spectrum_data['indexmin'],
-            #                       end_index=spectrum_data['indexmax'])
-
-            # check to make sure the signal decreases in time
-            #indexmin = 100
-            #indexmax = 924
-            indexmin = 200
-            indexmax = 824
-            value_1 = np.abs(xuv_sample.Et_prop)[indexmin]
-            value_2 = np.abs(xuv_sample.Et_prop)[indexmax]
-            threshold = np.max(np.abs(xuv_sample.Et_prop)) / 20
-
-            if value_1 > threshold or value_2 > threshold:
-                plt.ioff()
-                plt.figure(356)
-                plt.plot(xuv_sample.Et_prop)
-                plt.plot([indexmin, indexmin], [-np.max(xuv_sample.Et_prop), np.max(xuv_sample.Et_prop)], color='black')
-                plt.plot([indexmax, indexmax], [-np.max(xuv_sample.Et_prop), np.max(xuv_sample.Et_prop)], color='black')
-                plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
-                plt.show()
-                exit(0)
 
 
 
+            xuv_good = False
+            threshold = np.max(np.abs(xuv.Et_prop)) / 100
+            indexmin = 100
+            indexmax = 924
+            while not xuv_good:
+
+                # random with only taylor coefs
+                xuv_sample = XUV_Field(random_phase_taylor={'coefs': 8, 'amplitude': 7},
+                               measured_spectrum=spectrum_data)
+
+                #xuv sample to match the measured spectrum, but with gaussian
+                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 5},
+                #                       f0=10.0e16, tmax=8e-16, N=1024,
+                #                       start_index=spectrum_data['indexmin'],
+                #                       end_index=spectrum_data['indexmax'])
+
+                #plt.figure(333)
+                #plt.plot(xuv_sample.fmat, np.zeros_like(xuv_sample.fmat))
+                #plt.plot([xuv_sample.taylor_f0, xuv_sample.taylor_f0], [-1, 1])
+                #plt.plot(xuv_sample.fmat, np.abs(xuv_sample.Ef))
+                #plt.ioff()
+                #plt.show()
+                #exit(0)
 
 
-            #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
+                # xuv sample to match the measured spectrum, but with gaussian
+                #xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6},
+                #                       f0=10.0e16, tmax=8e-16, N=1024,
+                #                       start_index=spectrum_data['indexmin'],
+                #                       end_index=spectrum_data['indexmax'])
+
+                xuv_good = check_time_boundary(indexmin, indexmax, threshold, xuv_sample)
+
+
+
+
+
+
+                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
 
 
             #plt.figure(444)
@@ -128,10 +160,16 @@ def generate_samples(n_samples, filename):
 
 
             # generate IR pulses with random phase only
-            ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-                                        'clambda_range': (1.7,1.7),
-                                        'pulse_duration_range':(12.0,12.0),
-                                              'I_range': (1.0, 1.0)})
+            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
+            #                            'clambda_range': (1.7,1.7),
+            #                            'pulse_duration_range':(12.0,12.0),
+            #                                  'I_range': (1.0, 1.0)})
+
+            # generate IR pulses with random phase, pulse duration, inensity
+            ir_sample = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi),
+                                               'clambda_range': (1.7, 1.7),
+                                               'pulse_duration_range': (7.0, 12.0),
+                                               'I_range': (0.1, 1.0)})
 
             # generate a default IR pulse
             #ir_sample = IR_Field()
@@ -139,6 +177,7 @@ def generate_samples(n_samples, filename):
             # generate the streaking trace
             if i % 500 == 0:
                 print('generating sample {} of {}'.format(i + 1, n_samples))
+                print('bad sample count: {}'.format(bad_samples))
                 # generate the FROG trace
                 time1 = time.time()
 
@@ -174,6 +213,7 @@ def generate_samples(n_samples, filename):
 
 
 if __name__ == "__main__":
+    bad_samples = 0
 
     plt.ion()
     _, ax = plt.subplots(2,1, figsize=(5,5))
