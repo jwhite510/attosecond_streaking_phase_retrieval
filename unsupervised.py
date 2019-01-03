@@ -93,7 +93,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     xuv_predicted_time = sess.run(xuv_time_domain_func, feed_dict={crab_tf2.xuv_cropped_f: predicted_fields['xuv_f']})
 
     # set phase angle to 0
-    predicted_fields['xuv_f'] = predicted_fields['xuv_f'] * np.exp(-1j * np.angle(predicted_fields['xuv_f'][index_0_angle]))
+    #predicted_fields['xuv_f'] = predicted_fields['xuv_f'] * np.exp(-1j * np.angle(predicted_fields['xuv_f'][index_0_angle]))
 
     iteration = i+1
 
@@ -178,7 +178,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     plt.savefig(dir + str(iteration) + ".png")
 
 
-    plt.pause(0.001)
+    plt.pause(99.001)
 
 
 def get_trace(index, filename):
@@ -235,16 +235,16 @@ if __name__ == "__main__":
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'gaussian_dtau130as_with_noise_constant_ir_lr0001'
+    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
 
 
     # get the trace
-    #trace, actual_fields = get_trace(index=2, filename='attstrace_test2_processed.hdf5')
+    #trace, actual_fields = get_trace(index=2, filename='attstrace_train2_processed.hdf5')
 
-    # get trace from experimental
+    #get trace from experimental
     _, _, trace = get_measured_trace()
     trace = trace.reshape(1, -1)
     actual_fields = None
