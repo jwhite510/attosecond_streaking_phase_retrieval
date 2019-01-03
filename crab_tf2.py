@@ -148,7 +148,8 @@ class XUV_Field():
                 i+=1
 
             # x axis
-            taylor_fmat = (self.fmat - self.f0).reshape(1, -1)
+            self.taylor_f0 = self.f0 + 0.2
+            taylor_fmat = (self.fmat - self.taylor_f0).reshape(1, -1)
 
             taylor_terms = coef_values * (1/factorial) * taylor_fmat**exponents
 
@@ -620,7 +621,8 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
     # create momentum vector
     # p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
-    p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
+    #p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
+    p = np.linspace(1.8, 5.5, 235).reshape(-1, 1, 1)
     p_values = np.squeeze(p)  # atomic units
     K = (0.5 * p ** 2)
 
@@ -725,7 +727,7 @@ with open('measured_spectrum.p', 'rb') as file:
 # xuv = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6}, measured_spectrum=spectrum_data)
 
 
-xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 7},
+xuv = XUV_Field(random_phase_taylor={'coefs': 15, 'amplitude': 7},
                 measured_spectrum=spectrum_data)
 
 # xuv = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 200})
