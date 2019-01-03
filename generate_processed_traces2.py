@@ -94,6 +94,20 @@ def generate_processed_traces(filename):
                 # PROCESS DATA HERE
                 trace_sample = add_shot_noise(trace_sample)
                 # processed_trace / sample = process(trace_sample)
+                # divide the xuv_f by modulus
+                #plt.figure(9998)
+                #plt.plot(np.real(xuv_f_sample), color='red')
+                #plt.plot(np.imag(xuv_f_sample), color='blue')
+
+                # for just the phase, not modulus
+                #xuv_f_sample = xuv_f_sample / np.abs(xuv_f_sample)
+
+                #plt.figure(9999)
+                #plt.plot(np.real(xuv_f_sample), color='red')
+                #plt.plot(np.imag(xuv_f_sample), color='blue')
+                #plt.ioff()
+                #plt.show()
+                #exit(0)
 
 
                 # append the data to the processed hdf5 file
