@@ -66,7 +66,7 @@ class XUV_Field():
             # calculate bandwidth from fwhm
             self.bandwidth = 0.44 / self.t0
 
-            Ef = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth) ** 2)
+            self.Ef = np.exp(-2 * np.log(2) * ((self.fmat - self.f0) / self.bandwidth) ** 2)
 
         else:
 
@@ -97,12 +97,12 @@ class XUV_Field():
             self.fmat = self.fmat * sc.physical_constants['atomic unit of time'][0]
             self.enmat = self.enmat / sc.physical_constants['atomic unit of energy'][0]
 
-            Ef = measured_spectrum['Ef']
+            self.Ef = measured_spectrum['Ef']
 
 
         # apply the TOD and GDD phase if specified
         phi = (1/2) * self.gdd * (2 * np.pi)**2 * (self.fmat - self.f0)**2 + (1/6) * self.tod * (2 * np.pi)**3 * (self.fmat - self.f0)**3
-        self.Ef_prop = Ef * np.exp(1j * phi)
+        self.Ef_prop = self.Ef * np.exp(1j * phi)
 
         # apply the random phase if specified
         if random_phase:
@@ -112,7 +112,7 @@ class XUV_Field():
             axis_phase = np.array(range(self.N))
             f = interp1d(axis_nodes, self.nodes, kind='cubic')
             phi = f(axis_phase)
-            self.Ef_prop = Ef * np.exp(1j * phi)
+            self.Ef_prop = self.Ef * np.exp(1j * phi)
 
         elif random_phase_taylor:
             # generate random phase for
@@ -154,7 +154,7 @@ class XUV_Field():
 
             taylor_series = np.sum(taylor_terms, axis=0)
 
-            self.Ef_prop = Ef * np.exp(1j * taylor_series)
+            self.Ef_prop = self.Ef * np.exp(1j * taylor_series)
 
 
         #self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)
