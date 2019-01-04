@@ -12,7 +12,7 @@ import csv
 from scipy import interpolate
 import scipy.constants as sc
 
-def find_central_frequency_from_trace(trace, delay, energy):
+def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
 
     # make sure delay is even
     assert len(delay) % 2 == 0
@@ -26,14 +26,20 @@ def find_central_frequency_from_trace(trace, delay, energy):
     df = 1 / (dt * N)
     freq_even = df * np.arange(-N / 2, N / 2)
     # plot the streaking trace and ft
-    ax[0].pcolormesh(delay, energy, trace, cmap='jet')
+
     trace_f = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
-    ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
+
     # summation along vertical axis
     integrate = np.sum(np.abs(trace_f), axis=0)
-    ax[2].plot(freq_even, integrate)
+
     # find the maximum values
     f0 = find_f0(x=freq_even, y=integrate)
+    if plotting:
+        ax[0].pcolormesh(delay, energy, trace, cmap='jet')
+        ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
+        ax[2].plot(freq_even, integrate)
+
+
 
     return f0
 
@@ -110,6 +116,7 @@ def get_measured_trace():
     Dtau = Delay_even[-1] - Delay_even[-2]
     # print('Delay: ', Delay)
     print('Delay_even: ', Delay_even)
+    print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
 
     print('Dtau: ', Dtau)
     # print('Delay max', Delay_even[-1])
@@ -120,35 +127,35 @@ def get_measured_trace():
     lam0 = sc.c / f0
     print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
     print('lam0: ', lam0)
-    plt.show()
     # the second experimental data
     ############################
     ############################
 
 
-    # map the function onto a grid matching the training data
-    interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
-    timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
-    # make it 200 Energy, 80 delay
-    delay_new = np.arange(Delay[0], Delay[-1], timespan/80)
-    energy_new = np.linspace(Energy[0], Energy[-1], 200)
+    ## map the function onto a grid matching the training data
+    #interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
+    #timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
+    ## make it 200 Energy, 80 delay
+    #delay_new = np.arange(Delay[0], Delay[-1], timespan/80)
+    #energy_new = np.linspace(Energy[0], Energy[-1], 200)
+#
+#
+    #values_new = interp2(delay_new, energy_new)
+#
+    ## interpolate to momentum [a.u]
+    #energy_new_joules = energy_new * sc.electron_volt # joules
+    #energy_new_au = energy_new_joules / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    #momentum_new_au = np.sqrt(2 * energy_new_au)
+    #interp2_momentum = interpolate.interp2d(delay_new, momentum_new_au, values_new, kind='linear')
+#
+    ## interpolate onto linear momentum axis
+    #N = len(momentum_new_au)
+    #momentum_linear = np.linspace(momentum_new_au[0], momentum_new_au[-1], N)
+    #values_lin_momentum = interp2_momentum(delay_new, momentum_linear)
 
 
-    values_new = interp2(delay_new, energy_new)
-
-    # interpolate to momentum [a.u]
-    energy_new_joules = energy_new * sc.electron_volt # joules
-    energy_new_au = energy_new_joules / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    momentum_new_au = np.sqrt(2 * energy_new_au)
-    interp2_momentum = interpolate.interp2d(delay_new, momentum_new_au, values_new, kind='linear')
-
-    # interpolate onto linear momentum axis
-    N = len(momentum_new_au)
-    momentum_linear = np.linspace(momentum_new_au[0], momentum_new_au[-1], N)
-    values_lin_momentum = interp2_momentum(delay_new, momentum_linear)
-
-
-    return delay_new, momentum_linear, values_lin_momentum
+    #return delay_new, momentum_linear, values_lin_momentum
+    return Delay_even, Energy, values_even
 
 
 
@@ -279,7 +286,7 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     plt.savefig(dir + str(iteration) + ".png")
 
 
-    plt.pause(99.001)
+    plt.pause(0.001)
 
 
 def get_trace(index, filename):
@@ -333,6 +340,7 @@ def add_tensorboard_values():
 
 
 def generate_images_and_plot():
+
     # generate an image from the input image
     generated_image = sess.run(network2.image, feed_dict={network2.x: trace})
     trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
@@ -354,11 +362,11 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'experimental_retrieval'
+    run_name = 'experimental_retrieval_with_superviseddata_lr0001'
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
+    modelname = 'kspace_measured_spectrum_GDDTOD_multires_matchmeasuredgridspace'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
@@ -386,6 +394,9 @@ if __name__ == "__main__":
         saver = tf.train.Saver()
         saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
 
+        # get data from supervised learning
+        get_data = network2.GetData(batch_size=10)
+        batch_x, batch_y = get_data.next_batch()
 
 
         iterations = 5000
@@ -402,7 +413,10 @@ if __name__ == "__main__":
             add_tensorboard_values()
 
             # train the network to reduce the error
-            sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001})
+            sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001, network2.hold_prob: 0.8}, )
+            # train on some samples from train set
+            for i in range(100):
+                sess.run(network2.train, feed_dict={network2.x: batch_x, network2.y_true: batch_y, network2.hold_prob: 0.8})
 
 
         saver.save(sess, './models/{}.ckpt'.format(modelname + '_unsupervised'))
