@@ -167,9 +167,12 @@ def generate_samples(n_samples, filename):
 
             # generate IR pulses with random phase, pulse duration, inensity
             ir_sample = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi),
-                                               'clambda_range': (1.7, 1.7),
+                                               'clambda_range': (1.609, 1.609),
                                                'pulse_duration_range': (7.0, 12.0),
-                                               'I_range': (0.1, 1.0)})
+                                               'I_range': (0.4, 1.0)})
+            # print(ir_sample.f0)
+            # lam0 = sc.c / (ir_sample.f0 / sc.physical_constants['atomic unit of time'][0])
+            # print(lam0)
 
             # generate a default IR pulse
             #ir_sample = IR_Field()

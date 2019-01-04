@@ -12,10 +12,88 @@ import csv
 from scipy import interpolate
 import scipy.constants as sc
 
+def find_central_frequency_from_trace(trace, delay, energy):
+
+    # make sure delay is even
+    assert len(delay) % 2 == 0
+
+    # find central frequency
+    _, ax = plt.subplots(3, 1)
+
+    N = len(delay)
+    print('N: ', N)
+    dt = delay[-1] - delay[-2]
+    df = 1 / (dt * N)
+    freq_even = df * np.arange(-N / 2, N / 2)
+    # plot the streaking trace and ft
+    ax[0].pcolormesh(delay, energy, trace, cmap='jet')
+    trace_f = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
+    ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
+    # summation along vertical axis
+    integrate = np.sum(np.abs(trace_f), axis=0)
+    ax[2].plot(freq_even, integrate)
+    # find the maximum values
+    f0 = find_f0(x=freq_even, y=integrate)
+
+    return f0
+
+
+
+
+def find_f0(x, y):
+
+    x = np.array(x)
+    y = np.array(y)
+
+    maxvals = []
+
+    for _ in range(3):
+        max_index = np.argmax(y)
+        maxvals.append(x[max_index])
+
+        x = np.delete(x, max_index)
+        y = np.delete(y, max_index)
+
+    maxvals = np.delete(maxvals, np.argmin(np.abs(maxvals)))
+
+    return maxvals[np.argmax(maxvals)]
+
+
 
 
 def get_measured_trace():
-    filepath = './experimental_data/53asstreakingdata.csv'
+
+    # the first experimental data
+    ############################
+    ############################
+    # filepath = './experimental_data/53asstreakingdata.csv'
+    # with open(filepath) as csvfile:
+    #     reader = csv.reader(csvfile)
+    #     matrix = np.array(list(reader))
+    #
+    #     Energy = matrix[4:, 0].astype('float')
+    #     Delay = matrix[2, 2:].astype('float')
+    #     Values = matrix[4:, 2:].astype('float')
+    # # construct frequency axis with even number for fourier transform
+    # values_even = Values[:,1:]
+    # Delay_even = Delay[1:]
+    # Delay_even = Delay_even * 1e-15 # convert to seconds
+    # f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
+    # print(f0) # in seconds
+    # lam0 = sc.c / f0
+    # print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0]) # convert f0 to atomic unit
+    # print('lam0: ', lam0)
+    # plt.show()
+    # exit(0)
+    # the first experimental data
+    ############################
+    ############################
+
+
+    # the second experimental data
+    ############################
+    ############################
+    filepath = './experimental_data/53as_streaking_data_corrected.csv'
     with open(filepath) as csvfile:
         reader = csv.reader(csvfile)
         matrix = np.array(list(reader))
@@ -23,6 +101,29 @@ def get_measured_trace():
         Energy = matrix[4:, 0].astype('float')
         Delay = matrix[2, 2:].astype('float')
         Values = matrix[4:, 2:].astype('float')
+
+
+    # construct frequency axis with even number for fourier transform
+    values_even = Values[:, :-1]
+    Delay_even = Delay[:-1]
+    Delay_even = Delay_even * 1e-15  # convert to seconds
+    Dtau = Delay_even[-1] - Delay_even[-2]
+    # print('Delay: ', Delay)
+    print('Delay_even: ', Delay_even)
+
+    print('Dtau: ', Dtau)
+    # print('Delay max', Delay_even[-1])
+    print('N: ', len(Delay_even))
+    # print('Energy: ', len(Energy))
+    f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
+    print(f0)  # in seconds
+    lam0 = sc.c / f0
+    print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
+    print('lam0: ', lam0)
+    plt.show()
+    # the second experimental data
+    ############################
+    ############################
 
 
     # map the function onto a grid matching the training data
@@ -195,6 +296,28 @@ def get_trace(index, filename):
         # actual_fields['xuv_t'] = hdf5_file.root.xuv_t[index, :]
         actual_fields['xuv_f'] = hdf5_file.root.xuv_f[index, :]
 
+        trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
+        f0 = find_central_frequency_from_trace(trace=trace_2d, delay=crab_tf2.tau_values, energy=crab_tf2.p_values)
+
+
+        # find central frequency
+        _, ax = plt.subplots(5, 1)
+        # construct frequency axis
+        N = len(crab_tf2.tau_values)
+
+        dt = crab_tf2.tau_values[-1] - crab_tf2.tau_values[-2]
+        df = 1 / (dt * N)
+        freq_even = df * np.arange(-N / 2, N / 2)
+
+        ax[0].pcolormesh(crab_tf2.tau_values, crab_tf2.p_values, trace_2d, cmap='jet')
+        trace_f = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace_2d, axes=1), axis=1), axes=1)
+        ax[1].pcolormesh(freq_even, crab_tf2.p_values, np.abs(trace_f), cmap='jet')
+        # summation along vertical axis
+        integrate = np.sum(np.abs(trace_f), axis=0)
+        ax[2].plot(freq_even, integrate)
+        # find the maximum values
+        f0 = find_f0(x=freq_even, y=integrate)
+        print('f0: ', f0)
 
 
 

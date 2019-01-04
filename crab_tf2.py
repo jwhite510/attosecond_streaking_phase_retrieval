@@ -262,7 +262,11 @@ class IR_Field():
 class Med():
 
     def __init__(self):
+
         self.Ip_eV = 24.587
+
+        # Neon
+        #self.Ip_eV = 21.5645
         self.Ip = self.Ip_eV * sc.electron_volt  # joules
         self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
@@ -535,6 +539,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     global tau_index
     global tau_values
     global p_values
+    global k_values
     global padded_xuv_f
     global xuv_time_domain
     global padded_ir_f
@@ -596,35 +601,51 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
 
     # use this dt to scale the image size along tau axis
-    dtau_index = 84 # to match measured
+    #dtau_index = 84  # to match measured
+    dtau_index = 181 # to match measured
     # dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
-    N_tau = 40
+
 
     if N_tau % 2 != 0:
         N_tau += -1
 
+    N_tau = 19
+
     tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
 
     # Number of points must be even
-    assert N_tau % 2 == 0
-    assert type(dtau_index) == int
-    assert abs(tau_index[0]) < max_steps
+    # assert N_tau % 2 == 0
+    # assert type(dtau_index) == int
+    # assert abs(tau_index[0]) < max_steps
 
     indexes = middle_indexes.reshape(-1, 1) + tau_index.reshape(1, -1)
     tau_values = tau_index * xuv.dt  # atomic units
+
+    #print(tau_values*sc.physical_constants['atomic unit of time'][0])
+    #exit(0)
 
     # gather values from integrated array
     ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
     ir_values = tf.expand_dims(ir_values, axis=0)
 
     # create momentum vector
-    # p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
+    #p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
     #p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
-    p = np.linspace(1.8, 5.5, 235).reshape(-1, 1, 1)
+    # p = np.linspace(1.8, 5.5, 235).reshape(-1, 1, 1)
+    # p_values = np.squeeze(p)  # atomic units
+    # K = (0.5 * p ** 2)
+
+    # set dK = 1eV
+    K = np.arange(50, 351, 1) # eV
+    # convert K to atomic units
+    K = K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    K = K.reshape(-1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1)
+    k_values = np.squeeze(K) # atomic untis
     p_values = np.squeeze(p)  # atomic units
-    K = (0.5 * p ** 2)
 
     # convert to tensorflow
     p_tf = tf.constant(p, dtype=tf.float32)
@@ -785,7 +806,7 @@ if __name__ == "__main__":
     # image size
     print('N p : ', len(p))
     print('N tau : ', len(tau_index))
-    tau_values_si = tau_values * sc.physical_constants['atomic unit of time'][0] * 1e18
+    tau_values_si = tau_values * sc.physical_constants['atomic unit of time'][0] * 1e15
     print('XUV dt: ', (tau_values_si[-1] - tau_values_si[-2]), 'attoseconds')
 
     init = tf.global_variables_initializer()
@@ -795,6 +816,13 @@ if __name__ == "__main__":
         view_final_image()
 
         check_fft_and_reconstruction()
+
+        print(tau_values_si)
+        print(k_values)
+        k_values_si = k_values * sc.physical_constants['atomic unit of energy'][0]  # a.u.
+        k_values_eV = k_values_si / sc.electron_volt
+        # print('k_values_eV: ', k_values_eV)
+
 
         # check_padded_time_domain()
 
