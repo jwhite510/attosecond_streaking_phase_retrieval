@@ -564,7 +564,9 @@ elif network == 2:
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    s_LR = tf.placeholder(tf.float32, shape=[])
+    #optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     train = optimizer.minimize(loss)
 
     # create graph for the unsupervised learning
@@ -671,7 +673,9 @@ elif network == 5:
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    s_LR = tf.placeholder(tf.float32, shape=[])
+    #optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     train = optimizer.minimize(loss)
 
     # create graph for the unsupervised learning
@@ -702,7 +706,8 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
+#    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
+    modelname = 'kspace_measured_spectrum_GDDTOD_multires_matchmeasuredgridspace_dynamicLr'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -740,7 +745,7 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8})
+                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
 
             print("")
 
