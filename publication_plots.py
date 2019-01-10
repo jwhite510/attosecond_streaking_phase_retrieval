@@ -72,6 +72,11 @@ def plot_single_trace_xuv_only_measured(predicted_xuv, actual_xuv, trace, recons
     if plot_streaking_mse:
         trace_reconstructed_reshaped = reconstructed_trace.reshape(-1)
         trace_actual_reshape = trace.reshape(-1)
+
+        trace_rmse = np.sqrt(
+            (1 / len(trace_actual_reshape)) * np.sum((trace_reconstructed_reshaped - trace_actual_reshape) ** 2))
+        print('trace_rmse: ', trace_rmse)
+
         trace_mse = (1/len(trace_actual_reshape)) * np.sum((trace_reconstructed_reshaped - trace_actual_reshape)**2)
         print('trace_mse: ', trace_mse)
         axis.text(0.012, 0.96, "MSE: " + str(round(trace_mse, 5)), transform=axis.transAxes, backgroundcolor='white',
@@ -86,7 +91,7 @@ def plot_single_trace_xuv_only_measured(predicted_xuv, actual_xuv, trace, recons
     axis = fig.add_subplot(gs[2, :])
     axis.cla()
     axis.plot(electronvolts, np.abs(predicted_xuv) ** 2, color="black", label='Predicted Spectrum')
-    axis.plot(electronvolts, measured_spec, color="red", label='Measured Spectrum')
+    # axis.plot(electronvolts, measured_spec, color="red", label='Measured Spectrum')
     axtwin = axis.twinx()
     # plot the phase
     phase = np.unwrap(np.angle(predicted_xuv[crop_phase_left:-crop_phase_right]))
@@ -109,7 +114,7 @@ def plot_single_trace_xuv_only_measured(predicted_xuv, actual_xuv, trace, recons
     axis.set_ylabel('Intensity [arbitrary units]')
     #axis.legend(loc=1).set_zorder(0)
     # axis.legend(loc=4)
-    axis.legend(bbox_to_anchor=(0.7, 0.65), loc='center')
+    # axis.legend(bbox_to_anchor=(0.7, 0.65), loc='center')
 
     plt.savefig('./'+name)
 
@@ -276,6 +281,11 @@ def plot_single_trace_xuv_only_square(predicted_xuv, actual_xuv, trace, reconstr
     if plot_streaking_mse:
         trace_reconstructed_reshaped = reconstructed_trace.reshape(-1)
         trace_actual_reshape = trace.reshape(-1)
+
+        trace_rmse = np.sqrt((1 / len(trace_actual_reshape)) * np.sum(
+            (trace_reconstructed_reshaped - trace_actual_reshape) ** 2))
+        print('trace_rmse: ', trace_rmse)
+
         trace_mse = (1 / len(trace_actual_reshape)) * np.sum(
             (trace_reconstructed_reshaped - trace_actual_reshape) ** 2)
         print('trace_mse: ', trace_mse)
@@ -929,11 +939,13 @@ if __name__ == "__main__":
         with open('importantstuff.p', 'rb') as file:
             data = pickle.load(file)
 
+            print("________")
             print('xuv length: ')
             print(len(data['predicted_fields']['xuv_f']))
 
             print('ir length: ')
             print(len(data['predicted_fields']['ir_f']))
+            print("________")
 
 
 
