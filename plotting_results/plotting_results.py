@@ -48,8 +48,8 @@ filenames.append('./1_1_2019/run_gaussian_dtau130as_without_noise_constant_ir_lr
 filenames.append('./1_1_2019/run_gaussian_dtau130as_with_noise_constant_ir_lr0001-tag-test_mse.csv')
 filenames.append('./1_1_2019/run_gaussian_dtau130as_with_noise_constant_ir_lr0001-tag-train_mse.csv')
 
-filenames.append('./1_1_2019/run_gaussian_dtau130as_with_noise_constant_ir_lr0001_cubicphase_80ksamples-tag-test_mse.csv')
 filenames.append('./1_1_2019/run_gaussian_dtau130as_with_noise_constant_ir_lr0001_cubicphase_80ksamples-tag-train_mse.csv')
+filenames.append('./1_1_2019/run_gaussian_dtau130as_with_noise_constant_ir_lr0001_cubicphase_80ksamples-tag-test_mse.csv')
 
 
 

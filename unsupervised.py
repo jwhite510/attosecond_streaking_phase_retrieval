@@ -11,6 +11,7 @@ import os
 import csv
 from scipy import interpolate
 import scipy.constants as sc
+import pickle
 
 def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
 
@@ -69,93 +70,144 @@ def find_f0(x, y):
 
 def get_measured_trace():
 
-    # the first experimental data
-    ############################
-    ############################
-    # filepath = './experimental_data/53asstreakingdata.csv'
-    # with open(filepath) as csvfile:
-    #     reader = csv.reader(csvfile)
-    #     matrix = np.array(list(reader))
-    #
-    #     Energy = matrix[4:, 0].astype('float')
-    #     Delay = matrix[2, 2:].astype('float')
-    #     Values = matrix[4:, 2:].astype('float')
-    # # construct frequency axis with even number for fourier transform
-    # values_even = Values[:,1:]
-    # Delay_even = Delay[1:]
-    # Delay_even = Delay_even * 1e-15 # convert to seconds
-    # f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
-    # print(f0) # in seconds
-    # lam0 = sc.c / f0
-    # print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0]) # convert f0 to atomic unit
-    # print('lam0: ', lam0)
-    # plt.show()
-    # exit(0)
-    # the first experimental data
-    ############################
-    ############################
+    get_sample = 2
+
+    if get_sample == 1:
+
+            # the first experimental data
+            ############################
+            ############################
+            # filepath = './experimental_data/53asstreakingdata.csv'
+            # with open(filepath) as csvfile:
+            #     reader = csv.reader(csvfile)
+            #     matrix = np.array(list(reader))
+            #
+            #     Energy = matrix[4:, 0].astype('float')
+            #     Delay = matrix[2, 2:].astype('float')
+            #     Values = matrix[4:, 2:].astype('float')
+            # # construct frequency axis with even number for fourier transform
+            # values_even = Values[:,1:]
+            # Delay_even = Delay[1:]
+            # Delay_even = Delay_even * 1e-15 # convert to seconds
+            # f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
+            # print(f0) # in seconds
+            # lam0 = sc.c / f0
+            # print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0]) # convert f0 to atomic unit
+            # print('lam0: ', lam0)
+            # plt.show()
+            # exit(0)
+            # the first experimental data
+            ############################
+            ############################
 
 
-    # the second experimental data
-    ############################
-    ############################
-    filepath = './experimental_data/53as_streaking_data_corrected.csv'
-    with open(filepath) as csvfile:
-        reader = csv.reader(csvfile)
-        matrix = np.array(list(reader))
+            # the second experimental data
+            ############################
+            ############################
+            filepath = './experimental_data/53as_streaking_data_corrected.csv'
+            with open(filepath) as csvfile:
+                reader = csv.reader(csvfile)
+                matrix = np.array(list(reader))
 
-        Energy = matrix[4:, 0].astype('float')
-        Delay = matrix[2, 2:].astype('float')
-        Values = matrix[4:, 2:].astype('float')
-
-
-    # construct frequency axis with even number for fourier transform
-    values_even = Values[:, :-1]
-    Delay_even = Delay[:-1]
-    Delay_even = Delay_even * 1e-15  # convert to seconds
-    Dtau = Delay_even[-1] - Delay_even[-2]
-    # print('Delay: ', Delay)
-    print('Delay_even: ', Delay_even)
-    print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
-
-    print('Dtau: ', Dtau)
-    # print('Delay max', Delay_even[-1])
-    print('N: ', len(Delay_even))
-    # print('Energy: ', len(Energy))
-    f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
-    print(f0)  # in seconds
-    lam0 = sc.c / f0
-    print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
-    print('lam0: ', lam0)
-    # the second experimental data
-    ############################
-    ############################
+                Energy = matrix[4:, 0].astype('float')
+                Delay = matrix[2, 2:].astype('float')
+                Values = matrix[4:, 2:].astype('float')
 
 
-    ## map the function onto a grid matching the training data
-    #interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
-    #timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
-    ## make it 200 Energy, 80 delay
-    #delay_new = np.arange(Delay[0], Delay[-1], timespan/80)
-    #energy_new = np.linspace(Energy[0], Energy[-1], 200)
-#
-#
-    #values_new = interp2(delay_new, energy_new)
-#
-    ## interpolate to momentum [a.u]
-    #energy_new_joules = energy_new * sc.electron_volt # joules
-    #energy_new_au = energy_new_joules / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    #momentum_new_au = np.sqrt(2 * energy_new_au)
-    #interp2_momentum = interpolate.interp2d(delay_new, momentum_new_au, values_new, kind='linear')
-#
-    ## interpolate onto linear momentum axis
-    #N = len(momentum_new_au)
-    #momentum_linear = np.linspace(momentum_new_au[0], momentum_new_au[-1], N)
-    #values_lin_momentum = interp2_momentum(delay_new, momentum_linear)
+            # construct frequency axis with even number for fourier transform
+            values_even = Values[:, :-1]
+            Delay_even = Delay[:-1]
+            Delay_even = Delay_even * 1e-15  # convert to seconds
+            Dtau = Delay_even[-1] - Delay_even[-2]
+            # print('Delay: ', Delay)
+            print('Delay_even: ', Delay_even)
+            print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
+
+            print('Dtau: ', Dtau)
+            # print('Delay max', Delay_even[-1])
+            print('N: ', len(Delay_even))
+            # print('Energy: ', len(Energy))
+            f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
+            print(f0)  # in seconds
+            lam0 = sc.c / f0
+            print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
+            print('lam0: ', lam0)
+            return Delay_even, Energy, values_even
+            # the second experimental data
+            ############################
+            ############################
 
 
-    #return delay_new, momentum_linear, values_lin_momentum
-    return Delay_even, Energy, values_even
+            ## map the function onto a grid matching the training data
+            #interp2 = interpolate.interp2d(Delay, Energy, Values, kind='linear')
+            #timespan = np.abs(Delay[-1]) + np.abs(Delay[0])
+            ## make it 200 Energy, 80 delay
+            #delay_new = np.arange(Delay[0], Delay[-1], timespan/80)
+            #energy_new = np.linspace(Energy[0], Energy[-1], 200)
+        #
+        #
+            #values_new = interp2(delay_new, energy_new)
+        #
+            ## interpolate to momentum [a.u]
+            #energy_new_joules = energy_new * sc.electron_volt # joules
+            #energy_new_au = energy_new_joules / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+            #momentum_new_au = np.sqrt(2 * energy_new_au)
+            #interp2_momentum = interpolate.interp2d(delay_new, momentum_new_au, values_new, kind='linear')
+        #
+            ## interpolate onto linear momentum axis
+            #N = len(momentum_new_au)
+            #momentum_linear = np.linspace(momentum_new_au[0], momentum_new_au[-1], N)
+            #values_lin_momentum = interp2_momentum(delay_new, momentum_linear)
+
+
+            #return delay_new, momentum_linear, values_lin_momentum
+
+    elif get_sample == 2:
+
+        filepath = './experimental_data/sample2/MSheet1_1.csv'
+        with open(filepath) as csvfile:
+            reader = csv.reader(csvfile)
+            matrix = np.array(list(reader))
+
+            Energy = matrix[1:, 0].astype('float') # eV
+            Delay = matrix[0, 1:].astype('float') # fs
+            Values = matrix[1:, 1:].astype('float')
+
+        #print(Delay)
+        print('len(Energy): ', len(Energy))
+        print('Energy: ', Energy)
+
+
+        # construct frequency axis with even number for fourier transform
+        values_even = Values[:, :-1]
+        Delay_even = Delay[:-1]
+        Delay_even = Delay_even * 1e-15  # convert to seconds
+        Dtau = Delay_even[-1] - Delay_even[-2]
+        # print('Delay: ', Delay)
+        print('Delay_even: ', Delay_even)
+        print('np.shape(values_even): ', np.shape(values_even))
+        print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
+        print('Dtau: ', Dtau)
+        # print('Delay max', Delay_even[-1])
+        print('N: ', len(Delay_even))
+        # print('Energy: ', len(Energy))
+        f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
+        print(f0)  # in seconds
+        lam0 = sc.c / f0
+        print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
+        print('lam0: ', lam0)
+
+
+        # normalize values
+
+        #exit(0)
+        return Delay_even, Energy, values_even
+
+
+
+
+
+
 
 
 
@@ -175,6 +227,7 @@ def create_plots():
     axes['generated_image'] = fig.add_subplot(gs[3,:])
     axes['predicted_xuv_time'] = fig.add_subplot(gs[2, 2])
     axes['predicted_xuv'] = fig.add_subplot(gs[2, 1])
+    axes['predicted_xuv_phase'] = axes['predicted_xuv'].twinx()
     axes['predicted_ir'] = fig.add_subplot(gs[2, 0])
 
     # add time plots
@@ -183,6 +236,15 @@ def create_plots():
 
 
 def update_plots(generated_image, input_image, actual_fields, predicted_fields):
+
+
+    thestuff = {}
+    thestuff['generated_image'] = generated_image
+    thestuff['input_image'] = input_image
+    thestuff['actual_fields'] = actual_fields
+    thestuff['predicted_fields'] = predicted_fields
+    with open('importantstuff2.p', 'wb') as file:
+        pickle.dump(thestuff, file)
 
     # set phase angle to 0
     # find angle 0
@@ -246,6 +308,11 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     axes['predicted_xuv'].cla()
     axes['predicted_xuv'].plot(np.real(predicted_fields['xuv_f']), color='blue')
     axes['predicted_xuv'].plot(np.imag(predicted_fields['xuv_f']), color='red')
+    axes['predicted_xuv'].plot(np.abs(predicted_fields['xuv_f']), color='black')
+    axes['predicted_xuv_phase'].cla()
+    axes['predicted_xuv_phase'].plot(np.unwrap(np.angle(predicted_fields['xuv_f'])), color='green')
+
+
     axes['predicted_xuv'].text(0.0, 1.05, 'predicted XUV', transform=axes['predicted_xuv'].transAxes, backgroundcolor='white')
     axes['predicted_xuv'].plot([index_0_angle, index_0_angle], [0.5, -0.5], alpha=0.3, linestyle='dashed', color='black')
     axes['predicted_xuv'].set_yticks([])
@@ -362,11 +429,11 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'experimental_retrieval_with_superviseddata_lr0001'
+    run_name = 'sat_4_rerun_again_calcmse'
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = 'kspace_measured_spectrum_GDDTOD_multires_matchmeasuredgridspace'
+    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL'
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
@@ -413,10 +480,11 @@ if __name__ == "__main__":
             add_tensorboard_values()
 
             # train the network to reduce the error
-            sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00001, network2.hold_prob: 0.8}, )
+            sess.run(network2.u_train, feed_dict={network2.x: trace, network2.u_LR: 0.00005, network2.hold_prob: 0.8}, )
             # train on some samples from train set
-            for i in range(100):
-                sess.run(network2.train, feed_dict={network2.x: batch_x, network2.y_true: batch_y, network2.hold_prob: 0.8})
+            for i in range(1):
+                sess.run(network2.train, feed_dict={network2.x: batch_x, network2.y_true: batch_y, network2.hold_prob: 0.8,
+                                                    network2.s_LR: 0.00001})
 
 
         saver.save(sess, './models/{}.ckpt'.format(modelname + '_unsupervised'))

@@ -112,7 +112,7 @@ def generate_samples(n_samples, filename):
             while not xuv_good:
 
                 # random with only taylor coefs
-                xuv_sample = XUV_Field(random_phase_taylor={'coefs': 8, 'amplitude': 7},
+                xuv_sample = XUV_Field(random_phase_taylor={'coefs': 5, 'amplitude': 12},
                                measured_spectrum=spectrum_data)
 
                 #xuv sample to match the measured spectrum, but with gaussian
@@ -167,7 +167,7 @@ def generate_samples(n_samples, filename):
 
             # generate IR pulses with random phase, pulse duration, inensity
             ir_sample = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi),
-                                               'clambda_range': (1.609, 1.609),
+                                               'clambda_range': (1.6345, 1.6345),
                                                'pulse_duration_range': (7.0, 12.0),
                                                'I_range': (0.4, 1.0)})
             # print(ir_sample.f0)

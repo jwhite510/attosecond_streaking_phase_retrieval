@@ -479,7 +479,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 2
+network = 6
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -686,6 +686,58 @@ elif network == 5:
     u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     u_train = u_optimizer.minimize(u_losses)
 
+elif network == 6:
+
+    print('Setting up multires layer network with more conv weights')
+
+    # six convolutional layers
+
+    multires_filters = [11, 7, 5, 3]
+
+    multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+
+    conv_layer_1 = convolutional_layer(multires_layer_1, shape=[1, 1, len(multires_filters), 2*len(multires_filters)],
+                                       activate='relu', stride=[2, 2])
+
+
+    multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2*len(multires_filters),
+                                      filter_sizes=multires_filters)
+
+    conv_layer_2 = convolutional_layer(multires_layer_2,
+                                       shape=[1, 1, 32,64], activate='relu', stride=[2, 2])
+
+    multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
+                                      filter_sizes=multires_filters)
+
+    conv_layer_3 = convolutional_layer(multires_layer_3,
+                                       shape=[1, 1, 256,
+                                              512], activate='relu', stride=[2, 2])
+
+    convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
+    full_layer_one = normal_full_layer(convo_3_flat, 1024)
+
+    # dropout
+    hold_prob = tf.placeholder_with_default(1.0, shape=())
+    dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+    y_pred = normal_full_layer(dropout_layer, total_input_length)
+
+    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+    s_LR = tf.placeholder(tf.float32, shape=[])
+    # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    train = optimizer.minimize(loss)
+
+    # create graph for the unsupervised learning
+    xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+    image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+    u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+    u_LR = tf.placeholder(tf.float32, shape=[])
+    u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    u_train = u_optimizer.minimize(u_losses)
+
+
 
 
 if __name__ == "__main__":
@@ -707,7 +759,7 @@ if __name__ == "__main__":
 
     # set the name of the neural net test run and save the settigns
 #    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
-    modelname = 'kspace_measured_spectrum_GDDTOD_multires_matchmeasuredgridspace_dynamicLr'
+    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -745,7 +797,10 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
+                if i < 35:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
+                elif i < 40:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
 
             print("")
 

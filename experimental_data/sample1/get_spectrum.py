@@ -92,7 +92,7 @@ pickle_files['N'] = N
 pickle_files['dt'] = dt
 
 # write the data to a pickle
-with open('../measured_spectrum.p', 'wb') as file:
+with open('../../measured_spectrum.p', 'wb') as file:
     pickle.dump(pickle_files, file)
 
 

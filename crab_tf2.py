@@ -263,10 +263,11 @@ class Med():
 
     def __init__(self):
 
-        self.Ip_eV = 24.587
+        #Helium i think
+        #self.Ip_eV = 24.587
 
         # Neon
-        #self.Ip_eV = 21.5645
+        self.Ip_eV = 21.5645
         self.Ip = self.Ip_eV * sc.electron_volt  # joules
         self.Ip = self.Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
@@ -544,6 +545,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     global xuv_time_domain
     global padded_ir_f
     global ir_time_domain
+    global eV_values
 
 
 
@@ -602,7 +604,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
     # use this dt to scale the image size along tau axis
     #dtau_index = 84  # to match measured
-    dtau_index = 181 # to match measured
+    dtau_index = 180 # to match measured
     # dtau_index = 75
 
     N_tau = int(max_steps / dtau_index)
@@ -611,7 +613,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     if N_tau % 2 != 0:
         N_tau += -1
 
-    N_tau = 19
+    N_tau = 29
 
     tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
 
@@ -639,6 +641,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
     # set dK = 1eV
     K = np.arange(50, 351, 1) # eV
+    eV_values = np.array(K)
     # convert K to atomic units
     K = K * sc.electron_volt  # joules
     K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
@@ -807,7 +810,7 @@ if __name__ == "__main__":
     print('N p : ', len(p))
     print('N tau : ', len(tau_index))
     tau_values_si = tau_values * sc.physical_constants['atomic unit of time'][0] * 1e15
-    print('XUV dt: ', (tau_values_si[-1] - tau_values_si[-2]), 'attoseconds')
+    print('trace dtau: ', (tau_values_si[-1] - tau_values_si[-2]), 'attoseconds')
 
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
@@ -817,8 +820,12 @@ if __name__ == "__main__":
 
         check_fft_and_reconstruction()
 
-        print(tau_values_si)
-        print(k_values)
+
+        print('len(eV_values): ', len(eV_values))
+        print('eV_values: ', eV_values)
+        print('len(tau_values_si): ', len(tau_values_si))
+        print('tau_values_si: ', tau_values_si)
+        #print(k_values)
         k_values_si = k_values * sc.physical_constants['atomic unit of energy'][0]  # a.u.
         k_values_eV = k_values_si / sc.electron_volt
         # print('k_values_eV: ', k_values_eV)
