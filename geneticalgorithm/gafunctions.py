@@ -10,9 +10,13 @@ from deap import tools
 def create_individual():
 
     individual = creator.Individual()
-    individual["ir_amplitude"] = np.array([1, 2 ,3])
-    individual["ir_phase"] = np.array([1, 2 ,3])
-    individual["xuv_phase"] = np.array([1, 2 ,3])
+
+    # individual["ir_amplitude"] = np.array([1, 2 ,3])
+    individual["ir_amplitude"] = np.random.rand(3)
+    # individual["ir_phase"] = np.array([1, 2 ,3])
+    individual["ir_phase"] = np.random.rand(3)
+    # individual["xuv_phase"] = np.array([1, 2 ,3])
+    individual["xuv_phase"] = np.random.rand(3)
 
     return individual
 
@@ -57,6 +61,7 @@ toolbox.register("create_population", create_population, toolbox.create_individu
 toolbox.register("evaluate", evaluate)
 toolbox.register("select", tools.selTournament, tournsize=4)
 toolbox.register("mate", tools.cxTwoPoint)
+toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)
 
 
 
@@ -77,7 +82,7 @@ fits = [ind.fitness.values[0] for ind in pop]
 
 # MUTPB is the probability for mutating an individual
 # CXPB, MUTPB, MUTPB2 = 0.2, 0.2, 0.5
-CXPB, MUTPB, MUTPB2 = 1.0, 0.2, 0.5
+CXPB, MUTPB, MUTPB2 = 1.0, 1.0, 1.0
 
 
 
@@ -97,41 +102,43 @@ while g <= generations:
     # Apply crossover and mutation on the offspring
     for child1, child2 in zip(offspring[::2], offspring[1::2]):
 
-        print("bitch")
-        print(child1)
-
         # cross two individuals with probability CXPB
         if random.random() < CXPB:
-            toolbox.mate(child1, child2)
+
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                toolbox.mate(child1[vector], child2[vector])
 
             # fitness values of the children
             # must be recalculated later
             del child1.fitness.values
             del child2.fitness.values
 
-            print("bitch")
-            print(child1)
-            exit(0)
-
-    exit(0)
-
 
     for mutant in offspring:
 
         # mutate an individual with probability MUTPB
         if random.random() < MUTPB:
-            toolbox.mutate(mutant)
+
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                toolbox.mutate(mutant[vector])
+
             del mutant.fitness.values
+
+
 
     for mutant in offspring:
 
         # mutate an individual with probabililty MUTPB2
         if random.random() < MUTPB2:
             # print('before: ', mutant)
-            tools.mutGaussian(mutant, mu=0.0, sigma=0.2, indpb=0.2)
-            # print('after: ', mutant)
-            # exit(0)
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
+
             del mutant.fitness.values
+
+    exit(0)
+    # next is to evaluate fitness
+
 
 
 
