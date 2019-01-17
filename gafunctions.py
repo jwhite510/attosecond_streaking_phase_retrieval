@@ -4,8 +4,8 @@ import random
 from deap import base
 from deap import creator
 from deap import tools
-import os
-os.chdir('../')
+#import os
+#os.chdir('../')
 import tensorflow as tf
 import unsupervised
 import crab_tf2
@@ -134,7 +134,9 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
     axes["predicted_trace"].text(0.0, 0.1, "rmse: {}".format(str(round(rmse, 5))), backgroundcolor="white",
                                  transform=axes["predicted_trace"].transAxes)
 
-    plt.savefig("./gapictures/{}.png".format(generation))
+    if generation % 5 == 0:
+        plt.savefig("./gapictures/{}.png".format(generation))
+
     plt.pause(0.0001)
 
 
