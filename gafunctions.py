@@ -17,8 +17,9 @@ import pickle
 
 def add_tensorboard_values(rmse, generation):
 
-    #writer.add_summary(bytes(rmse), global_step=generation)
-    #writer.flush()
+    summ = sess.run(unsupervised_mse_tb, feed_dict={rmse_tb: rmse})
+    writer.add_summary(summ, global_step=generation)
+    writer.flush()
     pass
 
 
@@ -60,7 +61,7 @@ def calc_vecs_and_rmse(individual, plotting, generation=None):
                               xuv_fmat=xuv_fmat, ir_fmat=ir_fmat, predicted_streaking_trace=image_out,
                               actual_streaking_trace=actual_trace, generation=generation, rmse=trace_rmse)
 
-        #add_tensorboard_values(trace_rmse, generation)
+        add_tensorboard_values(trace_rmse, generation)
 
 
 
@@ -144,7 +145,7 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
     axes["predicted_trace"].text(0.0, 0.1, "rmse: {}".format(str(round(rmse, 5))), backgroundcolor="white",
                                  transform=axes["predicted_trace"].transAxes)
 
-    if generation % 5 == 0 or generation == 1:
+    if generation % 10 == 0 or generation == 1:
         plt.savefig("./gapictures/{}.png".format(generation))
 
         dir = "./gapictures/" + run_name + "/"
@@ -163,16 +164,16 @@ def create_individual():
 
     individual = creator.Individual()
 
-    # individual["ir_amplitude"] = np.array([1, 2 ,3])
+    #individual["ir_amplitude"] = np.random.rand(3)
+    #individual["ir_phase"] = np.random.rand(3)
+    #individual["xuv_phase"] = np.random.rand(3)
+    #return individual
+
+
     individual["ir_amplitude"] = 1.0*np.random.rand(ir_points_length)
     individual["ir_amplitude"][0:8] = 0.0
     individual["ir_amplitude"][-8:] = 0.0
-    # print(individual["ir_amplitude"])
-
-
-    # individual["ir_phase"] = np.array([1, 2 ,3])
     individual["ir_phase"] = 1.0*np.random.rand(ir_points_length)
-    # individual["xuv_phase"] = np.array([1, 2 ,3])
     individual["xuv_phase"] = 10.0*np.random.rand(xuv_points_length)
 
     # calc_vecs_and_rmse(individual, plotting=True)
@@ -211,7 +212,7 @@ def generate_ir_xuv_complex_fields(ir_phi, ir_amp, xuv_phi, knot_values):
 
 
 
-def genetic_algorithm(plot_axes):
+def genetic_algorithm(generations, pop_size):
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
     creator.create("Individual", dict, fitness=creator.FitnessMax)
 
@@ -225,7 +226,7 @@ def genetic_algorithm(plot_axes):
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)
 
     # create the initial population
-    pop = toolbox.create_population(n=500)
+    pop = toolbox.create_population(n=pop_size)
     # print(pop[0].fitness.values)
 
     # evaluate and assign fitness numbers
@@ -244,7 +245,6 @@ def genetic_algorithm(plot_axes):
     # Variable keeping track of the number of generations
     g = 0
 
-    generations = 500
     while g <= generations:
         g = g + 1
         print("-- Generation %i --" % g)
@@ -258,34 +258,36 @@ def genetic_algorithm(plot_axes):
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
 
             # cross two individuals with probability CXPB
-            if random.random() < CXPB:
-
-                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            re_evaluate = False
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                if random.random() < CXPB:
                     toolbox.mate(child1[vector], child2[vector])
-
-                # fitness values of the children
-                # must be recalculated later
+                    re_evaluate = True
+            if re_evaluate:
                 del child1.fitness.values
                 del child2.fitness.values
 
+
         for mutant in offspring:
-
             # mutate an individual with probability MUTPB
-            if random.random() < MUTPB:
-
-                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            re_evaluate = False
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                if random.random() < MUTPB:
                     toolbox.mutate(mutant[vector])
-
+                    re_evaluate = True
+            if re_evaluate:
                 del mutant.fitness.values
 
-        for mutant in offspring:
 
+        for mutant in offspring:
             # mutate an individual with probabililty MUTPB2
-            if random.random() < MUTPB2:
-                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            re_evaluate = False
+            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                if random.random() < MUTPB2:
                     # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
                     tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.2)
-
+                    re_evaluate = True
+            if re_evaluate:
                 del mutant.fitness.values
 
         # Evaluate the individuals with an invalid fitness
@@ -327,7 +329,7 @@ def genetic_algorithm(plot_axes):
 if __name__ == "__main__":
 
 
-    run_name = 'run2'
+    run_name = 'run6'
 
     ir_points_length = 20
     xuv_points_length = 50
@@ -356,6 +358,11 @@ if __name__ == "__main__":
     xuv_amp = np.abs(xuv_sample.Ef_prop_cropped)
 
 
+    # create object for measurement of error
+    rmse_tb = tf.placeholder(tf.float32, shape=[])
+    unsupervised_mse_tb = tf.summary.scalar("streaking_trace_rmse", rmse_tb)
+
+
 
 
     # retrieve the trace and actual fields
@@ -373,7 +380,7 @@ if __name__ == "__main__":
         writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
         # run the genetic algorithm
-        genetic_algorithm(plot_axes=plot_axes)
+        genetic_algorithm(generations=5000, pop_size=5000)
 
 
 
