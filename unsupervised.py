@@ -19,7 +19,7 @@ def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
     assert len(delay) % 2 == 0
 
     # find central frequency
-    _, ax = plt.subplots(3, 1)
+
 
     N = len(delay)
     print('N: ', N)
@@ -36,6 +36,7 @@ def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
     # find the maximum values
     f0 = find_f0(x=freq_even, y=integrate)
     if plotting:
+        _, ax = plt.subplots(3, 1)
         ax[0].pcolormesh(delay, energy, trace, cmap='jet')
         ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
         ax[2].plot(freq_even, integrate)
@@ -356,7 +357,9 @@ def update_plots(generated_image, input_image, actual_fields, predicted_fields):
     plt.pause(0.001)
 
 
-def get_trace(index, filename):
+def get_trace(index, filename, plotting=True):
+
+
 
     with tables.open_file(filename, mode='r') as hdf5_file:
 
@@ -371,11 +374,14 @@ def get_trace(index, filename):
         actual_fields['xuv_f'] = hdf5_file.root.xuv_f[index, :]
 
         trace_2d = trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
-        f0 = find_central_frequency_from_trace(trace=trace_2d, delay=crab_tf2.tau_values, energy=crab_tf2.p_values)
+        f0 = find_central_frequency_from_trace(trace=trace_2d, delay=crab_tf2.tau_values, energy=crab_tf2.p_values, plotting=False)
+
+
 
 
         # find central frequency
-        _, ax = plt.subplots(5, 1)
+        if plotting:
+            _, ax = plt.subplots(5, 1)
         # construct frequency axis
         N = len(crab_tf2.tau_values)
 
@@ -383,12 +389,20 @@ def get_trace(index, filename):
         df = 1 / (dt * N)
         freq_even = df * np.arange(-N / 2, N / 2)
 
-        ax[0].pcolormesh(crab_tf2.tau_values, crab_tf2.p_values, trace_2d, cmap='jet')
+        if plotting:
+            ax[0].pcolormesh(crab_tf2.tau_values, crab_tf2.p_values, trace_2d, cmap='jet')
+
         trace_f = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace_2d, axes=1), axis=1), axes=1)
-        ax[1].pcolormesh(freq_even, crab_tf2.p_values, np.abs(trace_f), cmap='jet')
+
+        if plotting:
+            ax[1].pcolormesh(freq_even, crab_tf2.p_values, np.abs(trace_f), cmap='jet')
+
         # summation along vertical axis
         integrate = np.sum(np.abs(trace_f), axis=0)
-        ax[2].plot(freq_even, integrate)
+
+        if plotting:
+            ax[2].plot(freq_even, integrate)
+
         # find the maximum values
         f0 = find_f0(x=freq_even, y=integrate)
         print('f0: ', f0)
