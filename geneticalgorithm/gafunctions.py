@@ -35,6 +35,13 @@ def evaluate(individual):
     a = np.sum(individual["ir_amplitude"])
     b = np.sum(individual["ir_phase"])
     c = np.sum(individual["xuv_phase"])
+
+    # construct streaking trace
+
+    # compare to measured streaking trace
+
+    # plot result
+
     return a + b + c
 
 
@@ -67,7 +74,7 @@ toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)
 
 # create the initial population
 pop = toolbox.create_population(n=5)
-print(pop[0].fitness.values)
+# print(pop[0].fitness.values)
 
 
 # evaluate and assign fitness numbers
@@ -136,9 +143,35 @@ while g <= generations:
 
             del mutant.fitness.values
 
-    exit(0)
-    # next is to evaluate fitness
 
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+    fitnesses = map(toolbox.evaluate, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit,
+
+    print("  Evaluated %i individuals" % len(invalid_ind))
+
+    # The population is entirely replaced by the offspring
+    pop[:] = offspring
+
+    # Gather all the fitnesses in one list and print the stats
+    fits = [ind.fitness.values[0] for ind in pop]
+
+    length = len(pop)
+    mean = sum(fits) / length
+    sum2 = sum(x * x for x in fits)
+    std = abs(sum2 / length - mean ** 2) ** 0.5
+
+    print("  Min %s" % min(fits))
+    print("  Max %s" % max(fits))
+    print("  Avg %s" % mean)
+    print("  Std %s" % std)
+
+    print("-- End of (successful) evolution -- gen {}".format(str(g)))
+
+    best_ind = tools.selBest(pop, 1)[0]
+    print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
 
 
 
