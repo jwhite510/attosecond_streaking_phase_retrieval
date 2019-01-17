@@ -239,7 +239,7 @@ def genetic_algorithm(generations, pop_size):
     # fits = [ind.fitness.values[0] for ind in pop]
 
     # MUTPB is the probability for mutating an individual
-    CXPB, MUTPB, MUTPB2 = 0.2, 0.2, 0.5
+    CXPB, MUTPB, MUTPB2 = 0.05, 0.05, 0.1
     # CXPB, MUTPB, MUTPB2 = 1.0, 1.0, 1.0
 
     # Variable keeping track of the number of generations
@@ -290,6 +290,48 @@ def genetic_algorithm(generations, pop_size):
             if re_evaluate:
                 del mutant.fitness.values
 
+
+
+        ## Apply crossover and mutation on the offspring
+        #for child1, child2 in zip(offspring[::2], offspring[1::2]):
+#
+        #    # cross two individuals with probability CXPB
+        #    if random.random() < CXPB:
+#
+        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+        #            toolbox.mate(child1[vector], child2[vector])
+#
+        #        # fitness values of the children
+        #        # must be recalculated later
+        #        del child1.fitness.values
+        #        del child2.fitness.values
+#
+        #for mutant in offspring:
+#
+        #    # mutate an individual with probability MUTPB
+        #    if random.random() < MUTPB:
+#
+        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+        #            toolbox.mutate(mutant[vector])
+#
+        #        del mutant.fitness.values
+#
+        #for mutant in offspring:
+#
+        #    # mutate an individual with probabililty MUTPB2
+        #    if random.random() < MUTPB2:
+        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+        #            # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
+        #            tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.2)
+#
+        #        del mutant.fitness.values
+#
+
+
+
+
+
+
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = map(toolbox.evaluate, invalid_ind)
@@ -329,7 +371,7 @@ def genetic_algorithm(generations, pop_size):
 if __name__ == "__main__":
 
 
-    run_name = 'run6'
+    run_name = 'run_lowermutpb'
 
     ir_points_length = 20
     xuv_points_length = 50
