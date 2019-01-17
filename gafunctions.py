@@ -146,7 +146,7 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
                                  transform=axes["predicted_trace"].transAxes)
 
     if generation % 10 == 0 or generation == 1:
-        plt.savefig("./gapictures/{}.png".format(generation))
+        #plt.savefig("./gapictures/{}.png".format(generation))
 
         dir = "./gapictures/" + run_name + "/"
         if not os.path.isdir(dir):
@@ -223,7 +223,7 @@ def genetic_algorithm(generations, pop_size):
     toolbox.register("evaluate", evaluate)
     toolbox.register("select", tools.selTournament, tournsize=4)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)
+    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
 
     # create the initial population
     pop = toolbox.create_population(n=pop_size)
@@ -285,7 +285,11 @@ def genetic_algorithm(generations, pop_size):
             for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
                 if random.random() < MUTPB2:
                     # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
-                    tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.2)
+                    if vector=='ir_amplitude':
+                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.1, indpb=0.6)
+                    else:
+                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.6)
+
                     re_evaluate = True
             if re_evaluate:
                 del mutant.fitness.values
@@ -371,7 +375,7 @@ def genetic_algorithm(generations, pop_size):
 if __name__ == "__main__":
 
 
-    run_name = 'run_lowermutpb'
+    run_name = 'run_lowermutpb_largermutations'
 
     ir_points_length = 20
     xuv_points_length = 50
