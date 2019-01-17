@@ -4,7 +4,7 @@ import random
 from deap import base
 from deap import creator
 from deap import tools
-#import os
+import os
 #os.chdir('../')
 import tensorflow as tf
 import unsupervised
@@ -12,6 +12,14 @@ import crab_tf2
 from scipy.interpolate import BSpline
 import pickle
 
+
+
+
+def add_tensorboard_values(rmse, generation):
+
+    #writer.add_summary(bytes(rmse), global_step=generation)
+    #writer.flush()
+    pass
 
 
 
@@ -51,6 +59,8 @@ def calc_vecs_and_rmse(individual, plotting, generation=None):
         plot_image_and_fields(axes=plot_axes, predicted_fields=predicted_fields, actual_fields=actual_fields,
                               xuv_fmat=xuv_fmat, ir_fmat=ir_fmat, predicted_streaking_trace=image_out,
                               actual_streaking_trace=actual_trace, generation=generation, rmse=trace_rmse)
+
+        #add_tensorboard_values(trace_rmse, generation)
 
 
 
@@ -134,8 +144,13 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
     axes["predicted_trace"].text(0.0, 0.1, "rmse: {}".format(str(round(rmse, 5))), backgroundcolor="white",
                                  transform=axes["predicted_trace"].transAxes)
 
-    if generation % 5 == 0:
+    if generation % 5 == 0 or generation == 1:
         plt.savefig("./gapictures/{}.png".format(generation))
+
+        dir = "./gapictures/" + run_name + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        plt.savefig(dir + str(generation) + ".png")
 
     plt.pause(0.0001)
 
@@ -312,7 +327,7 @@ def genetic_algorithm(plot_axes):
 if __name__ == "__main__":
 
 
-
+    run_name = 'run2'
 
     ir_points_length = 20
     xuv_points_length = 50
@@ -354,6 +369,8 @@ if __name__ == "__main__":
 
 
     with tf.Session() as sess:
+
+        writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
         # run the genetic algorithm
         genetic_algorithm(plot_axes=plot_axes)
