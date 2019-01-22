@@ -759,7 +759,7 @@ if __name__ == "__main__":
 
     # set the name of the neural net test run and save the settigns
 #    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
-    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL'
+    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL_no_noise_fixlr'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -799,7 +799,7 @@ if __name__ == "__main__":
                 #train network
                 if i < 35:
                     sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
-                elif i < 40:
+                else:
                     sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
 
             print("")
