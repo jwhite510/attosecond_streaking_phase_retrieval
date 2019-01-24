@@ -24,7 +24,7 @@ def add_tensorboard_values(rmse, generation, sess, writer, tensorboard_tools):
 
 
 def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, sess, axes=None, generation=None, writer=None,
-                       tensorboard_tools=None):
+                       tensorboard_tools=None, run_name=None):
     # a = np.sum(individual["ir_amplitude"])
     # b = np.sum(individual["ir_phase"])
     # c = np.sum(individual["xuv_phase"])
@@ -71,7 +71,7 @@ def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, s
                               xuv_fmat=frequency_space["xuv_fmat"], ir_fmat=frequency_space["ir_fmat"],
                               predicted_streaking_trace=image_out,
                               actual_streaking_trace=input_data["actual_trace"],
-                              generation=generation, rmse=trace_rmse)
+                              generation=generation, rmse=trace_rmse, run_name=run_name)
 
         add_tensorboard_values(trace_rmse, generation, sess, writer, tensorboard_tools)
 
@@ -105,11 +105,13 @@ def create_plot_axes():
 
 
 def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fmat,
-                          predicted_streaking_trace, actual_streaking_trace, generation, rmse):
+                          predicted_streaking_trace, actual_streaking_trace, generation, rmse,
+                          run_name):
 
     axes["actual_ir"].cla()
     axes["actual_ir"].plot(ir_fmat, np.abs(actual_fields["ir_f"])**2, color='black')
     axes["actual_ir"].text(0.0, 1.1, "generation: {}".format(str(generation)), transform=axes["actual_ir"].transAxes)
+    axes["actual_ir"].text(0.0, 1.2, run_name, transform=axes["actual_ir"].transAxes)
     axes["actual_ir_twinx"].cla()
     axes["actual_ir_twinx"].text(0.0, 0.9, "actual_ir", backgroundcolor="white", transform=axes["actual_ir_twinx"].transAxes)
     axes["actual_ir_twinx"].plot(ir_fmat, np.unwrap(np.angle(actual_fields["ir_f"])), color='green')
@@ -373,13 +375,13 @@ def genetic_algorithm(generations, pop_size, run_name, spline_params,
             best_ind = tools.selBest(pop, 1)[0]
             # print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
             calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g, writer=writer,
-                               tensorboard_tools=tensorboard_tools)
+                               tensorboard_tools=tensorboard_tools, run_name=run_name)
 
 
         # return the rmse of final result
         best_ind = tools.selBest(pop, 1)[0]
         return calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g,
-                       writer=writer, tensorboard_tools=tensorboard_tools)
+                       writer=writer, tensorboard_tools=tensorboard_tools, run_name=run_name)
 
 def define_ga_params(run_name, k_n_params):
 
@@ -470,9 +472,71 @@ def create_tensorboard_tools():
     return tensorboard_tools
 
 
+def optimize_n_k(k_n_params, optimize):
+
+    n_vec = np.array([])
+    k_vec = np.array([])
+    rmse_vec = np.array([])
+    for k in [1, 2, 3, 4, 5]:
+        for n in [5, 10, 20, 40, 60]:
+
+            if optimize == "ir_amp":
+                # ir amp
+                k_n_params["ir_amp_points_length"] = n
+                k_n_params["k_ir_amp"] = k
+
+            elif optimize == "ir_phase":
+                # ir phase
+                k_n_params["ir_phase_points_length"] = n
+                k_n_params["k_ir_phase"] = k
+
+            elif optimize == "xuv_phase":
+                # xuv phase
+                k_n_params["xuv_phase_points_length"] = n
+                k_n_params["k_xuv_phase"] = k
+
+
+            # define the run name
+            runname = ""
+            for thing in ["ir_amp", "ir_phase", "xuv_phase"]:
+                runname = runname+thing+"_n"+str(k_n_params[thing+"_points_length"])+"_k"+str(k_n_params["k_"+thing])+"__"
+
+
+            run_name, spline_params, input_data, frequency_space = define_ga_params(run_name=runname,
+                                                                                    k_n_params=k_n_params)
+
+            rmse = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+                                           input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
+                                           tensorboard_tools=tensorboard_tools)
+            n_vec = np.append(n_vec, n)
+            k_vec = np.append(k_vec, k)
+            rmse_vec = np.append(rmse_vec, rmse)
 
 
 
+    # find the best params
+    index_best = np.argmin(rmse_vec)
+    n_best = n_vec[index_best]
+    k_best = k_vec[index_best]
+
+
+    if optimize == "ir_amp":
+        # ir amp
+        k_n_params["ir_amp_points_length"] = n_best
+        k_n_params["k_ir_amp"] = k_best
+        return k_n_params
+
+    elif optimize == "ir_phase":
+        # ir phase
+        k_n_params["ir_phase_points_length"] = n_best
+        k_n_params["k_ir_phase"] = k_best
+        return k_n_params
+
+    elif optimize == "xuv_phase":
+        # xuv phase
+        k_n_params["xuv_phase_points_length"] = n_best
+        k_n_params["k_xuv_phase"] = k_best
+        return k_n_params
 
 
 
@@ -486,6 +550,7 @@ if __name__ == "__main__":
     tensorboard_tools = create_tensorboard_tools()
 
 
+    # create the initial values for k and n
     k_n_params = {}
     # ir amplitude
     k_n_params["ir_amp_points_length"] = 20
@@ -497,42 +562,24 @@ if __name__ == "__main__":
     k_n_params["xuv_phase_points_length"] = 50
     k_n_params["k_xuv_phase"] = 3
 
-    run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="test21", k_n_params=k_n_params)
 
-    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
-                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
-                                   tensorboard_tools=tensorboard_tools)
+    k_n_params = optimize_n_k(k_n_params, "ir_amp")
 
-    print('rmse_final: ', rmse_final)
+    print("k_n_params: ", k_n_params)
 
 
-    k_n_params = {}
-    # ir amplitude
-    k_n_params["ir_amp_points_length"] = 23
-    k_n_params["k_ir_amp"] = 2
-    # ir phase
-    k_n_params["ir_phase_points_length"] = 10
-    k_n_params["k_ir_phase"] = 5
-    # xuv phase
-    k_n_params["xuv_phase_points_length"] = 50
-    k_n_params["k_xuv_phase"] = 3
-
-    run_name, spline_params, input_data, frequency_space= define_ga_params(run_name="test31", k_n_params=k_n_params)
-
-    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
-                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
-                                   tensorboard_tools=tensorboard_tools)
-
-    print('rmse_final: ', rmse_final)
 
 
-    # with tf.Session() as sess:
+
+
+    # run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="test21", k_n_params=k_n_params)
     #
-    #     writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
+    # rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+    #                                input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
+    #                                tensorboard_tools=tensorboard_tools)
     #
-    #     # run the genetic algorithm
-    #     rmse_final = genetic_algorithm(generations=3, pop_size=5)
-    #     print(rmse_final)
-
-
-
+    # print('rmse_final: ', rmse_final)
+    #
+    #
+    #
+    #
