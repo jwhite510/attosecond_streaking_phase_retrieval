@@ -764,7 +764,7 @@ if __name__ == "__main__":
 
     # set the name of the neural net test run and save the settigns
 #    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
-    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL_no_noise_lrbasedonerror'
+    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL_no_noise_lrbasedonerror_1fixed'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -816,17 +816,19 @@ if __name__ == "__main__":
             batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
             train_error = sess.run(loss, feed_dict={x: batch_x_train, y_true: batch_y_train})
 
-            if train_error <  0.5:
-                learning_rate = 0.0001
-                print('setting learningrate to ' + str(learning_rate))
+
+            if train_error <  0.0025:
+                learning_rate = 0.00002
+                print('setting learningrate to '+str(learning_rate))
 
             elif train_error <  0.003:
                 learning_rate = 0.00005
                 print('setting learningrate to ' + str(learning_rate))
 
-            elif train_error <  0.0025:
-                learning_rate = 0.00002
-                print('setting learningrate to '+str(learning_rate))
+            elif train_error < 0.5:
+                learning_rate = 0.0001
+                print('setting learningrate to ' + str(learning_rate))
+
 
             print("learning rate: ")
 
