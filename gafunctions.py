@@ -23,8 +23,6 @@ def add_tensorboard_values(rmse, generation, sess, writer):
     pass
 
 
-
-
 def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, sess, axes=None, generation=None, writer=None):
     # a = np.sum(individual["ir_amplitude"])
     # b = np.sum(individual["ir_phase"])
@@ -79,10 +77,6 @@ def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, s
 
 
     return trace_rmse
-
-
-
-
 
 
 def create_plot_axes():
@@ -170,10 +164,6 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
     plt.pause(0.0001)
 
 
-
-
-
-
 def create_individual(spline_params):
 
     individual = creator.Individual()
@@ -228,7 +218,7 @@ def generate_ir_xuv_complex_fields(ir_phi, ir_amp, xuv_phi, knot_values):
 
 
 def genetic_algorithm(generations, pop_size, run_name, spline_params,
-                      input_data, frequency_space):
+                      input_data, frequency_space, axes):
 
     with tf.Session() as sess:
 
@@ -259,8 +249,6 @@ def genetic_algorithm(generations, pop_size, run_name, spline_params,
         fitnesses = [toolbox.evaluate(p, input_data, frequency_space, spline_params, sess) for p in pop]
         for ind, fit in zip(pop, fitnesses):
             ind.fitness.values = fit,
-
-        exit(0)
 
         print("  Evaluated %i individuals" % len(pop))
 
@@ -357,7 +345,8 @@ def genetic_algorithm(generations, pop_size, run_name, spline_params,
 
             # Evaluate the individuals with an invalid fitness
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-            fitnesses = map(toolbox.evaluate, invalid_ind)
+            # fitnesses = map(toolbox.evaluate, invalid_ind)
+            fitnesses = [toolbox.evaluate(inv, input_data, frequency_space, spline_params, sess) for inv in invalid_ind]
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit,
 
@@ -383,11 +372,14 @@ def genetic_algorithm(generations, pop_size, run_name, spline_params,
 
             best_ind = tools.selBest(pop, 1)[0]
             # print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
-            calc_vecs_and_rmse(best_ind, plotting=True, generation=g)
+            calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g, writer=writer)
+
 
         # return the rmse of final result
         best_ind = tools.selBest(pop, 1)[0]
-        return calc_vecs_and_rmse(best_ind, plotting=False)
+        return calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g,
+                       writer=writer)
+
 
 
 
@@ -430,7 +422,7 @@ if __name__ == "__main__":
     actual_trace = actual_trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
 
 
-    run_name = 'run_lowermutpb_largermutations'
+    run_name = 'run_lowermutpb_largermutations222'
 
     ir_amp_points_length = 20
     k_ir_amp = 4
@@ -487,8 +479,8 @@ if __name__ == "__main__":
     plot_axes = create_plot_axes()
 
 
-    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
-                                   input_data=input_data, frequency_space=frequency_space)
+    rmse_final = genetic_algorithm(generations=22, pop_size=5, run_name=run_name, spline_params=spline_params,
+                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes)
 
 
     # with tf.Session() as sess:
