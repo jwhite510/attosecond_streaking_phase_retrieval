@@ -15,7 +15,7 @@ import pickle
 
 
 
-def add_tensorboard_values(rmse, generation):
+def add_tensorboard_values(rmse, generation, sess, writer):
 
     summ = sess.run(unsupervised_mse_tb, feed_dict={rmse_tb: rmse})
     writer.add_summary(summ, global_step=generation)
@@ -25,43 +25,56 @@ def add_tensorboard_values(rmse, generation):
 
 
 
-def calc_vecs_and_rmse(individual, plotting, generation=None):
+def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, sess, axes=None, generation=None, writer=None):
     # a = np.sum(individual["ir_amplitude"])
     # b = np.sum(individual["ir_phase"])
     # c = np.sum(individual["xuv_phase"])
 
     # interpolate the coef values onto the fmat
-    xuv_phase_spl = BSpline(xuv_knot_locations, individual["xuv_phase"], k)
-    ir_amp_spl = BSpline(ir_knot_locations, individual["ir_amplitude"], k)
-    ir_phase_spl = BSpline(ir_knot_locations, individual["ir_phase"], k)
+    # xuv_phase_spl = BSpline(xuv_knot_locations, individual["xuv_phase"], k)
+    xuv_phase_spl = BSpline(spline_params["xuv_phase_knot_locations"],
+                            individual["xuv_phase"], spline_params["k_xuv_phase"])
 
-    xuv_phase = xuv_phase_spl(xuv_fmat)
-    ir_amp = ir_amp_spl(ir_fmat)
-    ir_phase = ir_phase_spl(ir_fmat)
+    # ir_amp_spl = BSpline(ir_knot_locations, individual["ir_amplitude"], k)
+    ir_amp_spl = BSpline(spline_params["ir_amp_knot_locations"],
+                         individual["ir_amplitude"], spline_params["k_ir_amp"])
+
+    # ir_phase_spl = BSpline(ir_knot_locations, individual["ir_phase"], k)
+    ir_phase_spl = BSpline(spline_params["ir_phase_knot_locations"],
+                           individual["ir_phase"], spline_params["k_ir_phase"])
+
+
+    xuv_phase = xuv_phase_spl(frequency_space["xuv_fmat"])
+    ir_amp = ir_amp_spl(frequency_space["ir_fmat"])
+    ir_phase = ir_phase_spl(frequency_space["ir_fmat"])
 
     # construct complex field vectors from phase and amplitude curve
     xuv_vec = xuv_amp * np.exp(1j * xuv_phase)
     ir_vec = ir_amp * np.exp(1j * ir_phase)
+
 
     # compare to measured streaking trace
     image_out = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_vec, crab_tf2.xuv_cropped_f: xuv_vec})
 
     # calculate rmse
     trace_rmse = np.sqrt(
-        (1 / len(image_out.reshape(-1))) * np.sum((actual_trace.reshape(-1) - image_out.reshape(-1)) ** 2))
+        (1 / len(image_out.reshape(-1))) * np.sum((input_data["actual_trace"].reshape(-1) - image_out.reshape(-1)) ** 2))
 
 
-    if plotting:
+    if axes:
         predicted_fields = {}
         predicted_fields["ir_phase"] = ir_phase
         predicted_fields["ir_amp"] = ir_amp
         predicted_fields["xuv_phase"] = xuv_phase
-        predicted_fields["xuv_amp"] = xuv_amp
-        plot_image_and_fields(axes=plot_axes, predicted_fields=predicted_fields, actual_fields=actual_fields,
-                              xuv_fmat=xuv_fmat, ir_fmat=ir_fmat, predicted_streaking_trace=image_out,
-                              actual_streaking_trace=actual_trace, generation=generation, rmse=trace_rmse)
+        predicted_fields["xuv_amp"] = input_data["xuv_amp"]
 
-        add_tensorboard_values(trace_rmse, generation)
+        plot_image_and_fields(axes=axes, predicted_fields=predicted_fields, actual_fields=input_data["actual_fields"],
+                              xuv_fmat=frequency_space["xuv_fmat"], ir_fmat=frequency_space["ir_fmat"],
+                              predicted_streaking_trace=image_out,
+                              actual_streaking_trace=input_data["actual_trace"],
+                              generation=generation, rmse=trace_rmse)
+
+        add_tensorboard_values(trace_rmse, generation, sess, writer)
 
 
 
@@ -99,6 +112,7 @@ def create_plot_axes():
 
 def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fmat,
                           predicted_streaking_trace, actual_streaking_trace, generation, rmse):
+
     axes["actual_ir"].cla()
     axes["actual_ir"].plot(ir_fmat, np.abs(actual_fields["ir_f"])**2, color='black')
     axes["actual_ir"].text(0.0, 1.1, "generation: {}".format(str(generation)), transform=axes["actual_ir"].transAxes)
@@ -160,7 +174,7 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
 
 
 
-def create_individual():
+def create_individual(spline_params):
 
     individual = creator.Individual()
 
@@ -170,11 +184,11 @@ def create_individual():
     #return individual
 
 
-    individual["ir_amplitude"] = 1.0*np.random.rand(ir_points_length)
-    individual["ir_amplitude"][0:8] = 0.0
-    individual["ir_amplitude"][-8:] = 0.0
-    individual["ir_phase"] = 1.0*np.random.rand(ir_points_length)
-    individual["xuv_phase"] = 10.0*np.random.rand(xuv_points_length)
+    individual["ir_amplitude"] = 1.0*np.random.rand(spline_params["ir_amp_points_length"])
+    # individual["ir_amplitude"][0:8] = 0.0
+    # individual["ir_amplitude"][-8:] = 0.0
+    individual["ir_phase"] = 1.0*np.random.rand(spline_params["ir_phase_points_length"])
+    individual["xuv_phase"] = 10.0*np.random.rand(spline_params["xuv_phase_points_length"])
 
     # calc_vecs_and_rmse(individual, plotting=True)
     # plt.ioff()
@@ -193,10 +207,11 @@ def create_population(create_individual, n):
     return population
 
 
-def evaluate(individual):
+def evaluate(individual, input_data, frequency_space, spline_params, sess):
 
 
-    rmse = calc_vecs_and_rmse(individual, plotting=False)
+    rmse = calc_vecs_and_rmse(individual, input_data, frequency_space,
+                              spline_params, sess)
 
     return rmse
 
@@ -212,159 +227,175 @@ def generate_ir_xuv_complex_fields(ir_phi, ir_amp, xuv_phi, knot_values):
 
 
 
-def genetic_algorithm(generations, pop_size):
-    creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", dict, fitness=creator.FitnessMax)
+def genetic_algorithm(generations, pop_size, run_name, spline_params,
+                      input_data, frequency_space):
 
-    toolbox = base.Toolbox()
+    with tf.Session() as sess:
 
-    toolbox.register("create_individual", create_individual)
-    toolbox.register("create_population", create_population, toolbox.create_individual)
-    toolbox.register("evaluate", evaluate)
-    toolbox.register("select", tools.selTournament, tournsize=4)
-    toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
+        writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
-    # create the initial population
-    pop = toolbox.create_population(n=pop_size)
-    # print(pop[0].fitness.values)
+        creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
+        creator.create("Individual", dict, fitness=creator.FitnessMax)
 
-    # evaluate and assign fitness numbers
-    fitnesses = list(map(toolbox.evaluate, pop))
-    for ind, fit in zip(pop, fitnesses):
-        ind.fitness.values = fit,
-
-    print("  Evaluated %i individuals" % len(pop))
-
-    # fits = [ind.fitness.values[0] for ind in pop]
-
-    # MUTPB is the probability for mutating an individual
-    CXPB, MUTPB, MUTPB2 = 0.05, 0.05, 0.1
-    # CXPB, MUTPB, MUTPB2 = 1.0, 1.0, 1.0
-
-    # Variable keeping track of the number of generations
-    g = 0
-
-    while g <= generations:
-        g = g + 1
-        print("-- Generation %i --" % g)
-
-        offspring = toolbox.select(pop, len(pop))
-
-        # Clone the selected individuals
-        offspring = list(map(toolbox.clone, offspring))
-
-        # Apply crossover and mutation on the offspring
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
-
-            # cross two individuals with probability CXPB
-            re_evaluate = False
-            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-                if random.random() < CXPB:
-                    toolbox.mate(child1[vector], child2[vector])
-                    re_evaluate = True
-            if re_evaluate:
-                del child1.fitness.values
-                del child2.fitness.values
+        toolbox = base.Toolbox()
 
 
-        for mutant in offspring:
-            # mutate an individual with probability MUTPB
-            re_evaluate = False
-            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-                if random.random() < MUTPB:
-                    toolbox.mutate(mutant[vector])
-                    re_evaluate = True
-            if re_evaluate:
-                del mutant.fitness.values
+        toolbox.register("create_individual", create_individual, spline_params)
 
+        toolbox.register("create_population", create_population, toolbox.create_individual)
 
-        for mutant in offspring:
-            # mutate an individual with probabililty MUTPB2
-            re_evaluate = False
-            for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-                if random.random() < MUTPB2:
-                    # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
-                    if vector=='ir_amplitude':
-                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.1, indpb=0.6)
-                    else:
-                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.6)
+        toolbox.register("evaluate", evaluate)
 
-                    re_evaluate = True
-            if re_evaluate:
-                del mutant.fitness.values
+        toolbox.register("select", tools.selTournament, tournsize=4)
+        toolbox.register("mate", tools.cxTwoPoint)
+        toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
 
+        # create the initial population
+        pop = toolbox.create_population(n=pop_size)
+        # print(pop[0].fitness.values)
 
-
-        ## Apply crossover and mutation on the offspring
-        #for child1, child2 in zip(offspring[::2], offspring[1::2]):
-#
-        #    # cross two individuals with probability CXPB
-        #    if random.random() < CXPB:
-#
-        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-        #            toolbox.mate(child1[vector], child2[vector])
-#
-        #        # fitness values of the children
-        #        # must be recalculated later
-        #        del child1.fitness.values
-        #        del child2.fitness.values
-#
-        #for mutant in offspring:
-#
-        #    # mutate an individual with probability MUTPB
-        #    if random.random() < MUTPB:
-#
-        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-        #            toolbox.mutate(mutant[vector])
-#
-        #        del mutant.fitness.values
-#
-        #for mutant in offspring:
-#
-        #    # mutate an individual with probabililty MUTPB2
-        #    if random.random() < MUTPB2:
-        #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
-        #            # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
-        #            tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.2)
-#
-        #        del mutant.fitness.values
-#
-
-
-
-
-
-
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
+        # evaluate and assign fitness numbers
+        # fitnesses = list(map(toolbox.evaluate, pop))
+        fitnesses = [toolbox.evaluate(p, input_data, frequency_space, spline_params, sess) for p in pop]
+        for ind, fit in zip(pop, fitnesses):
             ind.fitness.values = fit,
 
-        print("  Evaluated %i individuals" % len(invalid_ind))
+        exit(0)
 
-        # The population is entirely replaced by the offspring
-        pop[:] = offspring
+        print("  Evaluated %i individuals" % len(pop))
 
-        # Gather all the fitnesses in one list and print the stats
-        fits = [ind.fitness.values[0] for ind in pop]
+        # fits = [ind.fitness.values[0] for ind in pop]
 
-        length = len(pop)
-        mean = sum(fits) / length
-        sum2 = sum(x * x for x in fits)
-        std = abs(sum2 / length - mean ** 2) ** 0.5
+        # MUTPB is the probability for mutating an individual
+        CXPB, MUTPB, MUTPB2 = 0.05, 0.05, 0.1
+        # CXPB, MUTPB, MUTPB2 = 1.0, 1.0, 1.0
 
-        print("  Min %s" % min(fits))
-        print("  Max %s" % max(fits))
-        print("  Avg %s" % mean)
-        print("  Std %s" % std)
+        # Variable keeping track of the number of generations
+        g = 0
 
-        print("-- End of (successful) evolution -- gen {}".format(str(g)))
+        while g <= generations:
+            g = g + 1
+            print("-- Generation %i --" % g)
 
+            offspring = toolbox.select(pop, len(pop))
+
+            # Clone the selected individuals
+            offspring = list(map(toolbox.clone, offspring))
+
+            # Apply crossover and mutation on the offspring
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+
+                # cross two individuals with probability CXPB
+                re_evaluate = False
+                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                    if random.random() < CXPB:
+                        toolbox.mate(child1[vector], child2[vector])
+                        re_evaluate = True
+                if re_evaluate:
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+            for mutant in offspring:
+                # mutate an individual with probability MUTPB
+                re_evaluate = False
+                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                    if random.random() < MUTPB:
+                        toolbox.mutate(mutant[vector])
+                        re_evaluate = True
+                if re_evaluate:
+                    del mutant.fitness.values
+
+            for mutant in offspring:
+                # mutate an individual with probabililty MUTPB2
+                re_evaluate = False
+                for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+                    if random.random() < MUTPB2:
+                        # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
+                        if vector == 'ir_amplitude':
+                            tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.1, indpb=0.6)
+                        else:
+                            tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.6)
+
+                        re_evaluate = True
+                if re_evaluate:
+                    del mutant.fitness.values
+
+            ## Apply crossover and mutation on the offspring
+            # for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            #
+            #    # cross two individuals with probability CXPB
+            #    if random.random() < CXPB:
+            #
+            #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            #            toolbox.mate(child1[vector], child2[vector])
+            #
+            #        # fitness values of the children
+            #        # must be recalculated later
+            #        del child1.fitness.values
+            #        del child2.fitness.values
+            #
+            # for mutant in offspring:
+            #
+            #    # mutate an individual with probability MUTPB
+            #    if random.random() < MUTPB:
+            #
+            #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            #            toolbox.mutate(mutant[vector])
+            #
+            #        del mutant.fitness.values
+            #
+            # for mutant in offspring:
+            #
+            #    # mutate an individual with probabililty MUTPB2
+            #    if random.random() < MUTPB2:
+            #        for vector in ['ir_phase', 'xuv_phase', 'ir_amplitude']:
+            #            # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
+            #            tools.mutGaussian(mutant[vector], mu=0.0, sigma=5.0, indpb=0.2)
+            #
+            #        del mutant.fitness.values
+            #
+
+            # Evaluate the individuals with an invalid fitness
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses = map(toolbox.evaluate, invalid_ind)
+            for ind, fit in zip(invalid_ind, fitnesses):
+                ind.fitness.values = fit,
+
+            print("  Evaluated %i individuals" % len(invalid_ind))
+
+            # The population is entirely replaced by the offspring
+            pop[:] = offspring
+
+            # Gather all the fitnesses in one list and print the stats
+            fits = [ind.fitness.values[0] for ind in pop]
+
+            length = len(pop)
+            mean = sum(fits) / length
+            sum2 = sum(x * x for x in fits)
+            std = abs(sum2 / length - mean ** 2) ** 0.5
+
+            print("  Min %s" % min(fits))
+            print("  Max %s" % max(fits))
+            print("  Avg %s" % mean)
+            print("  Std %s" % std)
+
+            print("-- End of (successful) evolution -- gen {}".format(str(g)))
+
+            best_ind = tools.selBest(pop, 1)[0]
+            # print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
+            calc_vecs_and_rmse(best_ind, plotting=True, generation=g)
+
+        # return the rmse of final result
         best_ind = tools.selBest(pop, 1)[0]
-        # print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
-        calc_vecs_and_rmse(best_ind, plotting=True, generation=g)
+        return calc_vecs_and_rmse(best_ind, plotting=False)
+
+
+
+
+
+
+
+
 
 
 
@@ -375,26 +406,10 @@ def genetic_algorithm(generations, pop_size):
 if __name__ == "__main__":
 
 
-    run_name = 'run_lowermutpb_largermutations'
-
-    ir_points_length = 20
-    xuv_points_length = 50
-
-    # define global variables for vector calculation
-    # knot locations
+    # retrieve f vectors
     xuv_fmat = crab_tf2.xuv.f_cropped
     ir_fmat = crab_tf2.ir.f_cropped
-    # order
-    k = 5
 
-    # define number of knots
-    xuv_knots = xuv_points_length + k + 1
-    ir_knots = ir_points_length + k + 1
-
-
-    # knot locations
-    xuv_knot_locations = np.linspace(xuv_fmat[0], xuv_fmat[-1], xuv_knots)
-    ir_knot_locations = np.linspace(ir_fmat[0], ir_fmat[-1], ir_knots)
 
     # get xuv field amplitude
     with open('measured_spectrum.p', 'rb') as file:
@@ -409,24 +424,80 @@ if __name__ == "__main__":
     unsupervised_mse_tb = tf.summary.scalar("streaking_trace_rmse", rmse_tb)
 
 
-
-
     # retrieve the trace and actual fields
     # actual_trace, actual_fields = unsupervised.get_trace(index=2, filename='attstrace_train2_processed.hdf5', plotting=False)
     actual_trace, actual_fields = unsupervised.get_trace(index=2, filename='attstrace_train2.hdf5', plotting=False)
     actual_trace = actual_trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
+
+
+    run_name = 'run_lowermutpb_largermutations'
+
+    ir_amp_points_length = 20
+    k_ir_amp = 4
+
+    ir_phase_points_length = 10
+    k_ir_phase = 5
+
+    xuv_phase_points_length = 50
+    k_xuv_phase = 3
+    # order
+
+
+    # define number of knots
+    xuv_phase_knots = xuv_phase_points_length + k_xuv_phase + 1
+    ir_amp_knots = ir_amp_points_length + k_ir_amp + 1
+    ir_phase_knots = ir_phase_points_length + k_ir_phase + 1
+
+
+    # knot locations
+    xuv_phase_knot_locations = np.linspace(xuv_fmat[0], xuv_fmat[-1], xuv_phase_knots)
+    ir_amp_knot_locations = np.linspace(ir_fmat[0], ir_fmat[-1], ir_amp_knots)
+    ir_phase_knot_locations = np.linspace(ir_fmat[0], ir_fmat[-1], ir_phase_knots)
+
+
+    # variables
+    frequency_space = {}
+    frequency_space["xuv_fmat"] = xuv_fmat
+    frequency_space["ir_fmat"] = ir_fmat
+
+    input_data = {}
+    input_data["xuv_amp"] = xuv_amp
+    input_data["actual_trace"] = actual_trace
+    input_data["actual_fields"] = actual_fields
+
+    spline_params = {}
+    spline_params["ir_amp_points_length"] = ir_amp_points_length
+    spline_params["k_ir_amp"] = k_ir_amp
+    spline_params["ir_phase_points_length"] = ir_phase_points_length
+    spline_params["k_ir_phase"] = k_ir_phase
+    spline_params["xuv_phase_points_length"] = xuv_phase_points_length
+    spline_params["k_xuv_phase"] = k_xuv_phase
+    # the number of knots
+    spline_params["xuv_phase_knots"] = xuv_phase_knots
+    spline_params["ir_amp_knots"] = ir_amp_knots
+    spline_params["ir_phase_knots"] = ir_phase_knots
+    # knot locations
+    spline_params["xuv_phase_knot_locations"] = xuv_phase_knot_locations
+    spline_params["ir_amp_knot_locations"] = ir_amp_knot_locations
+    spline_params["ir_phase_knot_locations"] = ir_phase_knot_locations
+
 
     # create axes for plotting
     plt.ion()
     plot_axes = create_plot_axes()
 
 
-    with tf.Session() as sess:
+    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+                                   input_data=input_data, frequency_space=frequency_space)
 
-        writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
-        # run the genetic algorithm
-        genetic_algorithm(generations=5000, pop_size=5000)
+    # with tf.Session() as sess:
+    #
+    #     writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
+    #
+    #     # run the genetic algorithm
+    #     rmse_final = genetic_algorithm(generations=3, pop_size=5)
+    #     print(rmse_final)
 
 
 
