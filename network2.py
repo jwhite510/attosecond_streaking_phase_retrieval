@@ -803,9 +803,9 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                if i < 35:
-                    #sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
-                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:learning_rate})
+                #if i < 35:
+                #sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
+                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:learning_rate})
 
             print("")
 
