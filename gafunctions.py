@@ -15,15 +15,16 @@ import pickle
 
 
 
-def add_tensorboard_values(rmse, generation, sess, writer):
+def add_tensorboard_values(rmse, generation, sess, writer, tensorboard_tools):
 
-    summ = sess.run(unsupervised_mse_tb, feed_dict={rmse_tb: rmse})
+    summ = sess.run(tensorboard_tools["unsupervised_mse_tb"],
+                    feed_dict={tensorboard_tools["rmse_tb"]: rmse})
     writer.add_summary(summ, global_step=generation)
     writer.flush()
-    pass
 
 
-def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, sess, axes=None, generation=None, writer=None):
+def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, sess, axes=None, generation=None, writer=None,
+                       tensorboard_tools=None):
     # a = np.sum(individual["ir_amplitude"])
     # b = np.sum(individual["ir_phase"])
     # c = np.sum(individual["xuv_phase"])
@@ -47,7 +48,7 @@ def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, s
     ir_phase = ir_phase_spl(frequency_space["ir_fmat"])
 
     # construct complex field vectors from phase and amplitude curve
-    xuv_vec = xuv_amp * np.exp(1j * xuv_phase)
+    xuv_vec = input_data["xuv_amp"] * np.exp(1j * xuv_phase)
     ir_vec = ir_amp * np.exp(1j * ir_phase)
 
 
@@ -72,7 +73,7 @@ def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, s
                               actual_streaking_trace=input_data["actual_trace"],
                               generation=generation, rmse=trace_rmse)
 
-        add_tensorboard_values(trace_rmse, generation, sess, writer)
+        add_tensorboard_values(trace_rmse, generation, sess, writer, tensorboard_tools)
 
 
 
@@ -101,7 +102,6 @@ def create_plot_axes():
     axes["predicted_trace"] = fig.add_subplot(gs[3, :])
 
     return axes
-
 
 
 def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fmat,
@@ -218,7 +218,7 @@ def generate_ir_xuv_complex_fields(ir_phi, ir_amp, xuv_phi, knot_values):
 
 
 def genetic_algorithm(generations, pop_size, run_name, spline_params,
-                      input_data, frequency_space, axes):
+                      input_data, frequency_space, axes, tensorboard_tools):
 
     with tf.Session() as sess:
 
@@ -372,36 +372,20 @@ def genetic_algorithm(generations, pop_size, run_name, spline_params,
 
             best_ind = tools.selBest(pop, 1)[0]
             # print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
-            calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g, writer=writer)
+            calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g, writer=writer,
+                               tensorboard_tools=tensorboard_tools)
 
 
         # return the rmse of final result
         best_ind = tools.selBest(pop, 1)[0]
         return calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g,
-                       writer=writer)
+                       writer=writer, tensorboard_tools=tensorboard_tools)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-
+def define_ga_params(run_name, k_n_params):
 
     # retrieve f vectors
     xuv_fmat = crab_tf2.xuv.f_cropped
     ir_fmat = crab_tf2.ir.f_cropped
-
 
     # get xuv field amplitude
     with open('measured_spectrum.p', 'rb') as file:
@@ -411,41 +395,36 @@ if __name__ == "__main__":
     xuv_amp = np.abs(xuv_sample.Ef_prop_cropped)
 
 
-    # create object for measurement of error
-    rmse_tb = tf.placeholder(tf.float32, shape=[])
-    unsupervised_mse_tb = tf.summary.scalar("streaking_trace_rmse", rmse_tb)
-
-
     # retrieve the trace and actual fields
     # actual_trace, actual_fields = unsupervised.get_trace(index=2, filename='attstrace_train2_processed.hdf5', plotting=False)
     actual_trace, actual_fields = unsupervised.get_trace(index=2, filename='attstrace_train2.hdf5', plotting=False)
     actual_trace = actual_trace.reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values))
 
+    # run_name = 'run_lowermutpb_largermutations222'
 
-    run_name = 'run_lowermutpb_largermutations222'
-
-    ir_amp_points_length = 20
-    k_ir_amp = 4
-
-    ir_phase_points_length = 10
-    k_ir_phase = 5
-
-    xuv_phase_points_length = 50
-    k_xuv_phase = 3
+    # ir_amp_points_length = 20
+    ir_amp_points_length = k_n_params["ir_amp_points_length"]
+    # k_ir_amp = 4
+    k_ir_amp = k_n_params["k_ir_amp"]
+    # ir_phase_points_length = 10
+    ir_phase_points_length = k_n_params['ir_phase_points_length']
+    # k_ir_phase = 5
+    k_ir_phase = k_n_params["k_ir_phase"]
+    # xuv_phase_points_length = 50
+    xuv_phase_points_length = k_n_params["xuv_phase_points_length"]
+    # k_xuv_phase = 3
+    k_xuv_phase = k_n_params["k_xuv_phase"]
     # order
-
 
     # define number of knots
     xuv_phase_knots = xuv_phase_points_length + k_xuv_phase + 1
     ir_amp_knots = ir_amp_points_length + k_ir_amp + 1
     ir_phase_knots = ir_phase_points_length + k_ir_phase + 1
 
-
     # knot locations
     xuv_phase_knot_locations = np.linspace(xuv_fmat[0], xuv_fmat[-1], xuv_phase_knots)
     ir_amp_knot_locations = np.linspace(ir_fmat[0], ir_fmat[-1], ir_amp_knots)
     ir_phase_knot_locations = np.linspace(ir_fmat[0], ir_fmat[-1], ir_phase_knots)
-
 
     # variables
     frequency_space = {}
@@ -474,13 +453,77 @@ if __name__ == "__main__":
     spline_params["ir_phase_knot_locations"] = ir_phase_knot_locations
 
 
+
+
+    return run_name, spline_params, input_data, frequency_space
+
+
+def create_tensorboard_tools():
+    # create object for measurement of error
+    rmse_tb = tf.placeholder(tf.float32, shape=[])
+    unsupervised_mse_tb = tf.summary.scalar("streaking_trace_rmse", rmse_tb)
+
+    tensorboard_tools = {}
+    tensorboard_tools["rmse_tb"] = rmse_tb
+    tensorboard_tools["unsupervised_mse_tb"] = unsupervised_mse_tb
+
+    return tensorboard_tools
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+
     # create axes for plotting
     plt.ion()
     plot_axes = create_plot_axes()
+    tensorboard_tools = create_tensorboard_tools()
 
 
-    rmse_final = genetic_algorithm(generations=22, pop_size=5, run_name=run_name, spline_params=spline_params,
-                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes)
+    k_n_params = {}
+    # ir amplitude
+    k_n_params["ir_amp_points_length"] = 20
+    k_n_params["k_ir_amp"] = 4
+    # ir phase
+    k_n_params["ir_phase_points_length"] = 10
+    k_n_params["k_ir_phase"] = 5
+    # xuv phase
+    k_n_params["xuv_phase_points_length"] = 50
+    k_n_params["k_xuv_phase"] = 3
+
+    run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="test21", k_n_params=k_n_params)
+
+    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
+                                   tensorboard_tools=tensorboard_tools)
+
+    print('rmse_final: ', rmse_final)
+
+
+    k_n_params = {}
+    # ir amplitude
+    k_n_params["ir_amp_points_length"] = 23
+    k_n_params["k_ir_amp"] = 2
+    # ir phase
+    k_n_params["ir_phase_points_length"] = 10
+    k_n_params["k_ir_phase"] = 5
+    # xuv phase
+    k_n_params["xuv_phase_points_length"] = 50
+    k_n_params["k_xuv_phase"] = 3
+
+    run_name, spline_params, input_data, frequency_space= define_ga_params(run_name="test31", k_n_params=k_n_params)
+
+    rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+                                   input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
+                                   tensorboard_tools=tensorboard_tools)
+
+    print('rmse_final: ', rmse_final)
 
 
     # with tf.Session() as sess:
