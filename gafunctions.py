@@ -477,8 +477,8 @@ def optimize_n_k(k_n_params, optimize):
     n_vec = np.array([])
     k_vec = np.array([])
     rmse_vec = np.array([])
-    for k in [1, 2, 3, 4, 5]:
-        for n in [5, 10, 20, 40, 60]:
+    for k in [2, 3, 4, 5]:
+        for n in [5, 10, 40, 60]:
 
             if optimize == "ir_amp":
                 # ir amp
@@ -505,7 +505,7 @@ def optimize_n_k(k_n_params, optimize):
             run_name, spline_params, input_data, frequency_space = define_ga_params(run_name=runname,
                                                                                     k_n_params=k_n_params)
 
-            rmse = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
+            rmse = genetic_algorithm(generations=100, pop_size=1000, run_name=run_name, spline_params=spline_params,
                                            input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
                                            tensorboard_tools=tensorboard_tools)
             n_vec = np.append(n_vec, n)
