@@ -14,10 +14,8 @@ class GetData():
         self.batch_counter = 0
         self.batch_index = 0
         self.batch_size = batch_size
-        #self.train_filename = 'attstrace_train2_processed.hdf5'
-        #self.test_filename = 'attstrace_test2_processed.hdf5'
-        self.train_filename = 'attstrace_train2.hdf5'
-        self.test_filename = 'attstrace_test2.hdf5'
+        self.train_filename = 'attstrace_train2_processed.hdf5'
+        self.test_filename = 'attstrace_test2_processed.hdf5'
 
         # self.imagetype = 'proof'
         self.imagetype = 'rawtrace'
@@ -736,9 +734,6 @@ elif network == 6:
     image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
     u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
     u_LR = tf.placeholder(tf.float32, shape=[])
-    # beta1 : momentum
-    # beta 2: squares
-    #u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR, beta1=0.9, beta2=0.5)
     u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     u_train = u_optimizer.minimize(u_losses)
 
@@ -764,7 +759,7 @@ if __name__ == "__main__":
 
     # set the name of the neural net test run and save the settigns
 #    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
-    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL_no_noise_lrbasedonerror_1fixed'
+    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -785,7 +780,6 @@ if __name__ == "__main__":
 
         writer = tf.summary.FileWriter("./tensorboard_graph/" + modelname)
 
-        learning_rate = 0.001
         for i in range(epochs):
 
             print("Epoch : {}".format(i+1))
@@ -803,37 +797,17 @@ if __name__ == "__main__":
                 #batch_x, batch_y = get_data.next_batch_random()
 
                 #train network
-                #if i < 35:
-                #sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
-                sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:learning_rate})
+                if i < 35:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
+                elif i < 40:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
+                else:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
+
 
             print("")
 
-            print('trained with learning rate' + str(learning_rate))
             add_tensorboard_values()
-
-            # evaluate accuracy to determine learning rate
-            batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-            train_error = sess.run(loss, feed_dict={x: batch_x_train, y_true: batch_y_train})
-
-
-            if train_error <  0.0025:
-                learning_rate = 0.00002
-                print('setting learningrate to '+str(learning_rate))
-
-            elif train_error <  0.003:
-                learning_rate = 0.00005
-                print('setting learningrate to ' + str(learning_rate))
-
-            elif train_error < 0.5:
-                learning_rate = 0.0001
-                print('setting learningrate to ' + str(learning_rate))
-
-
-            print("learning rate: ")
-
-
-
 
             # every x steps plot predictions
             if (i + 1) % 20 == 0 or (i + 1) <= 15:
