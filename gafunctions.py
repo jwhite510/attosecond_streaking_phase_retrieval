@@ -478,7 +478,7 @@ def optimize_n_k(k_n_params, optimize):
     k_vec = np.array([])
     rmse_vec = np.array([])
     for k in [2, 3, 4, 5]:
-        for n in [5, 10, 40, 60]:
+        for n in [6, 10, 40, 60]:
 
             if optimize == "ir_amp":
                 # ir amp
@@ -516,8 +516,8 @@ def optimize_n_k(k_n_params, optimize):
 
     # find the best params
     index_best = np.argmin(rmse_vec)
-    n_best = n_vec[index_best]
-    k_best = k_vec[index_best]
+    n_best = int(n_vec[index_best])
+    k_best = int(k_vec[index_best])
 
 
     if optimize == "ir_amp":
@@ -564,22 +564,24 @@ if __name__ == "__main__":
 
 
     k_n_params = optimize_n_k(k_n_params, "ir_amp")
-
+    print("k_n_params: ", k_n_params)
+    k_n_params = optimize_n_k(k_n_params, "ir_phase")
+    print("k_n_params: ", k_n_params)
+    k_n_params = optimize_n_k(k_n_params, "xuv_phase")
     print("k_n_params: ", k_n_params)
 
+    # write the run params
+    with open('run_params.p', 'wb') as file:
+        pickle.dump(k_n_params, file)
+
+    run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="run_optimized", k_n_params=k_n_params)
+
+    rmse_final = genetic_algorithm(generations=999999, pop_size=1000, run_name=run_name, spline_params=spline_params,
+                                    input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
+                                    tensorboard_tools=tensorboard_tools)
+
+    print('rmse_final: ', rmse_final)
 
 
 
 
-
-    # run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="test21", k_n_params=k_n_params)
-    #
-    # rmse_final = genetic_algorithm(generations=3, pop_size=5, run_name=run_name, spline_params=spline_params,
-    #                                input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
-    #                                tensorboard_tools=tensorboard_tools)
-    #
-    # print('rmse_final: ', rmse_final)
-    #
-    #
-    #
-    #
