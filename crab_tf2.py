@@ -18,6 +18,42 @@ atts = 1e-18
 
 
 
+
+def apply_taylor_coefs(field_f, coef_values, f0, fmat):
+    # gdd set to 0
+    #            coef_values[1] = 0
+    coef_values = coef_values.reshape(-1, 1)
+
+    # calculate factorials
+    orders = np.array(range(len(coef_values))) + 1
+    terms = np.array(orders).reshape(-1, 1)
+    add_thing = np.arange(0, len(terms), 1).reshape(1, -1)
+    triangle = np.tril(terms - add_thing)
+    triangle[triangle == 0] = 1
+    exponents = orders.reshape(-1, 1)
+    # print(triangle)
+
+    # loop ...
+    factorial = np.ones(shape=(len(coef_values), 1))
+    i = 0
+    while i < np.shape(triangle)[1]:
+        factorial = factorial * triangle[:, i].reshape(-1, 1)
+        i += 1
+
+    # x axis
+    taylor_f0 = f0 + 0.2
+    taylor_fmat = (fmat - taylor_f0).reshape(1, -1)
+
+    taylor_terms = coef_values * (1 / factorial) * taylor_fmat ** exponents
+
+    taylor_series = np.sum(taylor_terms, axis=0)
+
+    field_f = field_f * np.exp(1j * taylor_series)
+
+    return field_f
+
+
+
 class XUV_Field():
 
     def __init__(self, N=512, tmax=5e-16, start_index=270, end_index=325, gdd=0.0, tod=0.0,
@@ -125,37 +161,12 @@ class XUV_Field():
 
             # linear phase always 0
             coef_values[0] = 0
-            coef_values = coef_values * random_phase_taylor['amplitude']**coef_exponents
+            self.coef_values = coef_values * random_phase_taylor['amplitude']**coef_exponents
 
-            # gdd set to 0
-#            coef_values[1] = 0
-            coef_values = coef_values.reshape(-1, 1)
+            self.Ef_prop = apply_taylor_coefs(self.Ef_prop, self.coef_values, self.f0,
+                                              self.fmat)
 
-            # calculate factorials
-            orders = np.array(range(taylor_coefficients))+1
-            terms = np.array(orders).reshape(-1, 1)
-            add_thing = np.arange(0, len(terms), 1).reshape(1, -1)
-            triangle = np.tril(terms - add_thing)
-            triangle[triangle==0] = 1
-            exponents = orders.reshape(-1, 1)
-            # print(triangle)
 
-            # loop ...
-            factorial = np.ones(shape=(taylor_coefficients, 1))
-            i = 0
-            while i < np.shape(triangle)[1]:
-                factorial = factorial * triangle[:, i].reshape(-1, 1)
-                i+=1
-
-            # x axis
-            self.taylor_f0 = self.f0 + 0.2
-            taylor_fmat = (self.fmat - self.taylor_f0).reshape(1, -1)
-
-            taylor_terms = coef_values * (1/factorial) * taylor_fmat**exponents
-
-            taylor_series = np.sum(taylor_terms, axis=0)
-
-            self.Ef_prop = self.Ef * np.exp(1j * taylor_series)
 
 
         #self.Ef_prop = remove_linear_phase(self.Ef_prop, plotting=False)

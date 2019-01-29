@@ -69,12 +69,14 @@ def plot_opened_file(xuv_t, ir_t, trace):
 
 
 
-def generate_samples(n_samples, filename):
+def generate_samples(n_samples, filename, coefs):
     print('creating file: ' + filename)
 
     # create hdf5 file
     with tables.open_file(filename, mode='w') as hd5file:
         hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, len(p_values) * len(tau_values)))
+
+        hd5file.create_earray(hd5file.root, 'coefs', tables.Float64Atom(), shape=(0, int(coefs)))
 
         hd5file.create_earray(hd5file.root, 'ir_t', tables.ComplexAtom(itemsize=32), shape=(0, len(ir.tmat)))
 
@@ -112,70 +114,17 @@ def generate_samples(n_samples, filename):
             while not xuv_good:
 
                 # random with only taylor coefs
-                xuv_sample = XUV_Field(random_phase_taylor={'coefs': 5, 'amplitude': 12},
+                xuv_sample = XUV_Field(random_phase_taylor={'coefs': coefs, 'amplitude': 12},
                                measured_spectrum=spectrum_data)
 
-                #xuv sample to match the measured spectrum, but with gaussian
-                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 5},
-                #                       f0=10.0e16, tmax=8e-16, N=1024,
-                #                       start_index=spectrum_data['indexmin'],
-                #                       end_index=spectrum_data['indexmax'])
-
-                #plt.figure(333)
-                #plt.plot(xuv_sample.fmat, np.zeros_like(xuv_sample.fmat))
-                #plt.plot([xuv_sample.taylor_f0, xuv_sample.taylor_f0], [-1, 1])
-                #plt.plot(xuv_sample.fmat, np.abs(xuv_sample.Ef))
-                #plt.ioff()
-                #plt.show()
-                #exit(0)
-
-
-                # xuv sample to match the measured spectrum, but with gaussian
-                #xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6},
-                #                       f0=10.0e16, tmax=8e-16, N=1024,
-                #                       start_index=spectrum_data['indexmin'],
-                #                       end_index=spectrum_data['indexmax'])
 
                 xuv_good = check_time_boundary(indexmin, indexmax, threshold, xuv_sample)
-
-
-
-
-
-
-                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
-
-
-            #plt.figure(444)
-            #plt.plot(np.real(xuv_sample.Et_prop))
-            #plt.ioff()
-            #plt.show()
-            #exit(0)
-
-            # generate a random IR pulse
-            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                             'clambda_range': (1.2,2.3),
-            #                             'pulse_duration_range':(7.0,12.0),
-            #                                   'I_range': (0.05, 0.6)})
-
-
-            # generate IR pulses with random phase only
-            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                            'clambda_range': (1.7,1.7),
-            #                            'pulse_duration_range':(12.0,12.0),
-            #                                  'I_range': (1.0, 1.0)})
 
             # generate IR pulses with random phase, pulse duration, inensity
             ir_sample = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi),
                                                'clambda_range': (1.6345, 1.6345),
                                                'pulse_duration_range': (7.0, 12.0),
                                                'I_range': (0.4, 1.0)})
-            # print(ir_sample.f0)
-            # lam0 = sc.c / (ir_sample.f0 / sc.physical_constants['atomic unit of time'][0])
-            # print(lam0)
-
-            # generate a default IR pulse
-            #ir_sample = IR_Field()
 
             # generate the streaking trace
             if i % 500 == 0:
@@ -199,6 +148,10 @@ def generate_samples(n_samples, filename):
                 strace = sess.run(image, feed_dict={
                                                     ir_cropped_f: ir_sample.Ef_prop_cropped,
                                                     xuv_cropped_f: xuv_sample.Ef_prop_cropped})
+
+
+            # append coefficients
+            hd5file.root.coefs.append(xuv_sample.coef_values.reshape(1, -1))
 
 
 
@@ -227,8 +180,8 @@ if __name__ == "__main__":
         n_train_samples = 80000
         n_test_samples = 500
 
-        generate_samples(n_samples=n_train_samples, filename='attstrace_train2.hdf5')
-        generate_samples(n_samples=n_test_samples, filename='attstrace_test2.hdf5')
+        generate_samples(n_samples=n_train_samples, filename='attstrace_train2.hdf5', coefs=5)
+        generate_samples(n_samples=n_test_samples, filename='attstrace_test2.hdf5', coefs=5)
 
 
 
