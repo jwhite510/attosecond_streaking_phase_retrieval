@@ -45,7 +45,7 @@ def plot_opened_file(xuv_t, ir_t, trace):
 
 
 
-def generate_processed_traces(filename):
+def generate_processed_traces(filename, coefs):
 
     # create a file for proof traces and xuv envelopes
     processed_filename = filename.split('.')[0] +'_processed.hdf5'
@@ -54,6 +54,8 @@ def generate_processed_traces(filename):
     with tables.open_file(processed_filename, mode='w') as processed_data:
 
         processed_data.create_earray(processed_data.root, 'trace', tables.Float64Atom(), shape=(0, len(p_values) * len(tau_values)))
+
+        processed_data.create_earray(processed_data.root, 'coefs', tables.Float64Atom(), shape=(0, int(coefs)))
 
         processed_data.create_earray(processed_data.root, 'ir_t', tables.ComplexAtom(itemsize=32), shape=(0, len(ir.tmat)))
 
@@ -91,6 +93,8 @@ def generate_processed_traces(filename):
 
                 trace_sample = unprocessed_datafile.root.trace[index, :].reshape(len(p_values), len(tau_values))
 
+                coefs_sample = unprocessed_datafile.root.coefs[index, :]
+
                 # PROCESS DATA HERE
                 trace_sample = add_shot_noise(trace_sample)
                 # processed_trace / sample = process(trace_sample)
@@ -119,6 +123,8 @@ def generate_processed_traces(filename):
 
                 processed_data.root.trace.append(trace_sample.reshape(1, -1))
 
+                processed_data.root.coefs.append(coefs_sample.reshape(1, -1))
+
 
 
 
@@ -126,8 +132,8 @@ if __name__ == "__main__":
 
 
     # unprocessed_filename = 'attstrac_specific.hdf5'
-    generate_processed_traces(filename='attstrace_train2.hdf5')
-    generate_processed_traces(filename='attstrace_test2.hdf5')
+    generate_processed_traces(filename='attstrace_train2.hdf5', coefs=5)
+    generate_processed_traces(filename='attstrace_test2.hdf5', coefs=5)
 
     # test opening the file
     index = 20

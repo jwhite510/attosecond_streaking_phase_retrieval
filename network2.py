@@ -37,15 +37,18 @@ class GetData():
 
 
         if self.labeltype == 'frequency':
-            xuv_real_batch = np.real(hdf5_file.root.xuv_f[self.batch_index:self.batch_index + self.batch_size, :])
-            xuv_imag_batch = np.imag(hdf5_file.root.xuv_f[self.batch_index:self.batch_index + self.batch_size, :])
-            xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
+            #xuv_real_batch = np.real(hdf5_file.root.xuv_f[self.batch_index:self.batch_index + self.batch_size, :])
+            #xuv_imag_batch = np.imag(hdf5_file.root.xuv_f[self.batch_index:self.batch_index + self.batch_size, :])
+            #xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
 
-            ir_real_batch = np.real(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
-            ir_imag_batch = np.imag(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
-            ir_appended_batch = np.append(ir_real_batch, ir_imag_batch, 1)
+            #ir_real_batch = np.real(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
+            #ir_imag_batch = np.imag(hdf5_file.root.ir_f[self.batch_index:self.batch_index + self.batch_size, :])
+            #ir_appended_batch = np.append(ir_real_batch, ir_imag_batch, 1)
 
-            xuv_ir_appended = np.append(xuv_appended_batch, ir_appended_batch, 1)
+            #xuv_ir_appended = np.append(xuv_appended_batch, ir_appended_batch, 1)
+
+
+            coefs = hdf5_file.root.coefs[self.batch_index:self.batch_index + self.batch_size, :]
 
             # xuv, ir = separate_xuv_ir_vec(xuv_ir_appended[0])
 
@@ -57,33 +60,7 @@ class GetData():
 
         self.batch_index += self.batch_size
 
-        return  trace_batch, xuv_ir_appended
-
-
-    def next_batch_random(self):
-
-        pass
-
-        # generate random indexes for the batch
-        # make a vector of random integers between 0 and samples-1
-        # indexes = random.sample(range(self.samples), self.batch_size)
-        # hdf5_file = tables.open_file("processed.hdf5", mode="r")
-        #
-        # xuv_real_batch = np.real(hdf5_file.root.xuv_envelope[indexes, :])
-        # xuv_imag_batch = np.imag(hdf5_file.root.xuv_envelope[indexes, :])
-        # xuv_appended_batch = np.append(xuv_real_batch, xuv_imag_batch, 1)
-        #
-        # if self.imagetype == 'rawtrace':
-        #     trace_batch = hdf5_file.root.attstrace[indexes, :]
-        # elif self.imagetype == 'proof':
-        #     trace_batch = hdf5_file.root.proof[indexes, :]
-        #
-        #
-        # hdf5_file.close()
-        #
-        # self.batch_index += self.batch_size
-        #
-        # return  trace_batch, xuv_appended_batch
+        return  trace_batch, coefs
 
 
     def evaluate_on_test_data(self):
@@ -93,15 +70,16 @@ class GetData():
 
         if self.labeltype == 'frequency':
 
-            xuv_real_eval = np.real(hdf5_file.root.xuv_f[:, :])
-            xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:, :])
-            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+            #xuv_real_eval = np.real(hdf5_file.root.xuv_f[:, :])
+            #xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:, :])
+            #xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
 
-            ir_real_eval = np.real(hdf5_file.root.ir_f[:, :])
-            ir_imag_eval = np.imag(hdf5_file.root.ir_f[:, :])
-            ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
+            #ir_real_eval = np.real(hdf5_file.root.ir_f[:, :])
+            #ir_imag_eval = np.imag(hdf5_file.root.ir_f[:, :])
+            #ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
 
-            xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+            #xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+            coefs = hdf5_file.root.coefs[:, :]
 
 
 
@@ -110,7 +88,7 @@ class GetData():
 
         hdf5_file.close()
 
-        return trace_eval, xuv_ir_appended
+        return trace_eval, coefs
 
 
 
@@ -120,15 +98,17 @@ class GetData():
         hdf5_file = tables.open_file(self.train_filename, mode="r")
 
         if self.labeltype == 'frequency':
-            xuv_real_eval = np.real(hdf5_file.root.xuv_f[:samples, :])
-            xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:samples, :])
-            xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
+            #xuv_real_eval = np.real(hdf5_file.root.xuv_f[:samples, :])
+            #xuv_imag_eval = np.imag(hdf5_file.root.xuv_f[:samples, :])
+            #xuv_appended_eval = np.append(xuv_real_eval, xuv_imag_eval, 1)
 
-            ir_real_eval = np.real(hdf5_file.root.ir_f[:samples, :])
-            ir_imag_eval = np.imag(hdf5_file.root.ir_f[:samples, :])
-            ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
+            #ir_real_eval = np.real(hdf5_file.root.ir_f[:samples, :])
+            #ir_imag_eval = np.imag(hdf5_file.root.ir_f[:samples, :])
+            #ir_appended_eval = np.append(ir_real_eval, ir_imag_eval, 1)
 
-            xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+            #xuv_ir_appended = np.append(xuv_appended_eval, ir_appended_eval, 1)
+            coefs = hdf5_file.root.coefs[:samples, :]
+
 
 
 
@@ -137,7 +117,7 @@ class GetData():
 
         hdf5_file.close()
 
-        return trace_eval, xuv_ir_appended
+        return trace_eval, coefs
 
 
 def plot_predictions(x_in, y_in, axis, fig, set, modelname, epoch, inputtype):
@@ -283,14 +263,13 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, ne
 
     # from y in and pred_in, generate complex field
     # a field with zero phase
-    xuv_sample = crab_tf2.XUV_Field(random_phase_taylor={'coefs': 0, 'amplitude': 0},
+    xuv_sample = crab_tf2.XUV_Field(random_phase_taylor={'coefs': 5, 'amplitude': 0},
                            measured_spectrum=crab_tf2.spectrum_data)
 
     # coef values
-
-    print(np.shape(pred_in))
-    print(np.shape(y_in))
-    exit(0)
+    #print(np.shape(pred_in))
+    #print(np.shape(y_in))
+    #exit(0)
 
 
     # get find where in the vector is the ir and xuv
@@ -298,14 +277,30 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, ne
 
     for j, index in enumerate(indexes):
 
-        prediction = pred_in[index]
+
+        coefs_true = y_in[index]
+        coefs_out = pred_in[index]
+
+
+        xuv_pred = crab_tf2.apply_taylor_coefs(np.array(xuv_sample.Ef_prop),
+                                              coefs_out,
+                                              xuv_sample.f0,
+                                              xuv_sample.fmat)[xuv_sample.fmin_index:xuv_sample.fmax_index]
+
+        xuv_in = crab_tf2.apply_taylor_coefs(np.array(xuv_sample.Ef_prop),
+                                              coefs_true,
+                                              xuv_sample.f0,
+                                              xuv_sample.fmat)[xuv_sample.fmin_index:xuv_sample.fmax_index]
+
+        #prediction = pred_in[index]
+
         mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
         # print(mse)
         # print(str(mse))
 
 
-        xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
-        xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
+        #xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
+        #xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
 
 
         axes[j]['input_trace'].cla()
@@ -340,10 +335,10 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, ne
         axes[j]['predict_xuv'].set_xticks([])
         axes[j]['predict_xuv'].set_yticks([])
 
-        axes[j]['actual_ir'].cla()
-        axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
-        axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
-        axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
+        #axes[j]['actual_ir'].cla()
+        #axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
+        #axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
+        #axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
 
         if j == 0:
 
@@ -356,18 +351,18 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, ne
         axes[j]['actual_ir'].set_xticks([])
         axes[j]['actual_ir'].set_yticks([])
 
-        axes[j]['predict_ir'].cla()
-        axes[j]['predict_ir'].plot(np.real(ir_pred), color='blue')
-        axes[j]['predict_ir'].plot(np.imag(ir_pred), color='red')
-        axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
+        #axes[j]['predict_ir'].cla()
+        #axes[j]['predict_ir'].plot(np.real(ir_pred), color='blue')
+        #axes[j]['predict_ir'].plot(np.imag(ir_pred), color='red')
+        #axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
         axes[j]['predict_ir'].set_xticks([])
         axes[j]['predict_ir'].set_yticks([])
 
         # calculate generated streaking trace
-        generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
-                                                              crab_tf2.xuv_cropped_f: xuv_pred})
+        #generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
+         #                                                     crab_tf2.xuv_cropped_f: xuv_pred})
 
-        axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
+        #axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
         axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
         axes[j]['reconstruct'].set_xticks([])
         axes[j]['reconstruct'].set_yticks([])
@@ -485,7 +480,7 @@ x = tf.placeholder(tf.float32, shape=[None, int(len(crab_tf2.p_values)*len(crab_
 xuv_input_length = int(len(crab_tf2.xuv.Ef_prop_cropped)*2)
 ir_input_length = int(len(crab_tf2.ir.Ef_prop_cropped)*2)
 total_input_length = xuv_input_length + ir_input_length
-y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
+y_true = tf.placeholder(tf.float32, shape=[None, 5])
 
 
 #input image
@@ -732,7 +727,7 @@ elif network == 6:
     hold_prob = tf.placeholder_with_default(1.0, shape=())
     dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
-    y_pred = normal_full_layer(dropout_layer, total_input_length)
+    y_pred = normal_full_layer(dropout_layer, 5)
 
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
 
@@ -742,12 +737,12 @@ elif network == 6:
     train = optimizer.minimize(loss)
 
     # create graph for the unsupervised learning
-    xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
-    image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
-    u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
-    u_LR = tf.placeholder(tf.float32, shape=[])
-    u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    u_train = u_optimizer.minimize(u_losses)
+    #xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+    #image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+    #u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+    #u_LR = tf.placeholder(tf.float32, shape=[])
+    #u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    #u_train = u_optimizer.minimize(u_losses)
 
 
 
