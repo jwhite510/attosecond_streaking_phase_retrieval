@@ -281,6 +281,18 @@ def create_sample_plot(samples_per_plot=3):
 
 def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net_name):
 
+    # from y in and pred_in, generate complex field
+    # a field with zero phase
+    xuv_sample = crab_tf2.XUV_Field(random_phase_taylor={'coefs': 0, 'amplitude': 0},
+                           measured_spectrum=crab_tf2.spectrum_data)
+
+    # coef values
+
+    print(np.shape(pred_in))
+    print(np.shape(y_in))
+    exit(0)
+
+
     # get find where in the vector is the ir and xuv
 
 
