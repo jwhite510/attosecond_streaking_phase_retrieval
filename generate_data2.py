@@ -91,19 +91,9 @@ def generate_samples(n_samples, filename):
     # open and append the file
     with tables.open_file(filename, mode='a') as hd5file:
 
+        xuv_params_pickled = False
+        ir_params_pickled = False
         for i in range(n_samples):
-
-            # generate a random xuv pulse
-            #xuv_sample = XUV_Field(random_phase={'nodes': 50, 'amplitude': 6}, measured_spectrum=spectrum_data)
-
-            #plt.figure(999)
-            #plt.plot(np.real(xuv_sample.Et_prop))
-            #plt.ioff()
-            #plt.show()
-            #exit(0)
-
-
-
 
             xuv_good = False
             threshold = np.max(np.abs(xuv.Et_prop)) / 100
@@ -112,70 +102,49 @@ def generate_samples(n_samples, filename):
             while not xuv_good:
 
                 # random with only taylor coefs
-                xuv_sample = XUV_Field(random_phase_taylor={'coefs': 5, 'amplitude': 12},
+                xuv_dict = {'coefs': 5, 'amplitude': 12}
+                xuv_sample = XUV_Field(random_phase_taylor=xuv_dict,
                                measured_spectrum=spectrum_data)
 
-                #xuv sample to match the measured spectrum, but with gaussian
-                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 3, 'amplitude': 5},
-                #                       f0=10.0e16, tmax=8e-16, N=1024,
-                #                       start_index=spectrum_data['indexmin'],
-                #                       end_index=spectrum_data['indexmax'])
+                # pickle the XUV params
+                if not xuv_params_pickled:
+                    xuv_params = {}
+                    xuv_params["fmin_index"] = xuv_sample.fmin_index
+                    xuv_params["fmax_index"] = xuv_sample.fmax_index
+                    xuv_params["Ef"] = xuv_sample.Ef
+                    xuv_params["fmat"] = xuv_sample.fmat
+                    with open("xuv_params.p") as file:
+                        pickle.dump(xuv_params, file)
+                        print("pickled xuv params")
+                    xuv_params_pickled = True
 
-                #plt.figure(333)
-                #plt.plot(xuv_sample.fmat, np.zeros_like(xuv_sample.fmat))
-                #plt.plot([xuv_sample.taylor_f0, xuv_sample.taylor_f0], [-1, 1])
-                #plt.plot(xuv_sample.fmat, np.abs(xuv_sample.Ef))
-                #plt.ioff()
-                #plt.show()
-                #exit(0)
-
-
-                # xuv sample to match the measured spectrum, but with gaussian
-                #xuv_sample = XUV_Field(random_phase={'nodes': 100, 'amplitude': 6},
-                #                       f0=10.0e16, tmax=8e-16, N=1024,
-                #                       start_index=spectrum_data['indexmin'],
-                #                       end_index=spectrum_data['indexmax'])
 
                 xuv_good = check_time_boundary(indexmin, indexmax, threshold, xuv_sample)
 
-
-
-
-
-
-                #xuv_sample = XUV_Field(random_phase_taylor={'coefs': 20, 'amplitude': 200})
-
-
-            #plt.figure(444)
-            #plt.plot(np.real(xuv_sample.Et_prop))
-            #plt.ioff()
-            #plt.show()
-            #exit(0)
-
-            # generate a random IR pulse
-            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                             'clambda_range': (1.2,2.3),
-            #                             'pulse_duration_range':(7.0,12.0),
-            #                                   'I_range': (0.05, 0.6)})
-
-
-            # generate IR pulses with random phase only
-            #ir_sample = IR_Field(random_pulse={'phase_range':(0,2*np.pi),
-            #                            'clambda_range': (1.7,1.7),
-            #                            'pulse_duration_range':(12.0,12.0),
-            #                                  'I_range': (1.0, 1.0)})
-
             # generate IR pulses with random phase, pulse duration, inensity
-            ir_sample = IR_Field(random_pulse={'phase_range': (0, 2 * np.pi),
-                                               'clambda_range': (1.6345, 1.6345),
-                                               'pulse_duration_range': (7.0, 12.0),
-                                               'I_range': (0.4, 1.0)})
-            # print(ir_sample.f0)
-            # lam0 = sc.c / (ir_sample.f0 / sc.physical_constants['atomic unit of time'][0])
-            # print(lam0)
 
-            # generate a default IR pulse
-            #ir_sample = IR_Field()
+
+
+            ir_dict = {'phase_range': (0, 2 * np.pi),
+                        'clambda_range': (1.6345, 1.6345),
+                        'pulse_duration_range': (7.0, 12.0),
+                        'I_range': (0.4, 1.0)}
+            ir_sample = IR_Field(random_pulse=ir_dict)
+
+            # pickle the IR params
+            if not ir_params_pickled:
+                ir_params = {}
+                ir_params["fmin_index"] = ir_sample.fmin_index
+                ir_params["fmax_index"] = ir_sample.fmax_index
+                ir_params["tmat"] = ir_sample.tmat
+                ir_params["fmat"] = ir_sample.fmat
+                ir_params["ir_dict"] = ir_dict
+                with open("ir_params.p") as file:
+                    pickle.dump(ir_params, file)
+                    print("pickled ir params")
+                ir_params_pickled = True
+
+
 
             # generate the streaking trace
             if i % 500 == 0:
