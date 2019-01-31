@@ -102,8 +102,8 @@ def generate_samples(n_samples, filename):
             while not xuv_good:
 
                 # random with only taylor coefs
-                xuv_dict = {'coefs': 5, 'amplitude': 12}
-                xuv_sample = XUV_Field(random_phase_taylor=xuv_dict,
+                xuv_taylor_dict = {'coefs': 5, 'amplitude': 12}
+                xuv_sample = XUV_Field(random_phase_taylor=xuv_taylor_dict,
                                measured_spectrum=spectrum_data)
 
                 # pickle the XUV params
@@ -112,8 +112,9 @@ def generate_samples(n_samples, filename):
                     xuv_params["fmin_index"] = xuv_sample.fmin_index
                     xuv_params["fmax_index"] = xuv_sample.fmax_index
                     xuv_params["Ef"] = xuv_sample.Ef
+                    xuv_params["f0"] = xuv_sample.f0
                     xuv_params["fmat"] = xuv_sample.fmat
-                    xuv_params["xuv_dict"] = xuv_dict
+                    xuv_params["xuv_taylor_dict"] = xuv_taylor_dict
                     with open("xuv_params.p", "wb") as file:
                         pickle.dump(xuv_params, file)
                         print("pickled xuv params")
@@ -126,11 +127,11 @@ def generate_samples(n_samples, filename):
 
 
 
-            ir_dict = {'phase_range': (0, 2 * np.pi),
+            ir_phase_dict = {'phase_range': (0, 2 * np.pi),
                         'clambda_range': (1.6345, 1.6345),
                         'pulse_duration_range': (7.0, 12.0),
                         'I_range': (0.4, 1.0)}
-            ir_sample = IR_Field(random_pulse=ir_dict)
+            ir_sample = IR_Field(random_pulse=ir_phase_dict)
 
             # pickle the IR params
             if not ir_params_pickled:
@@ -139,7 +140,7 @@ def generate_samples(n_samples, filename):
                 ir_params["fmax_index"] = ir_sample.fmax_index
                 ir_params["tmat"] = ir_sample.tmat
                 ir_params["fmat"] = ir_sample.fmat
-                ir_params["ir_dict"] = ir_dict
+                ir_params["ir_phase_dict"] = ir_phase_dict
                 with open("ir_params.p", "wb") as file:
                     pickle.dump(ir_params, file)
                     print("pickled ir params")
