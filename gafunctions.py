@@ -11,6 +11,24 @@ import unsupervised
 import crab_tf2
 from scipy.interpolate import BSpline
 import pickle
+import datetime
+
+
+
+
+
+
+class LogFile():
+
+    def __init__(self, filename):
+        self.filename = filename
+        with open(self.filename, "w") as file:
+            file.write("log function gafunctions.py\n")
+
+    def log(self, text):
+
+        with open(self.filename, "a") as file:
+            file.write(text + "\n")
 
 
 
@@ -555,6 +573,10 @@ if __name__ == "__main__":
     plot_axes = create_plot_axes()
     tensorboard_tools = create_tensorboard_tools()
 
+    # log file
+    log = LogFile("gafunctionslog.txt")
+    log.log("Begin run")
+
 
     # create the initial values for k and n
     k_n_params = {}
@@ -568,19 +590,33 @@ if __name__ == "__main__":
     k_n_params["xuv_phase_points_length"] = 50
     k_n_params["k_xuv_phase"] = 3
 
+    log.log(str(datetime.datetime.now()))
+    log.log("initial k_n_params:")
+    log.log(str(k_n_params))
+    log.log("")
 
-    k_n_params = optimize_n_k(k_n_params, "ir_amp")
-    print("k_n_params: ", k_n_params)
-    k_n_params = optimize_n_k(k_n_params, "ir_phase")
-    print("k_n_params: ", k_n_params)
-    k_n_params = optimize_n_k(k_n_params, "xuv_phase")
-    print("k_n_params: ", k_n_params)
+
+    for i in range(3):
+
+        k_n_params = optimize_n_k(k_n_params, "ir_amp")
+        k_n_params = optimize_n_k(k_n_params, "ir_phase")
+        k_n_params = optimize_n_k(k_n_params, "xuv_phase")
+
+        log.log(str(datetime.datetime.now()))
+        log.log("k_n_params iteration {}:".format(i))
+        log.log(str(k_n_params))
+        log.log("")
+
+
 
     # write the run params
     with open('run_params.p', 'wb') as file:
         pickle.dump(k_n_params, file)
 
     run_name, spline_params, input_data, frequency_space = define_ga_params(run_name="run_optimized", k_n_params=k_n_params)
+
+    log.log(str(datetime.datetime.now()))
+    log.log("Begin running genetic algorithm "+run_name)
 
     rmse_final = genetic_algorithm(generations=999999, pop_size=1000, run_name=run_name, spline_params=spline_params,
                                     input_data=input_data, frequency_space=frequency_space, axes=plot_axes,
