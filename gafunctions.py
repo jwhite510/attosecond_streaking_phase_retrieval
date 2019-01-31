@@ -61,18 +61,24 @@ def calc_vecs_and_rmse(individual, input_data, frequency_space, spline_params, s
 
 
     if axes:
-        predicted_fields = {}
-        predicted_fields["ir_phase"] = ir_phase
-        predicted_fields["ir_amp"] = ir_amp
-        predicted_fields["xuv_phase"] = xuv_phase
-        predicted_fields["xuv_amp"] = input_data["xuv_amp"]
 
-        plot_image_and_fields(axes=axes, predicted_fields=predicted_fields, actual_fields=input_data["actual_fields"],
-                              xuv_fmat=frequency_space["xuv_fmat"], ir_fmat=frequency_space["ir_fmat"],
-                              predicted_streaking_trace=image_out,
-                              actual_streaking_trace=input_data["actual_trace"],
-                              generation=generation, rmse=trace_rmse, run_name=run_name)
+        # make the plot only on 10th iteration
+        if generation % 10 == 0:
 
+            predicted_fields = {}
+            predicted_fields["ir_phase"] = ir_phase
+            predicted_fields["ir_amp"] = ir_amp
+            predicted_fields["xuv_phase"] = xuv_phase
+            predicted_fields["xuv_amp"] = input_data["xuv_amp"]
+
+            plot_image_and_fields(axes=axes, predicted_fields=predicted_fields, actual_fields=input_data["actual_fields"],
+                                  xuv_fmat=frequency_space["xuv_fmat"], ir_fmat=frequency_space["ir_fmat"],
+                                  predicted_streaking_trace=image_out,
+                                  actual_streaking_trace=input_data["actual_trace"],
+                                  generation=generation, rmse=trace_rmse, run_name=run_name)
+
+
+        # add tensorboard values every iteration
         add_tensorboard_values(trace_rmse, generation, sess, writer, tensorboard_tools)
 
 
@@ -478,7 +484,7 @@ def optimize_n_k(k_n_params, optimize):
     k_vec = np.array([])
     rmse_vec = np.array([])
     for k in [2, 3, 4, 5]:
-        for n in [6, 10, 40, 60]:
+        for n in [6, 10, 40, 60, 80]:
 
             if optimize == "ir_amp":
                 # ir amp
