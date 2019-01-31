@@ -479,7 +479,7 @@ y_true = tf.placeholder(tf.float32, shape=[None, total_input_length])
 #input image
 x_image = tf.reshape(x, [-1, len(crab_tf2.p_values), len(crab_tf2.tau_values), 1])
 
-network = 6
+network = 7
 
 """
 network 1 uses a 3 convolutional layers followed by two dense layers
@@ -736,6 +736,86 @@ elif network == 6:
     u_LR = tf.placeholder(tf.float32, shape=[])
     u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     u_train = u_optimizer.minimize(u_losses)
+
+elif network == 7:
+
+    print('Setting up multires layer network with more conv weights with GAN')
+
+    # create the phase retrieval network weights
+    with tf.variable_scope("phaseretrievalnet"):
+
+        # six convolutional layers
+
+        multires_filters = [11, 7, 5, 3]
+
+        multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+
+        conv_layer_1 = convolutional_layer(multires_layer_1, shape=[1, 1, len(multires_filters), 2*len(multires_filters)],
+                                           activate='relu', stride=[2, 2])
+
+
+        multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2*len(multires_filters),
+                                          filter_sizes=multires_filters)
+
+        conv_layer_2 = convolutional_layer(multires_layer_2,
+                                           shape=[1, 1, 32,64], activate='relu', stride=[2, 2])
+
+        multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
+                                          filter_sizes=multires_filters)
+
+        conv_layer_3 = convolutional_layer(multires_layer_3,
+                                           shape=[1, 1, 256,
+                                                  512], activate='relu', stride=[2, 2])
+
+        convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
+        full_layer_one = normal_full_layer(convo_3_flat, 1024)
+
+        # dropout
+        hold_prob = tf.placeholder_with_default(1.0, shape=())
+        dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+        y_pred = normal_full_layer(dropout_layer, total_input_length)
+
+        loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+        s_LR = tf.placeholder(tf.float32, shape=[])
+        # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+        optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+        train = optimizer.minimize(loss)
+
+        # create graph for the unsupervised learning
+        xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
+        image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
+        u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
+        u_LR = tf.placeholder(tf.float32, shape=[])
+        u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+        u_train = u_optimizer.minimize(u_losses)
+
+    # create the GAN network
+    with tf.variable_scope("GAN"):
+        gan_input = tf.placeholder(tf.float32, shape=[None, 100])
+        gan_layer_one = normal_full_layer(gan_input, 256)
+        gan_layer_two = normal_full_layer(gan_layer_one, 256)
+        # for 4 coefficients
+        # really 5, because 1st order is zero
+        output = normal_full_layer(gan_layer_two, 4)
+        n_samples = tf.shape(output)[0]
+        lin_0_phase = tf.fill([n_samples, 1], 0.0)
+        output_with_zero_phase = tf.concat([lin_0_phase, output], axis=1)
+        coefs_out = 0.5 * tf.nn.tanh(output_with_zero_phase)
+        print(coefs_out)
+
+        init = tf.global_variables_initializer()
+        with tf.Session() as sess:
+            sess.run(init)
+            res = sess.run(coefs_out, feed_dict={gan_input: np.random.uniform(-1, 1, size=(15, 100))})
+            print(res)
+            exit(0)
+
+
+
+
+
 
 
 
