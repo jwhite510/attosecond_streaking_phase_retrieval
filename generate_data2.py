@@ -113,7 +113,7 @@ def generate_samples(n_samples, filename):
                     xuv_params["fmax_index"] = xuv_sample.fmax_index
                     xuv_params["Ef"] = xuv_sample.Ef
                     xuv_params["fmat"] = xuv_sample.fmat
-                    with open("xuv_params.p") as file:
+                    with open("xuv_params.p", "wb") as file:
                         pickle.dump(xuv_params, file)
                         print("pickled xuv params")
                     xuv_params_pickled = True
@@ -139,7 +139,7 @@ def generate_samples(n_samples, filename):
                 ir_params["tmat"] = ir_sample.tmat
                 ir_params["fmat"] = ir_sample.fmat
                 ir_params["ir_dict"] = ir_dict
-                with open("ir_params.p") as file:
+                with open("ir_params.p", "wb") as file:
                     pickle.dump(ir_params, file)
                     print("pickled ir params")
                 ir_params_pickled = True
