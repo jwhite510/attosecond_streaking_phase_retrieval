@@ -15,15 +15,6 @@ def check_time_boundary(indexmin, indexmax, threshold, xuv):
 
     if value_1 > threshold or value_2 > threshold:
         bad_samples+=1
-        #plt.figure(356)
-        #plt.cla()
-        #plt.plot(np.real(xuv.Et_prop))
-        #plt.plot([indexmin, indexmin], [-np.max(np.real(xuv.Et_prop)), np.max(np.real(xuv.Et_prop))], color='black')
-        #plt.plot([indexmax, indexmax], [-np.max(np.real(xuv.Et_prop)), np.max(np.real(xuv.Et_prop))], color='black')
-        #plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
-        #plt.text(0.1, 0.8, 'bad samples:{}'.format(bad_samples), transform=plt.gca().transAxes)
-        #plt.show()
-        #plt.pause(0.001)
         return False
 
     return True
@@ -69,7 +60,7 @@ def plot_opened_file(xuv_t, ir_t, trace):
 
 
 
-def generate_samples(n_samples, filename, coefs):
+def generate_samples(n_samples, filename, coefs, amplitude):
     print('creating file: ' + filename)
 
     # create hdf5 file
@@ -95,18 +86,6 @@ def generate_samples(n_samples, filename, coefs):
 
         for i in range(n_samples):
 
-            # generate a random xuv pulse
-            #xuv_sample = XUV_Field(random_phase={'nodes': 50, 'amplitude': 6}, measured_spectrum=spectrum_data)
-
-            #plt.figure(999)
-            #plt.plot(np.real(xuv_sample.Et_prop))
-            #plt.ioff()
-            #plt.show()
-            #exit(0)
-
-
-
-
             xuv_good = False
             threshold = np.max(np.abs(xuv.Et_prop)) / 100
             indexmin = 100
@@ -114,7 +93,7 @@ def generate_samples(n_samples, filename, coefs):
             while not xuv_good:
 
                 # random with only taylor coefs
-                xuv_sample = XUV_Field(random_phase_taylor={'coefs': coefs, 'amplitude': 12},
+                xuv_sample = XUV_Field(random_phase_taylor={'coefs': coefs, 'amplitude': amplitude},
                                measured_spectrum=spectrum_data)
 
 
@@ -180,8 +159,8 @@ if __name__ == "__main__":
         n_train_samples = 80000
         n_test_samples = 500
 
-        generate_samples(n_samples=n_train_samples, filename='attstrace_train2.hdf5', coefs=5)
-        generate_samples(n_samples=n_test_samples, filename='attstrace_test2.hdf5', coefs=5)
+        generate_samples(n_samples=n_train_samples, filename='attstrace_train2.hdf5', coefs=5, amplitude=12)
+        generate_samples(n_samples=n_test_samples, filename='attstrace_test2.hdf5', coefs=5, amplitude=12)
 
 
 

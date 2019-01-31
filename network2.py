@@ -282,15 +282,18 @@ def plot_predictions2(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, ne
         coefs_out = pred_in[index]
 
 
+        # MAKE SURE THIS AMPLITUDE MATCHES THE NUMBER USED WHEN CONSTRUCTING TRAINING DATA
         xuv_pred = crab_tf2.apply_taylor_coefs(np.array(xuv_sample.Ef_prop),
                                               coefs_out,
                                               xuv_sample.f0,
-                                              xuv_sample.fmat)[xuv_sample.fmin_index:xuv_sample.fmax_index]
+                                              xuv_sample.fmat,
+                                               amplitude=12)[xuv_sample.fmin_index:xuv_sample.fmax_index]
 
         xuv_in = crab_tf2.apply_taylor_coefs(np.array(xuv_sample.Ef_prop),
                                               coefs_true,
                                               xuv_sample.f0,
-                                              xuv_sample.fmat)[xuv_sample.fmin_index:xuv_sample.fmax_index]
+                                              xuv_sample.fmat,
+                                             amplitude=12)[xuv_sample.fmin_index:xuv_sample.fmax_index]
 
         #prediction = pred_in[index]
 
@@ -766,7 +769,7 @@ if __name__ == "__main__":
 
     # set the name of the neural net test run and save the settigns
 #    modelname = 'largerpspace_measured_noise_randomirphasepulsedurationintensity_lr0001_GDDTOD_80ksamples_multires'
-    modelname = 'kspace_measured_spectrum2_5coefs_multiresmoreweights_matchmeasuredgridspace_dynamicL'
+    modelname = 'output_coefs_normalized_output'
     print('starting ' + modelname)
     # save this file
     shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
@@ -808,6 +811,9 @@ if __name__ == "__main__":
                     sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR:0.0001})
                 elif i < 40:
                     sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
+                else:
+                    sess.run(train, feed_dict={x: batch_x, y_true: batch_y, hold_prob: 0.8, s_LR: 0.0001})
+
 
             print("")
 

@@ -19,9 +19,13 @@ atts = 1e-18
 
 
 
-def apply_taylor_coefs(field_f, coef_values, f0, fmat):
-    # gdd set to 0
-    #            coef_values[1] = 0
+def apply_taylor_coefs(field_f, coef_values, f0, fmat, amplitude):
+
+    # scale the coefficients with amplitude and exponents
+    coef_exponents = np.array(range(len(coef_values))) + 1.0
+    coef_values = coef_values * amplitude ** coef_exponents
+
+    # reshape
     coef_values = coef_values.reshape(-1, 1)
 
     # calculate factorials
@@ -154,17 +158,12 @@ class XUV_Field():
             # generate random phase for
             taylor_coefficients = random_phase_taylor['coefs']
             # generate value for coefficients
-            coef_values = np.random.rand(taylor_coefficients) - 0.5
-
-            # scale the higher order terms
-            coef_exponents = np.array(range(random_phase_taylor['coefs'])) + 1.0
-
+            self.coef_values = np.random.rand(taylor_coefficients) - 0.5
             # linear phase always 0
-            coef_values[0] = 0
-            self.coef_values = coef_values * random_phase_taylor['amplitude']**coef_exponents
+            self.coef_values[0] = 0
 
             self.Ef_prop = apply_taylor_coefs(self.Ef_prop, self.coef_values, self.f0,
-                                              self.fmat)
+                                              self.fmat, amplitude=random_phase_taylor['amplitude'])
 
 
 
