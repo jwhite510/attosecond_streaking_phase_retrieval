@@ -6,6 +6,7 @@ import tensorflow as tf
 import crab_tf2
 import os
 import shutil
+import pickle
 
 
 class GetData():
@@ -791,24 +792,94 @@ elif network == 7:
         u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
         u_train = u_optimizer.minimize(u_losses)
 
+
+    with open("xuv_params.p", 'rb') as file:
+        xuv_params = pickle.load(file)
+    with open("ir_params.p", "rb") as file:
+        ir_params = pickle.load(file)
+
     # create the GAN network
     with tf.variable_scope("GAN"):
         gan_input = tf.placeholder(tf.float32, shape=[None, 100])
         gan_layer_one = normal_full_layer(gan_input, 256)
         gan_layer_two = normal_full_layer(gan_layer_one, 256)
-        # for 4 coefficients
-        # really 5, because 1st order is zero
-        output = normal_full_layer(gan_layer_two, 4)
-        n_samples = tf.shape(output)[0]
-        lin_0_phase = tf.fill([n_samples, 1], 0.0)
-        output_with_zero_phase = tf.concat([lin_0_phase, output], axis=1)
-        coefs_out = 0.5 * tf.nn.tanh(output_with_zero_phase)
-        print(coefs_out)
+
+        xuv_params_out = 5
+        ir_params_out = 4
+        output = normal_full_layer(gan_layer_two, int(xuv_params_out+ir_params_out))
+
+        # set the linear phase to always be 0
+        np_ones = np.ones((1, int(xuv_params_out+ir_params_out)))
+        np_ones[0][0] = 0
+        sparse = tf.constant(np_ones, dtype=tf.float32)
+        output = sparse * output
+
+        # these are the numbers used to calculate xuv and IR
+        xuv_output = output[:, 0:5]
+        ir_output = output[:, 5:]
+
+        xuv_Ef = tf.constant(xuv_params["Ef"], dtype=tf.complex64)
+        xuv_fmat = tf.constant(xuv_params["fmat"], dtype=tf.complex64)
+
+        # construct taylor expansion phase
+        # print(xuv_output)
+        # print(xuv_params["xuv_taylor_dict"]["amplitude"])
+        # print(xuv_params["xuv_taylor_dict"]["coefs"])
+
+        coef_exponents = np.array(range(xuv_params["xuv_taylor_dict"]["coefs"])) + 1.0
+        print(coef_exponents)
+        print(xuv_params["xuv_taylor_dict"]["amplitude"])
+
+        scaled_ampl = tf.constant(xuv_params["xuv_taylor_dict"]["amplitude"]**coef_exponents, dtype=tf.float32)
+        print(xuv_output)
+        xuv_coefs_scaled = xuv_output * tf.reshape(scaled_ampl, [1, -1, 1])
+        print(xuv_coefs_scaled)
+        exit(0)
+        
+
+
+
+
+        # calculate factorials
+        orders = np.array(range(xuv_params["xuv_taylor_dict"]["coefs"])) + 1
+        terms = np.array(orders).reshape(-1, 1)
+        add_thing = np.arange(0, len(terms), 1).reshape(1, -1)
+        triangle = np.tril(terms - add_thing)
+        triangle[triangle == 0] = 1
+        exponents = orders.reshape(-1, 1)
+
+        # loop ...
+        factorial = np.ones(shape=(xuv_params["xuv_taylor_dict"]["coefs"], 1))
+        i = 0
+        while i < np.shape(triangle)[1]:
+            factorial = factorial * triangle[:, i].reshape(-1, 1)
+            i += 1
+
+        # x axis
+        taylor_f0 = xuv_params["f0"] + 0.2
+        taylor_fmat = (xuv_params["fmat"] - taylor_f0).reshape(1, -1)
+
+        taylor_terms = coef_values * (1 / factorial) * taylor_fmat ** exponents
+
+        taylor_series = np.sum(taylor_terms, axis=0)
+
+        self.Ef_prop = self.Ef * np.exp(1j * taylor_series)
+
+        exit(0)
+
+
+
+
+
+
+
+
 
         init = tf.global_variables_initializer()
         with tf.Session() as sess:
             sess.run(init)
-            res = sess.run(coefs_out, feed_dict={gan_input: np.random.uniform(-1, 1, size=(15, 100))})
+            np.random.seed(5)
+            res = sess.run(scaled_ampl, feed_dict={gan_input: np.random.uniform(-1, 1, size=(3, 100))})
             print(res)
             exit(0)
 
