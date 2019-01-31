@@ -113,6 +113,7 @@ def generate_samples(n_samples, filename):
                     xuv_params["fmax_index"] = xuv_sample.fmax_index
                     xuv_params["Ef"] = xuv_sample.Ef
                     xuv_params["fmat"] = xuv_sample.fmat
+                    xuv_params["xuv_dict"] = xuv_dict
                     with open("xuv_params.p", "wb") as file:
                         pickle.dump(xuv_params, file)
                         print("pickled xuv params")
