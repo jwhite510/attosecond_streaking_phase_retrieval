@@ -75,7 +75,7 @@ def retrieve_spectrum(plotting=False):
 
 
 
-    # pickle the files for use in xuv pulse generation
+    # convert the xuv params to atomic units
     params = {}
     params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
     params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0]
