@@ -187,6 +187,17 @@ def plot_image_and_fields(axes, predicted_fields, actual_fields, xuv_fmat, ir_fm
             os.makedirs(dir)
         plt.savefig(dir + str(generation) + ".png")
 
+    # save the raw files
+    if generation % 100 == 0:
+
+        with open("./gapictures/fields.p", "wb") as file:
+            save_files = {}
+            save_files["predicted_fields"] = predicted_fields
+            save_files["actual_fields"] = actual_fields
+            save_files["generation"] = generation
+            pickle.dump(save_files,file)
+
+
     plt.pause(0.0001)
 
 
