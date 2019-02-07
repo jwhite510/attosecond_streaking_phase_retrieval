@@ -38,10 +38,6 @@ def tf_fft(tensor, shift, axis=0):
     return freq_domain
 
 
-
-
-
-
 def xuv_taylor_to_E(coef_values_normalized, coefs, amplitude):
     # print(coef_values_normalized)
 
@@ -90,7 +86,7 @@ def xuv_taylor_to_E(coef_values_normalized, coefs, amplitude):
     Ef_prop = Ef * tf.exp(tf.complex(imag=taylor_terms_summed, real=tf.zeros_like(taylor_terms_summed)))
 
 
-    # set phase angel to 0!!!!!
+    # set phase angle to 0!!!!!
     # return Ef_prop
 
 
@@ -162,78 +158,227 @@ def ir_from_params(ir_param_values, amplitudes):
     Ef_phase = Ef * tf.exp(tf.complex(imag=phase, real=tf.zeros_like(phase)))
 
     # inverse fourier transform
-    Et_phase = tf_ifft(Ef_phase, shift=int(len(ir_spectrum.ir_spectrum.tmat) / 2), axis=1)
+    # Et_phase = tf_ifft(Ef_phase, shift=int(len(ir_spectrum.ir_spectrum.tmat) / 2), axis=1)
+
+    return Ef_phase
 
 
+def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
-    with tf.Session() as sess:
-        input_values = np.array([[0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0]])
-
-        out = sess.run(Et_phase, feed_dict={ir_values_in: input_values})
-        print(np.shape(out))
-        plt.figure(1)
-        plt.plot(np.real(out[0]))
-        plt.figure(2)
-        plt.plot(np.real(out[1]))
-        plt.show()
-
-    exit(0)
-
-    Up = (sc.elementary_charge ** 2 * I0) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * f0) ** 2)
-    E0 = np.sqrt(4 * Up * (2 * np.pi * f0) ** 2)
-    Et = E0 * np.exp(-2 * np.log(2) * (ir_spectrum.ir_spectrum.tmat / t0) ** 2) * np.exp(1j * 2 * np.pi * f0 * ir_spectrum.ir_spectrum.tmat)
-
-
-
-    exit(0)
+    global p
+    global tau_index
+    global tau_values
+    global p_values
+    global k_values
+    global padded_xuv_f
+    global xuv_time_domain
+    global padded_ir_f
+    global ir_time_domain
+    global eV_values
 
 
 
 
+    # define constants
+    xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
+    ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
 
+    # zero pad the spectrum of ir and xuv input to match the full fmat
+    # [pad_before , padafter]
+    paddings_xuv = tf.constant([[xuv.fmin_index, len(xuv.Ef_prop) - xuv.fmax_index]], dtype=tf.int32)
+    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+
+    # same for the IR
+    paddings_ir = tf.constant([[ir.fmin_index, len(ir.Ef_prop) - ir.fmax_index]], dtype=tf.int32)
+    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
+
+    # fourier transform the padded xuv
+    xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat) / 2))
+
+    # fourier transform the padded ir
+    ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat) / 2))
+
+    # zero pad the ir in frequency space to match dt of xuv
+    assert (1 / (ir.df * xuv.dt)) - math.ceil((1 / (ir.df * xuv.dt))) < 0.000000001
+    N_new = math.ceil(1 / (ir.df * xuv.dt))
+    f_pad_2 = ir.df * np.arange(-N_new / 2, N_new / 2, 1)
+    t_pad_2 = xuv.dt * np.arange(-N_new / 2, N_new / 2, 1)
+    N_current = len(ir.fmat)
+    pad_2 = (N_new - N_current) / 2
+    assert int(pad_2) - pad_2 == 0
+    paddings_ir_2 = tf.constant([[int(pad_2), int(pad_2)]], dtype=tf.int32)
+    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+
+    # calculate ir with matching dt in time
+    ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
+
+    # match the scale of the original
+    scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex64)
+
+    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+    # integrate ir pulse
+    A_t = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+    flipped1 = tf.reverse(A_t, axis=[0])
+    flipped_integral = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+    # find middle index point
+    middle = int(N_new / 2)
+    rangevals = np.array(range(len(xuv.tmat))) - len(xuv.tmat) / 2
+    middle_indexes = np.array([middle] * len(xuv.tmat)) + rangevals
+
+    # maximum add to zero before would be out of bounds
+    max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
+
+    # use this dt to scale the image size along tau axis
+    #dtau_index = 84  # to match measured
+    dtau_index = 180 # to match measured
+    # dtau_index = 75
+
+    N_tau = int(max_steps / dtau_index)
+
+
+    if N_tau % 2 != 0:
+        N_tau += -1
+
+    N_tau = 29
+
+    tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
+
+    # Number of points must be even
+    # assert N_tau % 2 == 0
+    # assert type(dtau_index) == int
+    # assert abs(tau_index[0]) < max_steps
+
+    indexes = middle_indexes.reshape(-1, 1) + tau_index.reshape(1, -1)
+    tau_values = tau_index * xuv.dt  # atomic units
+
+    #print(tau_values*sc.physical_constants['atomic unit of time'][0])
+    #exit(0)
+
+    # gather values from integrated array
+    ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
+    ir_values = tf.expand_dims(ir_values, axis=0)
+
+    # create momentum vector
+    #p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
+    #p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
+    # p = np.linspace(1.8, 5.5, 235).reshape(-1, 1, 1)
+    # p_values = np.squeeze(p)  # atomic units
+    # K = (0.5 * p ** 2)
+
+    # set dK = 1eV
+    K = np.arange(50, 351, 1) # eV
+    eV_values = np.array(K)
+    # convert K to atomic units
+    K = K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    K = K.reshape(-1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1)
+    k_values = np.squeeze(K) # atomic untis
+    p_values = np.squeeze(p)  # atomic units
+
+    # convert to tensorflow
+    p_tf = tf.constant(p, dtype=tf.float32)
+    K_tf = tf.constant(K, dtype=tf.float32)
+
+    # 3d ir mat
+    p_A_t_integ_t_phase3d = p_tf * ir_values
+    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+
+    # add fourier transform term
+    e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1, -1, 1))
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+
+    # add xuv to integrate over
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
+
+    # multiply elements together
+    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+
+    # integrate over the xuv time
+    integration = tf.constant(xuv.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+
+    # absolute square the matrix
+    image_not_scaled = tf.square(tf.abs(integration))
+
+    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
+    image = scaled / tf.reduce_max(scaled)
+
+    return image
+
+
+
+
+
+# xuv creation
 coefs_in = tf.placeholder(tf.float32, shape=[None, 5])
 Ef_prop = xuv_taylor_to_E(coefs_in, coefs=5, amplitude=12.0)
 
+
+# IR creation
 # ir amplitudes
 amplitudes = {}
 amplitudes["phase_range"] = (0, 2 * np.pi)
-# amplitudes["clambda_range"] = (1.5, 1.6345)
+# amplitudes["clambda_range"] = (1.6345, 1.6345)
 amplitudes["clambda_range"] = (1.0, 1.6345)
 amplitudes["pulseduration_range"] =  (7.0, 12.0)
 amplitudes["I_range"] = (0.4, 1.0)
 ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-ir = ir_from_params(ir_values_in, amplitudes=amplitudes)
+Ef_phase = ir_from_params(ir_values_in, amplitudes=amplitudes)
 
 
 
-exit(0)
+
+
+
 
 with tf.Session() as sess:
-        # input_array = np.array([[0.01, 0.02, 0.03, 0.04, 0.05],
-        #                         [0.12, 0.1, 0.2, 0.13, 0.16]])
-        input_array = np.array([[0.00, 0.5, 0.00, 0.00, 0.00],
-                                [0.00, -0.5, 0.00, 0.00, 0.00]])
-        # print(np.shape(sess.run(taylor_terms_summed, feed_dict={coefs_in: input_array})))
-        out = sess.run(Ef_prop, feed_dict={coefs_in: input_array})
+    input_values = np.array([[-1.0, 0.0, 0.0, 0.0],
+                             [-1.0, 0.0, 0.0, 0.0]])
 
-        plt.figure(1)
-        plt.plot(np.real(out[0]), color="blue")
-        plt.plot(np.imag(out[0]), color='red')
-        plt.plot(np.abs(out[0]), color='black')
-        axtwin = plt.gca().twinx()
-        axtwin.plot(np.unwrap(np.angle(out[0])), color='green')
+    out = sess.run(Ef_phase, feed_dict={ir_values_in: input_values})
+    print(np.shape(out))
+    plt.figure(1)
+    plt.plot(np.real(out[0]))
+    plt.figure(2)
+    plt.plot(np.real(out[1]))
+    plt.show()
 
-        plt.figure(2)
-        plt.plot(np.real(out[1]), color="blue")
-        plt.plot(np.imag(out[1]), color='red')
-        plt.plot(np.abs(out[1]), color='black')
-        axtwin = plt.gca().twinx()
-        axtwin.plot(np.unwrap(np.angle(out[1])), color='green')
 
-        plt.show()
-        print(out)
-        exit(0)
+
+
+
+
+
+# exit(0)
+#
+# with tf.Session() as sess:
+#         # input_array = np.array([[0.01, 0.02, 0.03, 0.04, 0.05],
+#         #                         [0.12, 0.1, 0.2, 0.13, 0.16]])
+#         input_array = np.array([[0.00, 0.5, 0.00, 0.00, 0.00],
+#                                 [0.00, -0.5, 0.00, 0.00, 0.00]])
+#         # print(np.shape(sess.run(taylor_terms_summed, feed_dict={coefs_in: input_array})))
+#         out = sess.run(Ef_prop, feed_dict={coefs_in: input_array})
+#
+#         plt.figure(1)
+#         plt.plot(np.real(out[0]), color="blue")
+#         plt.plot(np.imag(out[0]), color='red')
+#         plt.plot(np.abs(out[0]), color='black')
+#         axtwin = plt.gca().twinx()
+#         axtwin.plot(np.unwrap(np.angle(out[0])), color='green')
+#
+#         plt.figure(2)
+#         plt.plot(np.real(out[1]), color="blue")
+#         plt.plot(np.imag(out[1]), color='red')
+#         plt.plot(np.abs(out[1]), color='black')
+#         axtwin = plt.gca().twinx()
+#         axtwin.plot(np.unwrap(np.angle(out[1])), color='green')
+#
+#         plt.show()
+#         print(out)
+#         exit(0)
 
 
 
