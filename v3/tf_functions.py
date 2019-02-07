@@ -317,7 +317,19 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, Ip):
     scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
     image = scaled / tf.reduce_max(scaled)
 
-    return image
+    parameters = {}
+    parameters["p"] = p
+    parameters["tau_index"] = tau_index
+    parameters["tau_values"] = tau_values
+    parameters["p_values"] = p_values
+    parameters["k_values"] = k_values
+    parameters["padded_xuv_f"] = padded_xuv_f
+    parameters["xuv_time_domain"] = xuv_time_domain
+    parameters["padded_ir_f"] = padded_ir_f
+    parameters["ir_time_domain"] = ir_time_domain
+    parameters["eV_values"] = eV_values
+
+    return image, parameters
 
 
 if __name__ == "__main__":
@@ -347,7 +359,7 @@ if __name__ == "__main__":
     Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
     # construct streaking image
-    image = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
+    image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
 
     with tf.Session() as sess:
         xuv_input = np.array([[0.0, 0.0, 0.0, 0.5, 0.0]])
