@@ -12,10 +12,13 @@ def generate_samples(tf_graphs, n_samples, filename):
 
     # create hdf5 file
     with tables.open_file(filename, mode='w') as hd5file:
+        # create array for trace
         hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, len(p_values) * len(tau_values)))
 
+        # create array for XUV
         hd5file.create_earray(hd5file.root, 'xuv_coefs', tables.Float64Atom(), shape=(0, len(p_values) * len(tau_values)))
 
+        # create array for IR
         hd5file.create_earray(hd5file.root, 'ir_params', tables.Float64Atom(), shape=(0, len(p_values) * len(tau_values)))
 
 
