@@ -90,8 +90,18 @@ def retrieve_spectrum(plotting=False):
 
 
 params = retrieve_spectrum()
+tmat = params['tmat']
+fmat = params['fmat']
+Ef = params['Ef']
+indexmin = params['indexmin']
+indexmax = params['indexmax']
+f0 = params['f0']
+N = params['N']
+dt = params['dt']
+
 
 if __name__ == "__main__":
 
     params = retrieve_spectrum(plotting=True)
+
 
