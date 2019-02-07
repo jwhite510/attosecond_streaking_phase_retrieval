@@ -5,13 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import factorial
 import scipy.constants as sc
-
-# print(xuv_spectrum.spectrum.params.keys())
-# exit(0)
-
-# plt.figure(1)
-# plt.plot(xuv_spectrum.spectrum.params["Ef"])
-# plt.show()
+import math
 
 
 
@@ -38,21 +32,21 @@ def tf_fft(tensor, shift, axis=0):
     return freq_domain
 
 
-def xuv_taylor_to_E(coef_values_normalized, coefs, amplitude):
+def xuv_taylor_to_E(coef_values_normalized, amplitude):
     # print(coef_values_normalized)
 
     # eventually, will have to convert everything to atomic units before inputting here!!
-    Ef = tf.constant(xuv_spectrum.spectrum.params["Ef"], dtype=tf.complex64)
+    Ef = tf.constant(xuv_spectrum.spectrum.Ef, dtype=tf.complex64)
     Ef = tf.reshape(Ef, [1, -1])
 
-    fmat_taylor = tf.constant(xuv_spectrum.spectrum.params["fmat"]-xuv_spectrum.spectrum.params["f0"], dtype=tf.float32)
+    fmat_taylor = tf.constant(xuv_spectrum.spectrum.fmat-xuv_spectrum.spectrum.f0, dtype=tf.float32)
 
     # create factorials
-    factorials = tf.constant(factorial(np.array(range(coefs))+1), dtype=tf.float32)
+    factorials = tf.constant(factorial(np.array(range(coef_values_normalized.shape[1]))+1), dtype=tf.float32)
     factorials = tf.reshape(factorials, [1, -1, 1])
 
     # create exponents
-    exponents = tf.constant(np.array(range(coefs))+1, dtype=tf.float32)
+    exponents = tf.constant(np.array(range(coef_values_normalized.shape[1]))+1, dtype=tf.float32)
 
     # reshape the taylor fmat
     fmat_taylor = tf.reshape(fmat_taylor, [1, 1, -1])
@@ -85,9 +79,18 @@ def xuv_taylor_to_E(coef_values_normalized, coefs, amplitude):
     # apply the phase angle to Ef
     Ef_prop = Ef * tf.exp(tf.complex(imag=taylor_terms_summed, real=tf.zeros_like(taylor_terms_summed)))
 
+    # fourier transform for time propagated signal
+    Et_prop = tf_ifft(Ef_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
 
-    # set phase angle to 0!!!!!
-    # return Ef_prop
+    # return the cropped E
+    Ef_prop_cropped = Ef_prop[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
+
+    E_prop = {}
+    E_prop["f"] = Ef_prop
+    E_prop["f_cropped"] = Ef_prop_cropped
+    E_prop["t"] = Et_prop
+
+    return E_prop
 
 
 def ir_from_params(ir_param_values, amplitudes):
@@ -138,7 +141,7 @@ def ir_from_params(ir_param_values, amplitudes):
 
     # set up the driving IR field amplitude in AU
     tf_tmat = tf.reshape(tf.constant(ir_spectrum.ir_spectrum.tmat, dtype=tf.float32), [1, -1])
-    tf_fmat = tf.reshape(tf.constant(ir_spectrum.ir_spectrum.fmat, dtype=tf.float32), [1, -1])
+    # tf_fmat = tf.reshape(tf.constant(ir_spectrum.ir_spectrum.fmat, dtype=tf.float32), [1, -1])
 
     # slow oscilating envelope
     Et_slow_osc = tf.reshape(E0, [-1, 1]) * tf.exp(-2*np.log(2) * (tf_tmat / tf.reshape(values_au["t0"], [-1, 1]))**2)
@@ -158,12 +161,20 @@ def ir_from_params(ir_param_values, amplitudes):
     Ef_phase = Ef * tf.exp(tf.complex(imag=phase, real=tf.zeros_like(phase)))
 
     # inverse fourier transform
-    # Et_phase = tf_ifft(Ef_phase, shift=int(len(ir_spectrum.ir_spectrum.tmat) / 2), axis=1)
+    Et_phase = tf_ifft(Ef_phase, shift=int(len(ir_spectrum.ir_spectrum.tmat) / 2), axis=1)
 
-    return Ef_phase
+    # crop the phase
+    Ef_phase_cropped = Ef_phase[:, ir_spectrum.ir_spectrum.start_index:ir_spectrum.ir_spectrum.end_index]
+
+    E_prop = {}
+    E_prop["f"] = Ef_phase
+    E_prop["f_cropped"] = Ef_phase_cropped
+    E_prop["t"] = Et_phase
+
+    return E_prop
 
 
-def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, Ip):
 
     global p
     global tau_index
@@ -180,56 +191,56 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
 
 
     # define constants
-    xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
-    ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
+    # xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
+    # ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
 
     # zero pad the spectrum of ir and xuv input to match the full fmat
     # [pad_before , padafter]
-    paddings_xuv = tf.constant([[xuv.fmin_index, len(xuv.Ef_prop) - xuv.fmax_index]], dtype=tf.int32)
+    paddings_xuv = tf.constant([[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
     padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
 
     # same for the IR
-    paddings_ir = tf.constant([[ir.fmin_index, len(ir.Ef_prop) - ir.fmax_index]], dtype=tf.int32)
+    paddings_ir = tf.constant([[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]], dtype=tf.int32)
     padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
 
     # fourier transform the padded xuv
-    xuv_time_domain = tf_1d_ifft(tensor=padded_xuv_f, shift=int(len(xuv.fmat) / 2))
+    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
 
     # fourier transform the padded ir
-    ir_time_domain = tf_1d_ifft(tensor=padded_ir_f, shift=int(len(ir.fmat) / 2))
+    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
 
     # zero pad the ir in frequency space to match dt of xuv
-    assert (1 / (ir.df * xuv.dt)) - math.ceil((1 / (ir.df * xuv.dt))) < 0.000000001
-    N_new = math.ceil(1 / (ir.df * xuv.dt))
-    f_pad_2 = ir.df * np.arange(-N_new / 2, N_new / 2, 1)
-    t_pad_2 = xuv.dt * np.arange(-N_new / 2, N_new / 2, 1)
-    N_current = len(ir.fmat)
+    assert (1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt)) - math.ceil((1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt))) < 0.000000001
+    N_new = math.ceil(1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt))
+    f_pad_2 = ir_spectrum.ir_spectrum.df * np.arange(-N_new / 2, N_new / 2, 1)
+    t_pad_2 = xuv_spectrum.spectrum.dt * np.arange(-N_new / 2, N_new / 2, 1)
+    N_current = ir_spectrum.ir_spectrum.N
     pad_2 = (N_new - N_current) / 2
     assert int(pad_2) - pad_2 == 0
     paddings_ir_2 = tf.constant([[int(pad_2), int(pad_2)]], dtype=tf.int32)
     padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
 
     # calculate ir with matching dt in time
-    ir_t_matched_dt = tf_1d_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
+    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
 
     # match the scale of the original
-    scale_factor = tf.constant(N_new / len(ir.Ef_prop), dtype=tf.complex64)
+    scale_factor = tf.constant(N_new / ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
 
     ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
 
     # integrate ir pulse
-    A_t = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
     flipped1 = tf.reverse(A_t, axis=[0])
-    flipped_integral = tf.constant(-1.0 * xuv.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
     A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
 
     # find middle index point
     middle = int(N_new / 2)
-    rangevals = np.array(range(len(xuv.tmat))) - len(xuv.tmat) / 2
-    middle_indexes = np.array([middle] * len(xuv.tmat)) + rangevals
+    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - xuv_spectrum.spectrum.N / 2
+    middle_indexes = np.array([middle] * xuv_spectrum.spectrum.N) + rangevals
 
     # maximum add to zero before would be out of bounds
-    max_steps = int(N_new / 2 - len(xuv.tmat) / 2)
+    max_steps = int(N_new / 2 - xuv_spectrum.spectrum.N / 2)
 
     # use this dt to scale the image size along tau axis
     #dtau_index = 84  # to match measured
@@ -252,7 +263,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     # assert abs(tau_index[0]) < max_steps
 
     indexes = middle_indexes.reshape(-1, 1) + tau_index.reshape(1, -1)
-    tau_values = tau_index * xuv.dt  # atomic units
+    tau_values = tau_index * xuv_spectrum.spectrum.dt  # atomic units
 
     #print(tau_values*sc.physical_constants['atomic unit of time'][0])
     #exit(0)
@@ -288,7 +299,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
 
     # add fourier transform term
-    e_fft = np.exp(-1j * (K + med.Ip) * xuv.tmat.reshape(1, -1, 1))
+    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
     e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
 
     # add xuv to integrate over
@@ -298,7 +309,7 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     product = xuv_time_domain_integrate * ir_phi * e_fft_tf
 
     # integrate over the xuv time
-    integration = tf.constant(xuv.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
 
     # absolute square the matrix
     image_not_scaled = tf.square(tf.abs(integration))
@@ -309,77 +320,56 @@ def build_graph(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
+if __name__ == "__main__":
+
+    # xuv creation
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, 5])
+    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in, amplitude=10.0)
 
 
-
-# xuv creation
-coefs_in = tf.placeholder(tf.float32, shape=[None, 5])
-Ef_prop = xuv_taylor_to_E(coefs_in, coefs=5, amplitude=12.0)
-
-
-# IR creation
-# ir amplitudes
-amplitudes = {}
-amplitudes["phase_range"] = (0, 2 * np.pi)
-# amplitudes["clambda_range"] = (1.6345, 1.6345)
-amplitudes["clambda_range"] = (1.0, 1.6345)
-amplitudes["pulseduration_range"] =  (7.0, 12.0)
-amplitudes["I_range"] = (0.4, 1.0)
-ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-Ef_phase = ir_from_params(ir_values_in, amplitudes=amplitudes)
+    # IR creation
+    # ir amplitudes
+    amplitudes = {}
+    amplitudes["phase_range"] = (0, 2 * np.pi)
+    # amplitudes["clambda_range"] = (1.6345, 1.6345)
+    amplitudes["clambda_range"] = (1.0, 1.6345)
+    amplitudes["pulseduration_range"] =  (7.0, 12.0)
+    amplitudes["I_range"] = (0.4, 1.0)
 
 
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    ir_E_prop = ir_from_params(ir_values_in, amplitudes=amplitudes)
 
 
+    # Neon
+    Ip_eV = 21.5645
+    Ip = Ip_eV * sc.electron_volt  # joules
+    Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+
+    # construct streaking image
+    image = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
+
+    with tf.Session() as sess:
+        xuv_input = np.array([[0.0, 0.0, 0.0, 0.5, 0.0]])
+        ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
+
+        out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
+                                         ir_values_in: ir_input})
+        plt.figure(1)
+        plt.plot(np.real(out[0]), color='blue')
+        plt.plot(np.imag(out[0]), color='red')
+
+        out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
+                                                           ir_values_in: ir_input})
+        plt.figure(2)
+        plt.plot(np.real(out[0]), color='blue')
+        plt.plot(np.imag(out[0]), color='red')
 
 
+        out = sess.run(image, feed_dict={xuv_coefs_in: xuv_input,
+                                                   ir_values_in: ir_input})
+        plt.figure(3)
+        plt.pcolormesh(out)
+        # plt.savefig("./4.png")
+        plt.show()
 
-with tf.Session() as sess:
-    input_values = np.array([[-1.0, 0.0, 0.0, 0.0],
-                             [-1.0, 0.0, 0.0, 0.0]])
-
-    out = sess.run(Ef_phase, feed_dict={ir_values_in: input_values})
-    print(np.shape(out))
-    plt.figure(1)
-    plt.plot(np.real(out[0]))
-    plt.figure(2)
-    plt.plot(np.real(out[1]))
-    plt.show()
-
-
-
-
-
-
-
-# exit(0)
-#
-# with tf.Session() as sess:
-#         # input_array = np.array([[0.01, 0.02, 0.03, 0.04, 0.05],
-#         #                         [0.12, 0.1, 0.2, 0.13, 0.16]])
-#         input_array = np.array([[0.00, 0.5, 0.00, 0.00, 0.00],
-#                                 [0.00, -0.5, 0.00, 0.00, 0.00]])
-#         # print(np.shape(sess.run(taylor_terms_summed, feed_dict={coefs_in: input_array})))
-#         out = sess.run(Ef_prop, feed_dict={coefs_in: input_array})
-#
-#         plt.figure(1)
-#         plt.plot(np.real(out[0]), color="blue")
-#         plt.plot(np.imag(out[0]), color='red')
-#         plt.plot(np.abs(out[0]), color='black')
-#         axtwin = plt.gca().twinx()
-#         axtwin.plot(np.unwrap(np.angle(out[0])), color='green')
-#
-#         plt.figure(2)
-#         plt.plot(np.real(out[1]), color="blue")
-#         plt.plot(np.imag(out[1]), color='red')
-#         plt.plot(np.abs(out[1]), color='black')
-#         axtwin = plt.gca().twinx()
-#         axtwin.plot(np.unwrap(np.angle(out[1])), color='green')
-#
-#         plt.show()
-#         print(out)
-#         exit(0)
-
-
-
-# ir_construct =
