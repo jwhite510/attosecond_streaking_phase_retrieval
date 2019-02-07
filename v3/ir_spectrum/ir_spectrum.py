@@ -34,3 +34,5 @@ dt = dt / sc.physical_constants['atomic unit of time'][0]
 tmat = tmat / sc.physical_constants['atomic unit of time'][0]
 fmat = fmat * sc.physical_constants['atomic unit of time'][0]
 
+fmat_cropped = fmat[start_index: end_index]
+
