@@ -411,7 +411,7 @@ def setup_neural_net(streak_params):
                                               512], activate='relu', stride=[2, 2])
 
     convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-    full_layer_one = normal_full_layer(convo_3_flat, 10)
+    full_layer_one = normal_full_layer(convo_3_flat, 1024)
 
     # dropout
     hold_prob = tf.placeholder_with_default(1.0, shape=())
@@ -473,7 +473,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run1'
+    modelname = 'run2'
 
     print('starting ' + modelname)
 
