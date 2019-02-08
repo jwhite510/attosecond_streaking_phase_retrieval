@@ -104,12 +104,16 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
         xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
 
-        xuv_in_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_in})
-        ir_in_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_in})
+        xuv_in_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_in.reshape(1, -1)})
+        ir_in_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_in.reshape(1, -1)})
 
-        xuv_pred_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"],feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_pred})
-        ir_pred_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred})
+        xuv_pred_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"],feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
+        ir_pred_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1)})
 
+        xuv_in_Ef = xuv_in_Ef.reshape(-1)
+        ir_in_Ef = ir_in_Ef.reshape(-1)
+        xuv_pred_Ef = xuv_pred_Ef.reshape(-1)
+        ir_pred_Ef = ir_pred_Ef.reshape(-1)
 
 
         axes[j]['input_trace'].cla()
@@ -168,8 +172,8 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         axes[j]['predict_ir'].set_yticks([])
 
         # calculate generated streaking trace
-        generated_trace = sess.run(tf_generator_graphs["image"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred,
-                                                              tf_generator_graphs["xuv_coefs_in"]: xuv_pred})
+        generated_trace = sess.run(tf_generator_graphs["image"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1),
+                                                              tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
 
         axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
         axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
@@ -215,10 +219,8 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_
                      net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
                      streak_params=streak_params)
 
-
-
-
-
+    plt.show()
+    plt.pause(0.001)
 
 
 def init_tf_loggers(nn_nodes):
@@ -524,24 +526,8 @@ if __name__ == "__main__":
             # every x steps plot predictions
             if (i + 1) % 20 == 0 or (i + 1) <= 15:
                 # update the plot
+
                 update_plots(data_obj=get_data, sess=sess, nn_nodes=nn_nodes, modelname=modelname,
                              epoch=i+1, axes=axes, tf_generator_graphs=tf_generator_graphs,
                              streak_params=streak_params)
-
-
-
-
-
-
-
-
-
-    exit(0)
-
-
-
-
-
-
-
 
