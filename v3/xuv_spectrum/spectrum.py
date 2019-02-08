@@ -98,6 +98,7 @@ indexmax = params['indexmax']
 f0 = params['f0']
 N = params['N']
 dt = params['dt']
+fmat_cropped = fmat[indexmin: indexmax]
 
 
 if __name__ == "__main__":
