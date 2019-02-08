@@ -531,3 +531,14 @@ if __name__ == "__main__":
                              epoch=i+1, axes=axes, tf_generator_graphs=tf_generator_graphs,
                              streak_params=streak_params)
 
+                # save model
+                saver.save(sess, "models/" + modelname + ".ckpt")
+
+            # return the index to 0
+            get_data.batch_index = 0
+
+        saver.save(sess, "models/" + modelname + ".ckpt")
+
+
+
+
