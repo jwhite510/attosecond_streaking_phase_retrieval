@@ -374,7 +374,7 @@ def initialize_xuv_ir_trace_graphs():
     return tf_graphs, streak_params, xuv_phase_coeffs
 
 
-def setup_neural_net(streak_params):
+def setup_neural_net(streak_params, xuv_phase_coefs):
 
     print('Setting up multires layer network with more conv weights')
 
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     tf_generator_graphs, streak_params, xuv_phase_coefs = initialize_xuv_ir_trace_graphs()
 
     # build neural net graph
-    nn_nodes = setup_neural_net(streak_params)
+    nn_nodes = setup_neural_net(streak_params, xuv_phase_coefs)
 
     # init data object
     get_data = GetData(batch_size=10)
