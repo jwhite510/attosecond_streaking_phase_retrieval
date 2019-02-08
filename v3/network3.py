@@ -104,11 +104,11 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
         xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
 
-        xuv_in_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_in.reshape(1, -1)})
-        ir_in_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_in.reshape(1, -1)})
+        xuv_in_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_in.reshape(1, -1)})
+        ir_in_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_in.reshape(1, -1)})
 
-        xuv_pred_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f"],feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
-        ir_pred_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1)})
+        xuv_pred_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
+        ir_pred_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1)})
 
         xuv_in_Ef = xuv_in_Ef.reshape(-1)
         ir_in_Ef = ir_in_Ef.reshape(-1)
