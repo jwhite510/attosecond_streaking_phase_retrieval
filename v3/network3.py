@@ -77,6 +77,135 @@ class GetData():
 
 
 
+
+
+
+
+
+
+def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net_name, nn_nodes):
+
+    # get find where in the vector is the ir and xuv
+
+    print("plot predicitons")
+    exit(0)
+
+
+    for j, index in enumerate(indexes):
+
+        prediction = pred_in[index]
+        mse = sess.run(loss, feed_dict={x: x_in[index].reshape(1, -1),y_true: y_in[index].reshape(1, -1)})
+        # print(mse)
+        # print(str(mse))
+
+
+        xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
+        xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
+
+
+        axes[j]['input_trace'].cla()
+        axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(crab_tf2.p_values), len(crab_tf2.tau_values)), cmap='jet')
+        axes[j]['input_trace'].text(0.0, 1.0, 'input_trace', transform=axes[j]['input_trace'].transAxes,backgroundcolor='white')
+        axes[j]['input_trace'].set_xticks([])
+        axes[j]['input_trace'].set_yticks([])
+
+        axes[j]['actual_xuv'].cla()
+        axes[j]['actual_xuv_twinx'].cla()
+        axes[j]['actual_xuv'].plot(np.real(xuv_in), color='blue', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.imag(xuv_in), color='red', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.abs(xuv_in), color='black')
+        # plot the phase
+        axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(xuv_in)), color='green')
+        axes[j]['actual_xuv_twinx'].tick_params(axis='y', colors='green')
+        axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['actual_xuv'].set_xticks([])
+        axes[j]['actual_xuv'].set_yticks([])
+
+        axes[j]['predict_xuv'].cla()
+        axes[j]['predict_xuv_twinx'].cla()
+        axes[j]['predict_xuv'].plot(np.real(xuv_pred), color='blue', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.imag(xuv_pred), color='red', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.abs(xuv_pred), color='black')
+        #plot the phase
+        axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(xuv_pred)), color='green')
+        axes[j]['predict_xuv_twinx'].tick_params(axis='y', colors='green')
+        axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
+                                   transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+        axes[j]['predict_xuv'].set_xticks([])
+        axes[j]['predict_xuv'].set_yticks([])
+
+        axes[j]['actual_ir'].cla()
+        axes[j]['actual_ir'].plot(np.real(ir_in), color='blue')
+        axes[j]['actual_ir'].plot(np.imag(ir_in), color='red')
+        axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
+
+        if j == 0:
+
+            axes[j]['actual_ir'].text(0.5, 1.25, net_name, transform=axes[j]['actual_ir'].transAxes,
+                                      backgroundcolor='white')
+
+            axes[j]['actual_ir'].text(0.5, 1.1, set, transform=axes[j]['actual_ir'].transAxes,
+                                      backgroundcolor='white')
+
+        axes[j]['actual_ir'].set_xticks([])
+        axes[j]['actual_ir'].set_yticks([])
+
+        axes[j]['predict_ir'].cla()
+        axes[j]['predict_ir'].plot(np.real(ir_pred), color='blue')
+        axes[j]['predict_ir'].plot(np.imag(ir_pred), color='red')
+        axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
+        axes[j]['predict_ir'].set_xticks([])
+        axes[j]['predict_ir'].set_yticks([])
+
+        # calculate generated streaking trace
+        generated_trace = sess.run(crab_tf2.image, feed_dict={crab_tf2.ir_cropped_f: ir_pred,
+                                                              crab_tf2.xuv_cropped_f: xuv_pred})
+
+        axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
+        axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
+        axes[j]['reconstruct'].set_xticks([])
+        axes[j]['reconstruct'].set_yticks([])
+
+
+
+
+        # save image
+        dir = "./nnpictures/" + modelname + "/" + set + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        figure.savefig(dir + str(epoch) + ".png")
+
+
+
+
+def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes):
+
+    batch_x_train, batch_y_train = data_obj.evaluate_on_train_data(samples=500)
+    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["x"]: batch_x_train})
+
+
+    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
+                      axes=axes["trainplot1"], figure=axes["trainfig1"], epoch=epoch, set='train_data_1',
+                      net_name=modelname, nn_nodes=nn_nodes)
+
+
+
+
+
+    batch_x_test, batch_y_test = data_obj.evaluate_on_test_data()
+    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["x"]: batch_x_test})
+
+
+
+
+
+
+
+
+
+
+
 def init_tf_loggers(nn_nodes):
     test_mse_tb = tf.summary.scalar("test_mse", nn_nodes["loss"])
     train_mse_tb = tf.summary.scalar("train_mse", nn_nodes["loss"])
@@ -316,7 +445,7 @@ def setup_neural_net():
 
 if __name__ == "__main__":
 
-    init = tf.global_variables_initializer()
+
 
     # initialize xuv, IR, and trace graphs
     tf_generator_graphs, streak_params, xuv_phase_coefs = initialize_xuv_ir_trace_graphs()
@@ -340,17 +469,20 @@ if __name__ == "__main__":
 
     print('starting ' + modelname)
 
-    shutil.copyfile('./network2.py', './models/network2_{}.py'.format(modelname))
+    shutil.copyfile('./network3.py', './models/network3_{}.py'.format(modelname))
 
     # create figures for showing results
-    testplot1, testfig1 = create_sample_plot()
-    testplot2, testfig2 = create_sample_plot()
+    axes = {}
 
-    trainplot1, trainfig1 = create_sample_plot()
-    trainplot2, trainfig2 = create_sample_plot()
+    axes["testplot1"], axes["testfig1"]= create_sample_plot()
+    axes["testplot2"], axes["testfig2"]= create_sample_plot()
+
+    axes["trainplot1"], axes["trainfig1"]= create_sample_plot()
+    axes["trainplot2"], axes["trainfig2"]= create_sample_plot()
 
     plt.ion()
 
+    init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
 
@@ -386,7 +518,8 @@ if __name__ == "__main__":
             # every x steps plot predictions
             if (i + 1) % 20 == 0 or (i + 1) <= 15:
                 # update the plot
-                update_plots()
+                update_plots(data_obj=get_data, sess=sess, nn_nodes=nn_nodes, modelname=modelname,
+                             epoch=i+1, axes=axes)
 
 
 
