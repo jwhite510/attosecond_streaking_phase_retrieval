@@ -108,15 +108,25 @@ def plot_generated_trace(axes, generated_trace, xuv_coefs, ir_params, input_trac
     ir_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_params.reshape(1, -1)})
 
 
-    axes["input_trace"].pcolormesh(tau_values,k_values,input_trace)
+    axes["input_trace"].pcolormesh(tau_values,k_values,input_trace, cmap="jet")
     axes["input_trace"].set_ylabel("atomic units Energy")
     axes["input_trace"].set_xlabel("fs")
     axes["input_trace"].set_title("input streaking trace")
 
-    axes["generated_trace"].pcolormesh(tau_values,k_values,generated_trace)
+    axes["generated_trace"].pcolormesh(tau_values,k_values,generated_trace, cmap="jet")
     axes["generated_trace"].set_xlabel("fs")
     axes["generated_trace"].set_ylabel("atomic units Energy")
     axes["generated_trace"].set_title("generated streaking trace")
+
+    trace_actual_reshape = generated_trace.reshape(-1)
+    trace_reconstructed_reshaped = input_trace.reshape(-1)
+    trace_rmse = np.sqrt((1 / len(trace_actual_reshape)) * np.sum(
+            (trace_reconstructed_reshaped - trace_actual_reshape) ** 2))
+    axes["generated_trace"].text(0.1, 0.1, "rmse: {}".format(trace_rmse),
+                                 transform=axes["generated_trace"].transAxes,
+                                 backgroundcolor="white")
+
+
 
 
     axes["predicted_xuv_phase"].plot(xuv_fmat, np.unwrap(np.angle(xuv_Ef[0])), color='green')
@@ -192,7 +202,7 @@ if __name__ == "__main__":
 
     _, _, trace = get_measured_trace()
 
-    modelname = 'run2'
+    modelname = 'run3'
 
 
     with tf.Session() as sess:
