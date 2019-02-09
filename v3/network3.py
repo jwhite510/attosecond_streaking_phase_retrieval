@@ -473,7 +473,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run2'
+    modelname = 'run3'
 
     print('starting ' + modelname)
 
@@ -514,7 +514,7 @@ if __name__ == "__main__":
                                                            nn_nodes["y_true"]: batch_y,
                                                            nn_nodes["hold_prob"]: 0.8,
                                                            nn_nodes["s_LR"]: 0.0001})
-                elif i < 40:
+                else:
                     sess.run(nn_nodes["train"], feed_dict={nn_nodes["x"]: batch_x,
                                                            nn_nodes["y_true"]: batch_y,
                                                            nn_nodes["hold_prob"]: 0.8,
