@@ -120,10 +120,11 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
 
             while not xuv_good:
 
-                # xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+                #xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
 
                 #random coefficients between -0.5 and 0.5
-                xuv_coefs_in = (np.random.rand(5)-0.5).reshape(1, -1)
+                xuv_coefs_rand = (np.random.rand(4)-0.5).reshape(1, -1)
+                xuv_coefs_in = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
 
                 # generate time pulse from these coefficients
                 xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
