@@ -6,6 +6,7 @@ import tables
 import shutil
 import matplotlib.pyplot as plt
 import os
+import phase_parameters.params
 
 
 
@@ -77,14 +78,12 @@ class GetData():
         return trace_batch, appended_label_batch
 
 
-
 def separate_xuv_ir_vec(xuv_ir_vec):
 
     xuv = xuv_ir_vec[0:5]
     ir = xuv_ir_vec[5:]
 
     return xuv, ir
-
 
 
 def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, tf_generator_graphs, sess, streak_params):
@@ -339,9 +338,9 @@ def convolutional_layer(input_x, shape, activate, stride):
 def initialize_xuv_ir_trace_graphs():
 
     # initialize XUV generator
-    xuv_phase_coeffs = 5
+    xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
-    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in, amplitude=12.0)
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
 
     # initialize IR generator
     # IR amplitudes
@@ -352,17 +351,16 @@ def initialize_xuv_ir_trace_graphs():
     amplitudes["I_range"] = (0.4, 1.0)
     # IR creation
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = tf_functions.ir_from_params(ir_values_in, amplitudes=amplitudes)
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
 
     # initialize streaking trace generator
     # Neon
-    Ip_eV = 21.5645
-    Ip = Ip_eV * sc.electron_volt  # joules
-    Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+
 
     # construct streaking image
     image, streak_params = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                                        ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
+                                                        ir_cropped_f_in=ir_E_prop["f_cropped"][0],
+                                                        )
 
     tf_graphs = {}
     tf_graphs["xuv_coefs_in"] = xuv_coefs_in
@@ -371,60 +369,144 @@ def initialize_xuv_ir_trace_graphs():
     tf_graphs["ir_E_prop"] = ir_E_prop
     tf_graphs["image"] = image
 
-    return tf_graphs, streak_params, xuv_phase_coeffs
+    return tf_graphs, streak_params
 
 
-def setup_neural_net(streak_params, xuv_phase_coefs):
+def gan_network(input, output_length):
+
+    with tf.variable_scope("gan"):
+        hidden1 = tf.layers.dense(inputs=input, units=128)
+
+        alpha = 0.01
+        hidden1 = tf.maximum(alpha * hidden1, hidden1)
+
+        hidden2 = tf.layers.dense(inputs=hidden1, units=128)
+
+        hidden2 = tf.maximum(alpha * hidden2, hidden2)
+
+        output = tf.layers.dense(hidden2, units=output_length, activation=tf.nn.tanh)
+
+        return output
+
+
+def phase_retrieval_net(input, total_label_length):
+
+    # define phase retrieval neural network
+    with tf.variable_scope("phase"):
+        # input image
+        x_image = tf.reshape(input, [-1, len(streak_params["p_values"]), len(streak_params["tau_values"]), 1])
+
+        # six convolutional layers
+        multires_filters = [11, 7, 5, 3]
+
+        multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+
+        conv_layer_1 = convolutional_layer(multires_layer_1,
+                                           shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
+                                           activate='relu', stride=[2, 2])
+
+        multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
+                                          filter_sizes=multires_filters)
+
+        conv_layer_2 = convolutional_layer(multires_layer_2,
+                                           shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
+
+        multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
+                                          filter_sizes=multires_filters)
+
+        conv_layer_3 = convolutional_layer(multires_layer_3,
+                                           shape=[1, 1, 256,
+                                                  512], activate='relu', stride=[2, 2])
+
+        convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
+        # full_layer_one = normal_full_layer(convo_3_flat, 1024)
+        full_layer_one = normal_full_layer(convo_3_flat, 2)
+        print("layer needs to be set to 1024!!")
+
+        # dropout
+        hold_prob = tf.placeholder_with_default(1.0, shape=())
+        dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+
+        y_pred = normal_full_layer(dropout_layer, total_label_length)
+
+        return y_pred
+
+
+def setup_neural_net(streak_params):
+
+    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
 
     print('Setting up multires layer network with more conv weights')
 
 
     # placeholders
-    x = tf.placeholder(tf.float32, shape=[None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))])
-
+    # x = tf.placeholder(tf.float32, shape=[None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))])
+    # define the label for supervised learning of phase retrieval net
     total_label_length = int(xuv_phase_coefs + 4)
     y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
+    # define phase retrieval network
 
-    # input image
-    x_image = tf.reshape(x, [-1, len(streak_params["p_values"]), len(streak_params["tau_values"]), 1])
 
-    # six convolutional layers
+    # define GAN network
+    gan_input = tf.placeholder(tf.float32, shape=[None, 100])
+    # the output is one less than the xuv coefs, because linear phase will always be 0
+    # add 4 because of the four IR parameters
+    gan_output = gan_network(input=gan_input, output_length=xuv_phase_coefs-1 + 4)
+    # GAN output is used to create XUV field and streaking trace
+    # print("xuv_phase_coefs: ", xuv_phase_coefs)
+    gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
+    gan_ir_out = gan_output[:, xuv_phase_coefs-1:]
+    # append a zero to the xuv gan out, corresponding to linear phase that is always 0
+    samples_in = tf.shape(gan_xuv_out)[0]
+    zeros_vec = tf.fill([samples_in, 1], 0.0)
+    gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
+    # use the gan outputs to generate fields
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
+    # ir prop
+    ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
+    # use the fields to generate streaking trace
+    # sample size of one required as of now
+    x, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+                                            ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    x_flat = tf.reshape(x, [1, -1])
+    # pass image through network
+    y_pred = phase_retrieval_net(input=x_flat, total_label_length=total_label_length)
+    # y_pred = phase_retrieval_net(input=x, total_label_length=total_label_length)
 
-    multires_filters = [11, 7, 5, 3]
 
-    multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
 
-    conv_layer_1 = convolutional_layer(multires_layer_1, shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
-                                       activate='relu', stride=[2, 2])
 
-    multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
-                                      filter_sizes=multires_filters)
+        images = np.zeros((2, 17458))
+        for i in range(2):
 
-    conv_layer_2 = convolutional_layer(multires_layer_2,
-                                       shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
+            gan_in = np.random.random(600).reshape(6, -1)
+            gan_out = np.random.random(9).reshape(1, -1)
+            # create images
+            image = sess.run(x, feed_dict={gan_xuv_out_nolin: gan_out[:, 0:5],
+                                           gan_ir_out: gan_out[:, 5:]})
+            images[i, :] = image.reshape(-1)
 
-    multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
-                                      filter_sizes=multires_filters)
+        out = sess.run(y_pred, feed_dict={x_flat: images})
+        print(np.shape(out))
+        exit(0)
 
-    conv_layer_3 = convolutional_layer(multires_layer_3,
-                                       shape=[1, 1, 256,
-                                              512], activate='relu', stride=[2, 2])
 
-    convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-    full_layer_one = normal_full_layer(convo_3_flat, 1024)
 
-    # dropout
-    hold_prob = tf.placeholder_with_default(1.0, shape=())
-    dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
-    y_pred = normal_full_layer(dropout_layer, total_label_length)
-
+    # loss function for training phase retrieval network
     loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+
+
 
     s_LR = tf.placeholder(tf.float32, shape=[])
     # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     train = optimizer.minimize(loss)
+
+    exit(0)
 
     # create graph for the unsupervised learning
     # xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
@@ -456,10 +538,10 @@ if __name__ == "__main__":
 
 
     # initialize xuv, IR, and trace graphs
-    tf_generator_graphs, streak_params, xuv_phase_coefs = initialize_xuv_ir_trace_graphs()
+    tf_generator_graphs, streak_params = initialize_xuv_ir_trace_graphs()
 
     # build neural net graph
-    nn_nodes = setup_neural_net(streak_params, xuv_phase_coefs)
+    nn_nodes = setup_neural_net(streak_params)
 
     # init data object
     get_data = GetData(batch_size=10)

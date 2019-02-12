@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import xuv_spectrum.spectrum
 import ir_spectrum.ir_spectrum
 import time
+import phase_parameters.params
 
 
 def plot_opened_file(xuv_coefs, ir_params, trace, sess, tf_graphs, streak_params):
@@ -192,9 +193,9 @@ def add_shot_noise(trace_sample):
 if __name__ == "__main__":
 
     # initialize XUV generator
-    xuv_phase_coeffs = 5
-    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
-    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in, amplitude=12.0)
+    xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
 
     # initialize IR generator
     # IR amplitudes
@@ -232,11 +233,11 @@ if __name__ == "__main__":
 
         generate_samples(tf_graphs=tf_graphs, n_samples=60000,
                          filename="train3.hdf5", streak_params=streak_params,
-                         xuv_coefs=xuv_phase_coeffs, sess=sess, axis=ax)
+                         xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 
         generate_samples(tf_graphs=tf_graphs, n_samples=500,
                          filename="test3.hdf5", streak_params=streak_params,
-                         xuv_coefs=xuv_phase_coeffs, sess=sess, axis=ax)
+                         xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 
 
         # test open the file

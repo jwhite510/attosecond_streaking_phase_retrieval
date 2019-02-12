@@ -6,6 +6,7 @@ import numpy as np
 from scipy.special import factorial
 import scipy.constants as sc
 import math
+import phase_parameters.params
 
 
 
@@ -32,7 +33,11 @@ def tf_fft(tensor, shift, axis=0):
     return freq_domain
 
 
-def xuv_taylor_to_E(coef_values_normalized, amplitude):
+def xuv_taylor_to_E(coef_values_normalized):
+
+    assert int(coef_values_normalized.shape[1]) == phase_parameters.params.xuv_phase_coefs
+
+    amplitude = phase_parameters.params.amplitude
     # print(coef_values_normalized)
 
     # eventually, will have to convert everything to atomic units before inputting here!!
@@ -93,7 +98,9 @@ def xuv_taylor_to_E(coef_values_normalized, amplitude):
     return E_prop
 
 
-def ir_from_params(ir_param_values, amplitudes):
+def ir_from_params(ir_param_values):
+
+    amplitudes = phase_parameters.params.ir_param_amplitudes
 
     # construct tf nodes for middle and half range of inputs
     parameters = {}
@@ -174,7 +181,9 @@ def ir_from_params(ir_param_values, amplitudes):
     return E_prop
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, Ip):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
+
+    Ip = phase_parameters.params.Ip
 
     global p
     global tau_index
@@ -335,8 +344,8 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, Ip):
 if __name__ == "__main__":
 
     # xuv creation
-    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, 5])
-    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in, amplitude=9.0)
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
+    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
 
 
     # IR creation
@@ -350,16 +359,11 @@ if __name__ == "__main__":
 
 
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = ir_from_params(ir_values_in, amplitudes=amplitudes)
+    ir_E_prop = ir_from_params(ir_values_in)
 
-
-    # Neon
-    Ip_eV = 21.5645
-    Ip = Ip_eV * sc.electron_volt  # joules
-    Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
     # construct streaking image
-    image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
+    image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     with tf.Session() as sess:
         xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
