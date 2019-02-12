@@ -336,7 +336,7 @@ if __name__ == "__main__":
 
     # xuv creation
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, 5])
-    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in, amplitude=10.0)
+    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in, amplitude=9.0)
 
 
     # IR creation
@@ -362,7 +362,8 @@ if __name__ == "__main__":
     image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], Ip=Ip)
 
     with tf.Session() as sess:
-        xuv_input = np.array([[0.0, 0.0, 0.0, 0.5, 0.0]])
+        xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
+        # xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
         ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
         out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
