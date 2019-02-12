@@ -367,21 +367,24 @@ if __name__ == "__main__":
 
         out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
                                          ir_values_in: ir_input})
-        plt.figure(1)
-        plt.plot(np.real(out[0]), color='blue')
-        plt.plot(np.imag(out[0]), color='red')
-
-        out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
-                                                           ir_values_in: ir_input})
-        plt.figure(2)
-        plt.plot(np.real(out[0]), color='blue')
-        plt.plot(np.imag(out[0]), color='red')
 
 
-        out = sess.run(image, feed_dict={xuv_coefs_in: xuv_input,
-                                                   ir_values_in: ir_input})
-        plt.figure(3)
-        plt.pcolormesh(out)
-        # plt.savefig("./4.png")
+
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 2)
+        ax = fig.add_subplot(gs[:,:])
+        print("length: ")
+        ax.plot(np.real(out[0]), color="blue")
+        ax.plot(np.imag(out[0]), color="red")
+        ax.plot(np.abs(out[0]), color="black")
+        ax.set_xlabel("f index")
+        ax.set_ylabel("E(f)")
+        ax.text(0.7, 0.8, "f vector length: {}".format(str(len(out[0]))), transform=ax.transAxes,
+                backgroundcolor="white", ha="center")
+
+        axtwin = ax.twinx()
+        axtwin.set_ylabel("$\phi (f)$", color="green")
+        axtwin.plot(np.unwrap(np.angle(out[0])), color="green")
+        plt.savefig("./1600as.png")
         plt.show()
-

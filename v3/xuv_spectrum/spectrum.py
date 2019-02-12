@@ -21,7 +21,7 @@ def retrieve_spectrum(plotting=False):
 
     # define tmat and famt
     N = 1024
-    tmax = 800e-18
+    tmax = 1600e-18
     dt = 2 * tmax / N
     tmat = dt * np.arange(-N / 2, N / 2, 1)
     df = 1 / (N * dt)
@@ -48,9 +48,23 @@ def retrieve_spectrum(plotting=False):
     linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
 
     # set the indexes for cropped input
-    span = 405 - 280
-    indexmin = 540
-    indexmax = int(indexmin + span)
+    # span = 405 - 280
+    # indexmin = 540
+    # indexmax = int(indexmin + span)
+    # print("indexmax: ", indexmax)
+    # print("indexmin: ", indexmin)
+
+    # print(fmat[indexmin])
+    # print(fmat[indexmax])
+
+    indexmin = np.argmin(np.abs(1.75e16 - fmat))
+    print("indexmin: ", indexmin)
+    indexmax = np.argmin(np.abs(9.5625e+16 - fmat))
+    print("indexmax: ", indexmax)
+    print("cropped vector length: ",indexmax-indexmin)
+
+
+
 
 
 
