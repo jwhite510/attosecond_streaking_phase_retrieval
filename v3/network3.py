@@ -469,8 +469,9 @@ def setup_neural_net(streak_params):
     x, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                             ir_cropped_f_in=ir_E_prop["f_cropped"][0])
     x_flat = tf.reshape(x, [1, -1])
+    x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
     # pass image through network
-    y_pred = phase_retrieval_net(input=x_flat, total_label_length=total_label_length)
+    y_pred = phase_retrieval_net(input=x_in, total_label_length=total_label_length)
     # y_pred = phase_retrieval_net(input=x, total_label_length=total_label_length)
 
 
@@ -479,18 +480,31 @@ def setup_neural_net(streak_params):
         sess.run(init)
 
 
-        images = np.zeros((2, 17458))
-        for i in range(2):
-
-            gan_in = np.random.random(600).reshape(6, -1)
+        images = np.zeros((5, 17458))
+        for i in range(5):
+            # gan_in = np.random.random(600).reshape(6, -1)
             gan_out = np.random.random(9).reshape(1, -1)
             # create images
             image = sess.run(x, feed_dict={gan_xuv_out_nolin: gan_out[:, 0:5],
                                            gan_ir_out: gan_out[:, 5:]})
             images[i, :] = image.reshape(-1)
 
-        out = sess.run(y_pred, feed_dict={x_flat: images})
+        out = sess.run(y_pred, feed_dict={x_in: images})
+        print('1')
         print(np.shape(out))
+
+
+        gan_in = np.random.random(600).reshape(6, -1)
+        out = sess.run(y_pred, feed_dict={gan_input: gan_in})
+        print('2')
+        print(np.shape(out))
+
+
+        out = sess.run(x, feed_dict={gan_input: gan_in})
+        print('3')
+        print(np.shape(out))
+
+
         exit(0)
 
 
