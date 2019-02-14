@@ -5,7 +5,7 @@ import scipy.constants as sc
 # includes linear
 xuv_phase_coefs=5
 # phase amplitude
-amplitude=9.0
+amplitude=7.0
 # amplitude=4.0
 
 #infrared params

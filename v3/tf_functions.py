@@ -7,7 +7,7 @@ from scipy.special import factorial
 import scipy.constants as sc
 import math
 import phase_parameters.params
-
+import generate_data3
 
 
 
@@ -96,6 +96,101 @@ def xuv_taylor_to_E(coef_values_normalized):
     E_prop["t"] = Et_prop
 
     return E_prop
+
+
+def xuv_taylor_to_E2(coef_values_normalized):
+
+    assert int(coef_values_normalized.shape[1]) == phase_parameters.params.xuv_phase_coefs
+
+
+    # check integral of coefficients
+    coef_integral = tf.reduce_sum(coef_values_normalized, axis=1)
+
+    coefs_divided_by_int = coef_values_normalized / (1*tf.abs(coef_integral))
+
+    # coef_integral2 = tf.reduce_sum(divide_by_int, axis=1)
+
+
+    # with tf.Session() as sess:
+    #
+    #     xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
+        # xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 0.0]])
+        # xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+        #
+        # out = sess.run(coef_values_normalized, feed_dict={coef_values_normalized: xuv_input})
+        # print(out)
+        # out = sess.run(coef_integral, feed_dict={coef_values_normalized: xuv_input})
+        # print(out)
+        # out = sess.run(divide_by_int, feed_dict={coef_values_normalized: xuv_input})
+        # print(out)
+        # out = sess.run(coef_integral2, feed_dict={coef_values_normalized: xuv_input})
+        # print(out)
+    #
+    #
+    #
+    # exit(0)
+
+    amplitude = phase_parameters.params.amplitude
+    # print(coef_values_normalized)
+
+    # eventually, will have to convert everything to atomic units before inputting here!!
+    Ef = tf.constant(xuv_spectrum.spectrum.Ef, dtype=tf.complex64)
+    Ef = tf.reshape(Ef, [1, -1])
+
+    fmat_taylor = tf.constant(xuv_spectrum.spectrum.fmat-xuv_spectrum.spectrum.f0, dtype=tf.float32)
+
+    # create factorials
+    factorials = tf.constant(factorial(np.array(range(coef_values_normalized.shape[1]))+1), dtype=tf.float32)
+    factorials = tf.reshape(factorials, [1, -1, 1])
+
+    # create exponents
+    exponents = tf.constant(np.array(range(coef_values_normalized.shape[1]))+1, dtype=tf.float32)
+
+    # reshape the taylor fmat
+    fmat_taylor = tf.reshape(fmat_taylor, [1, 1, -1])
+
+    # reshape the exponential matrix
+    exp_mat = tf.reshape(exponents, [1, -1, 1])
+
+    # raise the fmat to the exponential power
+    exp_mat_fmat = tf.pow(fmat_taylor, exp_mat)
+
+    # scale the coefficients
+    amplitude_mat = tf.constant(amplitude, dtype=tf.float32)
+    amplitude_mat = tf.reshape(amplitude_mat, [1, -1, 1])
+
+    # amplitude scales with exponent
+    amplitude_scaler = tf.pow(amplitude_mat, exp_mat)
+
+    # reshape the coef values and scale them
+    coef_values = tf.reshape(coefs_divided_by_int, [tf.shape(coef_values_normalized)[0], -1, 1]) * amplitude_scaler
+
+    # divide by the factorials
+    coef_div_fact = tf.divide(coef_values, factorials)
+
+    # multiply by the fmat
+    taylor_coefs_mat = coef_div_fact * exp_mat_fmat
+
+    # this is the phase angle, summed along the taylor terms
+    taylor_terms_summed = tf.reduce_sum(taylor_coefs_mat, axis=1)
+
+    # apply the phase angle to Ef
+    Ef_prop = Ef * tf.exp(tf.complex(imag=taylor_terms_summed, real=tf.zeros_like(taylor_terms_summed)))
+
+    # fourier transform for time propagated signal
+    Et_prop = tf_ifft(Ef_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
+
+    # return the cropped E
+    Ef_prop_cropped = Ef_prop[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
+
+    E_prop = {}
+    E_prop["f"] = Ef_prop
+    E_prop["f_cropped"] = Ef_prop_cropped
+    E_prop["t"] = Et_prop
+    E_prop["coefs_divided_by_int"] = coefs_divided_by_int
+
+    return E_prop
+
 
 
 def ir_from_params(ir_param_values):
@@ -346,6 +441,8 @@ if __name__ == "__main__":
     # xuv creation
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
     xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
+    xuv_E_prop2 = xuv_taylor_to_E2(xuv_coefs_in)
+
 
 
     # IR creation
@@ -364,6 +461,49 @@ if __name__ == "__main__":
 
     # construct streaking image
     image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+
+
+
+    with tf.Session() as sess:
+
+        # count the number of bad samples generated
+        bad_samples = 0
+
+        # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
+        indexmin = 100
+        indexmax = 924
+        xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+        xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
+        threshold = np.max(np.abs(xuv_t)) / 300
+
+
+        # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
+        xuv_coefs_rand = np.array([[0.0, 0.0, 0.0, 1.0]])
+
+        xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+        # exit(0)
+        print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
+        xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 2)
+        ax = fig.add_subplot(gs[:, :])
+        ax.plot(np.real(xuv_t[0]), color="blue")
+        ax.plot(np.imag(xuv_t[0]), color="red")
+        plt.show()
+
+
+
+        bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
+
+        print(xuv_good)
+
+        exit(0)
+
+
+
+
 
     with tf.Session() as sess:
         xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])

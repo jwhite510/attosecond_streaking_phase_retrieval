@@ -64,14 +64,14 @@ def check_time_boundary(indexmin, indexmax, threshold, xuv_t, bad_samples):
     if value_1 > threshold or value_2 > threshold:
     # if True:
         bad_samples+=1
-        # plt.figure(356)
-        # plt.cla()
-        # plt.plot(np.real(xuv_t))
-        # plt.plot([indexmin, indexmin], [-np.max(np.real(xuv_t)), np.max(np.real(xuv_t))], color='black')
-        # plt.plot([indexmax, indexmax], [-np.max(np.real(xuv_t)), np.max(np.real(xuv_t))], color='black')
-        # plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
-        # plt.text(0.1, 0.8, 'bad samples:{}'.format(bad_samples), transform=plt.gca().transAxes)
-        # plt.show()
+        plt.figure(356)
+        plt.cla()
+        plt.plot(np.real(xuv_t))
+        plt.plot([indexmin, indexmin], [-np.max(np.real(xuv_t)), np.max(np.real(xuv_t))], color='black')
+        plt.plot([indexmax, indexmax], [-np.max(np.real(xuv_t)), np.max(np.real(xuv_t))], color='black')
+        plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
+        plt.text(0.1, 0.8, 'bad samples:{}'.format(bad_samples), transform=plt.gca().transAxes)
+        plt.show()
         # plt.pause(0.001)
         return bad_samples, False
 
