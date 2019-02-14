@@ -555,6 +555,7 @@ def setup_neural_net(streak_params):
     # nodes specific to GAN training
     nn_nodes["gan"]["train"] = gan_network_train
     nn_nodes["gan"]["learningrate"] = gan_LR
+    nn_nodes["gan"]["gan_label"] = gan_label
     nn_nodes["gan"]["gan_input"] = gan_input
     nn_nodes["gan"]["xuv_E_prop"] = xuv_E_prop
     nn_nodes["gan"]["ir_E_prop"] = ir_E_prop
@@ -590,9 +591,48 @@ if __name__ == "__main__":
     nn_nodes = setup_neural_net(streak_params)
 
 
+    # test gan output
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        gan_in = np.random.random(100).reshape(1, -1)
+
+        out = sess.run(nn_nodes["gan"]["gan_label"],
+                       feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
+
+        print(out)
+
+        out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+                 feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
+
+        print(np.shape(out))
+        plt.figure(1)
+        plt.plot(np.real(out[0]), color="blue")
+        plt.plot(np.imag(out[0]), color="red")
+        plt.show()
+
+        exit(0)
+
 
     print("built neural net")
     exit(0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # init data object
