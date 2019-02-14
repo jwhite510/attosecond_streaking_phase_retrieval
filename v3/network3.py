@@ -429,7 +429,7 @@ def phase_retrieval_net(input, total_label_length):
 
         y_pred = normal_full_layer(dropout_layer, total_label_length)
 
-        return y_pred
+        return y_pred, hold_prob
 
 
 def setup_neural_net(streak_params):
@@ -446,12 +446,12 @@ def setup_neural_net(streak_params):
     y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
     # define phase retrieval network
 
-
     # define GAN network
-    gan_input = tf.placeholder(tf.float32, shape=[None, 100])
+    gan_input = tf.placeholder(tf.float32, shape=[1, 100])
     # the output is one less than the xuv coefs, because linear phase will always be 0
     # add 4 because of the four IR parameters
     gan_output = gan_network(input=gan_input, output_length=xuv_phase_coefs-1 + 4)
+
     # GAN output is used to create XUV field and streaking trace
     # print("xuv_phase_coefs: ", xuv_phase_coefs)
     gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
@@ -461,6 +461,9 @@ def setup_neural_net(streak_params):
     zeros_vec = tf.fill([samples_in, 1], 0.0)
     gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
     # use the gan outputs to generate fields
+
+    # append to create label
+    gan_label = tf.concat([gan_xuv_out_nolin, gan_ir_out], axis=1)
     xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
     # ir prop
     ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
@@ -471,56 +474,70 @@ def setup_neural_net(streak_params):
     x_flat = tf.reshape(x, [1, -1])
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
     # pass image through network
-    y_pred = phase_retrieval_net(input=x_in, total_label_length=total_label_length)
-    # y_pred = phase_retrieval_net(input=x, total_label_length=total_label_length)
+    y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length)
 
 
-    init = tf.global_variables_initializer()
-    with tf.Session() as sess:
-        sess.run(init)
+    # from y_pred generate fields
+    xuv_params_pred = y_pred[:, 0:phase_parameters.params.xuv_phase_coefs]
+    ir__params_pred = y_pred[:, phase_parameters.params.xuv_phase_coefs:]
+
+    xuv_E_pred_prop = tf_functions.xuv_taylor_to_E(xuv_params_pred)
+    ir_E_pred_prop = tf_functions.ir_from_params(ir__params_pred)
+
+    reconstructed_trace = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_pred_prop["f_cropped"][0],
+                                            ir_cropped_f_in=ir_E_pred_prop["f_cropped"][0])
 
 
-        images = np.zeros((5, 17458))
-        for i in range(5):
-            # gan_in = np.random.random(600).reshape(6, -1)
-            gan_out = np.random.random(9).reshape(1, -1)
-            # create images
-            image = sess.run(x, feed_dict={gan_xuv_out_nolin: gan_out[:, 0:5],
-                                           gan_ir_out: gan_out[:, 5:]})
-            images[i, :] = image.reshape(-1)
-
-        out = sess.run(y_pred, feed_dict={x_in: images})
-        print('1')
-        print(np.shape(out))
+    # divide the variables to train with gan and phase retrieval net individually
+    tvars = tf.trainable_variables()
+    phase_net_vars = [var for var in tvars if "phase" in var.name]
+    gan_net_vars = [var for var in tvars if "gan" in var.name]
 
 
-        gan_in = np.random.random(600).reshape(6, -1)
-        out = sess.run(y_pred, feed_dict={gan_input: gan_in})
-        print('2')
-        print(np.shape(out))
 
 
-        out = sess.run(x, feed_dict={gan_input: gan_in})
-        print('3')
-        print(np.shape(out))
-
-
-        exit(0)
-
-
+    # loss function for training GAN network
+    gan_network_loss = (1/tf.losses.mean_squared_error(labels=gan_label, predictions=y_pred))
+    gan_LR = tf.placeholder(tf.float32, shape=[])
+    gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
+    gan_network_train = gan_optimizer.minimize(gan_network_loss, var_list=gan_net_vars)
 
 
     # loss function for training phase retrieval network
-    loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
-
-
-
+    phase_network_loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
     s_LR = tf.placeholder(tf.float32, shape=[])
     # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-    optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
-    train = optimizer.minimize(loss)
+    phase_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    phase_network_train = phase_optimizer.minimize(phase_network_loss, var_list=phase_net_vars)
 
-    exit(0)
+
+
+    # init = tf.global_variables_initializer()
+    # with tf.Session() as sess:
+    #     sess.run(init)
+    #
+    #     images = np.zeros((5, 17458))
+    #     for i in range(5):
+    #         # gan_in = np.random.random(600).reshape(6, -1)
+    #         gan_out = np.random.random(9).reshape(1, -1)
+    #         # create images
+    #         image = sess.run(x, feed_dict={gan_xuv_out_nolin: gan_out[:, 0:5],
+    #                                        gan_ir_out: gan_out[:, 5:]})
+    #         images[i, :] = image.reshape(-1)
+    #
+    #     out = sess.run(y_pred, feed_dict={x_in: images})
+    #     print('1')
+    #     print(np.shape(out))
+    #
+    #     gan_in = np.random.random(100).reshape(1, -1)
+    #     out = sess.run(y_pred, feed_dict={gan_input: gan_in})
+    #     print('2')
+    #     print(np.shape(out))
+    #
+    #     out = sess.run(x, feed_dict={gan_input: gan_in})
+    #     print('3')
+    #     print(np.shape(out))
+
 
     # create graph for the unsupervised learning
     # xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
@@ -531,19 +548,34 @@ def setup_neural_net(streak_params):
     # u_train = u_optimizer.minimize(u_losses)
 
     nn_nodes = {}
-    nn_nodes["x"] = x
-    nn_nodes["y_true"] = y_true
+    nn_nodes["gan"] = {}
+    nn_nodes["supervised"] = {}
+    nn_nodes["reconstruction"] = {}
+
+    # nodes specific to GAN training
+    nn_nodes["gan"]["train"] = gan_network_train
+    nn_nodes["gan"]["learningrate"] = gan_LR
+    nn_nodes["gan"]["gan_input"] = gan_input
+    nn_nodes["gan"]["xuv_E_prop"] = xuv_E_prop
+    nn_nodes["gan"]["ir_E_prop"] = ir_E_prop
+
+    # nodes specific to supervised learning
+    nn_nodes["supervised"]["train"] = phase_network_train
+    nn_nodes["supervised"]["learningrate"] = s_LR
+    nn_nodes["supervised"]["trace_in"] = x_in
+    nn_nodes["supervised"]["y_true"] = y_true
+    nn_nodes["supervised"]["hold_prob"] = hold_prob
+
+    # general nodes of network
+    nn_nodes["trace_in"] = x_in
     nn_nodes["y_pred"] = y_pred
-    nn_nodes["loss"] = loss
-    nn_nodes["hold_prob"] = hold_prob
-    nn_nodes["s_LR"] = s_LR
-    nn_nodes["train"] = train
+
+    # after y_pred, reconstruced pulse and fields
+    nn_nodes["reconstruction"]["trace"] = reconstructed_trace
+    nn_nodes["reconstruction"]["xuv_E_pred_prop"] = xuv_E_pred_prop
+    nn_nodes["reconstruction"]["ir_E_pred_prop"] = ir_E_pred_prop
 
     return nn_nodes
-
-
-
-
 
 
 
@@ -556,6 +588,12 @@ if __name__ == "__main__":
 
     # build neural net graph
     nn_nodes = setup_neural_net(streak_params)
+
+
+
+    print("built neural net")
+    exit(0)
+
 
     # init data object
     get_data = GetData(batch_size=10)
