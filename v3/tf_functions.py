@@ -41,7 +41,7 @@ def xuv_taylor_to_E(coef_values_normalized):
     # check integral of coefficients
     coef_integral = tf.reduce_sum(coef_values_normalized, axis=1)
 
-    coefs_divided_by_int = coef_values_normalized / (1*tf.abs(coef_integral))
+    coefs_divided_by_int = coef_values_normalized / ((1*tf.abs(coef_integral)) + 1e-5)
 
     amplitude = phase_parameters.params.amplitude
     # print(coef_values_normalized)
