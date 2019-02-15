@@ -103,7 +103,7 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
     xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
     threshold = np.max(np.abs(xuv_t)) / 300
     indexmin = 100
-    indexmax = 924
+    indexmax = (2*1024) - 100
 
     threshold_dict = {}
     threshold_dict["threshold"] = threshold
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     amplitudes["I_range"] = (0.4, 1.0)
     # IR creation
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = tf_functions.ir_from_params(ir_values_in, amplitudes=amplitudes)
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
 
     # initialize streaking trace generator
     # Neon
@@ -216,7 +216,7 @@ if __name__ == "__main__":
 
     # construct streaking image
     image, streak_params = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                         ir_cropped_f_in=ir_E_prop["f_cropped"][0],Ip=Ip)
+                                         ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
 
     tf_graphs = {}
