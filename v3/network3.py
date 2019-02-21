@@ -501,7 +501,7 @@ def setup_neural_net(streak_params):
     reward_scaler = tf.placeholder(tf.float32, shape=[])
     tf_ones_xuv = tf.ones_like(gan_label[:, :xuv_phase_coefs]) * reward_scaler
     tf_ones_ir = tf.ones_like(gan_label[:, xuv_phase_coefs:])
-    reinf_label = tf.concat([tf_ones_xuv, tf_ones_ir], axis=1) * gan_label
+    reinf_label = tf.concat([tf_ones_xuv, tf_ones_ir], axis=1) * tf.stop_gradient(gan_label)
     reinf_loss = tf.losses.mean_squared_error(labels=reinf_label, predictions=gan_label)
     reinf_LR = tf.placeholder(tf.float32, shape=[])
     reinf_optimizer = tf.train.AdamOptimizer(learning_rate=reinf_LR)
@@ -573,6 +573,7 @@ def setup_neural_net(streak_params):
     nn_nodes["gan"]["gan_input"] = gan_input
     nn_nodes["gan"]["xuv_E_prop"] = xuv_E_prop
     nn_nodes["gan"]["ir_E_prop"] = ir_E_prop
+    nn_nodes["gan"]["gan_xuv_out_nolin"] = gan_xuv_out_nolin
 
     # nodes specific to supervised learning
     nn_nodes["supervised"]["train"] = phase_network_train
@@ -609,6 +610,112 @@ if __name__ == "__main__":
 
     # build neural net graph
     nn_nodes = setup_neural_net(streak_params)
+
+    # test gan output
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 1)
+        ax1 = fig.add_subplot(gs[0, :])
+        ax2 = fig.add_subplot(gs[1, :])
+        plt.ion()
+
+
+
+        plotting = False
+        indexmax = 2048 - 100
+        indexmin = 100
+        threshold_scaler = 1 / 250
+        exceeded_threshold_plot = []
+        avg_reward_plot = []
+
+
+        for _ in range(1000):
+            ax1.cla()
+            ax2.cla()
+
+            reward_values = []
+            exceeded_threshold = []
+
+            for _ in range(1000):
+
+                gan_in = np.random.random(100).reshape(1, -1)
+
+                out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+                               feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
+                threshold = threshold_scaler * np.max(np.abs(out[0]))
+                indexmin_value = np.max(np.abs(out[0, :indexmin]))
+                indexmax_value = np.max(np.abs(out[0, indexmax:]))
+                reward = (2 * threshold) / (indexmin_value + indexmax_value)
+                if reward > 1:
+                    exceeded_threshold.append(reward)
+                reward_values.append(reward)
+
+            print("=====================")
+            print("average reward:")
+            print(len(reward_values))
+            print(np.average(reward_values), "\n")
+            avg_reward_plot.append(np.average(reward_values))
+
+
+            print("reward < 1: ")
+            print(len(exceeded_threshold), "\b")
+            print("=====================")
+            exceeded_threshold_plot.append(len(exceeded_threshold))
+
+            ax1.plot(avg_reward_plot, color="blue")
+            ax2.plot(exceeded_threshold_plot, color="red")
+            plt.pause(0.001)
+
+            for i in range(1000):
+
+                gan_in = np.random.random(100).reshape(1, -1)
+
+                out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+                               feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
+
+                threshold = threshold_scaler * np.max(np.abs(out[0]))
+                indexmin_value = np.max(np.abs(out[0, :indexmin]))
+                indexmax_value = np.max(np.abs(out[0, indexmax:]))
+                reward = (2 * threshold) / (indexmin_value + indexmax_value)
+
+                # train with the reward value
+                sess.run(nn_nodes["reinforcement"]["reinf_network_train"],
+                         feed_dict={nn_nodes["gan"]["gan_input"]: gan_in,
+                                    nn_nodes["reinforcement"]["reward_scaler"]: reward,
+                                    nn_nodes["reinforcement"]["learningrate"]: 0.00001})
+
+        exit(0)
+
+
+
+            # if plotting:
+            #     ax.plot(np.real(out[0]), color="blue")
+            #     ax.plot(np.abs(out[0]), color="black")
+            #     # plot lines showing where the indexes are
+            #     ax.plot([indexmin, indexmin], [indexmin_value, 0], color="red")
+            #     ax.plot([indexmax, indexmax], [indexmax_value, 0], color="red")
+            #     # plpt the threshold value
+            #     ax.plot([indexmin, indexmax], [threshold, threshold], color="orange", linestyle="dashed")
+            #     ax.plot([indexmin, indexmax], [0, 0], color="black", linestyle="dashed", alpha=0.5)
+            #     ax.text(indexmin, 0.5*np.max(np.abs(out[0])), str(indexmin_value), backgroundcolor="white", ha='center')
+            #     ax.text(indexmax, 0.5*np.max(np.abs(out[0])), str(indexmax_value), backgroundcolor="white", ha='center')
+            #     ax.text(0.1, 0.1, "reward: {}".format(str(reward)), transform=ax.transAxes, backgroundcolor="white")
+            #     plt.pause(1)
+
+
+
+
+        # ganlabelinput = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+        # ganlabelinput = np.array([[0.,0.01764787,0.28609192, -0.15447468, 0.25606465]])
+        # out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+        #                feed_dict={nn_nodes["gan"]["gan_xuv_out_nolin"]: orign_out[:,:5]})
+        # ax = fig.add_subplot(gs[1, :])
+        # ax.plot(np.real(out[0]), color="blue")
+        # ax.plot(np.abs(out[0]), color="black")
+
 
 
     # test gan output
