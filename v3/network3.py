@@ -681,11 +681,13 @@ if __name__ == "__main__":
                 indexmax_value = np.max(np.abs(out[0, indexmax:]))
                 reward = (2 * threshold) / (indexmin_value + indexmax_value)
 
-                # train with the reward value
-                sess.run(nn_nodes["reinforcement"]["reinf_network_train"],
-                         feed_dict={nn_nodes["gan"]["gan_input"]: gan_in,
-                                    nn_nodes["reinforcement"]["reward_scaler"]: reward,
-                                    nn_nodes["reinforcement"]["learningrate"]: 0.00001})
+                if reward < 1:
+
+                    # train with the reward value
+                    sess.run(nn_nodes["reinforcement"]["reinf_network_train"],
+                             feed_dict={nn_nodes["gan"]["gan_input"]: gan_in,
+                                        nn_nodes["reinforcement"]["reward_scaler"]: reward,
+                                        nn_nodes["reinforcement"]["learningrate"]: 0.00001})
 
         exit(0)
 
