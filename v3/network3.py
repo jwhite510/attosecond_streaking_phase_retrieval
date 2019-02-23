@@ -620,11 +620,16 @@ if __name__ == "__main__":
         gs = fig.add_gridspec(2, 1)
         ax1 = fig.add_subplot(gs[0, :])
         ax2 = fig.add_subplot(gs[1, :])
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 1)
+        ax3 = fig.add_subplot(gs[:, :])
+
         plt.ion()
 
 
 
-        plotting = False
+        plotting = True
         indexmax = 2048 - 100
         indexmin = 100
         threshold_scaler = 1 / 250
@@ -635,6 +640,7 @@ if __name__ == "__main__":
         for _ in range(1000):
             ax1.cla()
             ax2.cla()
+            ax3.cla()
 
             reward_values = []
             exceeded_threshold = []
@@ -652,6 +658,25 @@ if __name__ == "__main__":
                 if reward > 1:
                     exceeded_threshold.append(reward)
                 reward_values.append(reward)
+
+
+                if plotting:
+                    ax3.cla()
+                    ax3.plot(np.real(out[0]), color="blue")
+                    ax3.plot(np.abs(out[0]), color="black")
+                    # plot lines showing where the indexes are
+                    ax3.plot([indexmin, indexmin], [indexmin_value, 0], color="red")
+                    ax3.plot([indexmax, indexmax], [indexmax_value, 0], color="red")
+                    # plpt the threshold value
+                    ax3.plot([indexmin, indexmax], [threshold, threshold], color="orange", linestyle="dashed")
+                    ax3.plot([indexmin, indexmax], [0, 0], color="black", linestyle="dashed", alpha=0.5)
+                    ax3.text(indexmin, 0.5 * np.max(np.abs(out[0])), str(indexmin_value), backgroundcolor="white",
+                            ha='center')
+                    ax3.text(indexmax, 0.5 * np.max(np.abs(out[0])), str(indexmax_value), backgroundcolor="white",
+                            ha='center')
+                    ax3.text(0.1, 0.1, "reward: {}".format(str(reward)), transform=ax3.transAxes, backgroundcolor="white")
+                    plt.pause(1)
+
 
             print("=====================")
             print("average reward:")
@@ -693,19 +718,7 @@ if __name__ == "__main__":
 
 
 
-            # if plotting:
-            #     ax.plot(np.real(out[0]), color="blue")
-            #     ax.plot(np.abs(out[0]), color="black")
-            #     # plot lines showing where the indexes are
-            #     ax.plot([indexmin, indexmin], [indexmin_value, 0], color="red")
-            #     ax.plot([indexmax, indexmax], [indexmax_value, 0], color="red")
-            #     # plpt the threshold value
-            #     ax.plot([indexmin, indexmax], [threshold, threshold], color="orange", linestyle="dashed")
-            #     ax.plot([indexmin, indexmax], [0, 0], color="black", linestyle="dashed", alpha=0.5)
-            #     ax.text(indexmin, 0.5*np.max(np.abs(out[0])), str(indexmin_value), backgroundcolor="white", ha='center')
-            #     ax.text(indexmax, 0.5*np.max(np.abs(out[0])), str(indexmax_value), backgroundcolor="white", ha='center')
-            #     ax.text(0.1, 0.1, "reward: {}".format(str(reward)), transform=ax.transAxes, backgroundcolor="white")
-            #     plt.pause(1)
+
 
 
 
