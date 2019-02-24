@@ -625,7 +625,7 @@ if __name__ == "__main__":
         # define threshold
         xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
         xuv_t = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"], feed_dict={nn_nodes["gan"]["gan_xuv_out_nolin"]: xuv_coefs_in})
-        threshold = np.max(np.abs(xuv_t[0])) * 0.01
+        threshold = np.max(np.abs(xuv_t[0])) * phase_parameters.params.threshold_scaler
 
 
         for _ in range(999):

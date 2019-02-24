@@ -23,3 +23,7 @@ Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
 
+# threshold scaler for the generated pulses
+threshold_scaler = 0.01
+
+
