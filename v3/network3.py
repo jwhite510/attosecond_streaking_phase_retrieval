@@ -621,6 +621,13 @@ if __name__ == "__main__":
         ax3 = fig.add_subplot(gs[:, :])
         plt.ion()
 
+
+        # define threshold
+        xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+        xuv_t = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"], feed_dict={nn_nodes["gan"]["gan_xuv_out_nolin"]: xuv_coefs_in})
+        threshold = np.max(np.abs(xuv_t[0])) * 0.01
+
+
         for _ in range(999):
             gan_in = np.random.random(100).reshape(1, -1)
 
@@ -628,10 +635,10 @@ if __name__ == "__main__":
                            feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
 
             # threshold_scaler = 1 / 250
-            threshold_scaler = 0.01
+            # threshold_scaler = 0.01
             indexmax = 2048 - 100
             indexmin = 100
-            threshold = threshold_scaler * np.max(np.abs(out[0]))
+            # threshold = threshold_scaler * np.max(np.abs(out[0]))
             indexmin_value = np.max(np.abs(out[0, :indexmin]))
             indexmax_value = np.max(np.abs(out[0, indexmax:]))
 
