@@ -78,6 +78,57 @@ class GetData():
         return trace_batch, appended_label_batch
 
 
+
+def test_generate_data(nn_nodes):
+
+    # generate a bunch of samples and test threshold value
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(2, 1)
+        ax3 = fig.add_subplot(gs[:, :])
+        plt.ion()
+
+        # define threshold
+        xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+        xuv_t = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+                         feed_dict={nn_nodes["gan"]["gan_xuv_out_nolin"]: xuv_coefs_in})
+        threshold = np.max(np.abs(xuv_t[0])) * phase_parameters.params.threshold_scaler
+
+        for _ in range(999):
+            gan_in = np.random.random(100).reshape(1, -1)
+
+            out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
+                           feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
+
+            indexmax = phase_parameters.params.threshold_max_index
+            indexmin = phase_parameters.params.threshold_min_index
+
+            indexmin_value = np.max(np.abs(out[0, :indexmin]))
+            indexmax_value = np.max(np.abs(out[0, indexmax:]))
+
+            ax3.cla()
+            ax3.plot(np.real(out[0]), color="blue")
+            ax3.plot(np.abs(out[0]), color="black")
+            ax3.plot([indexmin, indexmin], [indexmin_value, 0], color="red")
+            ax3.plot([indexmax, indexmax], [indexmax_value, 0], color="red")
+            ax3.plot([indexmin, indexmax], [threshold, threshold], color="orange", linestyle="dashed")
+
+            # print(indexmin_value)
+            # print(indexmax_value)
+            # print(threshold)
+
+            if indexmin_value > threshold or indexmax_value > threshold:
+                print("exceeded threshold")
+                plt.ioff()
+                plt.show()
+                exit(0)
+
+            plt.pause(0.001)
+
+
 def separate_xuv_ir_vec(xuv_ir_vec):
 
     xuv = xuv_ir_vec[0:5]
@@ -611,54 +662,7 @@ if __name__ == "__main__":
     # build neural net graph
     nn_nodes = setup_neural_net(streak_params)
 
-    # generate a bunch of samples and test threshold value
-    init = tf.global_variables_initializer()
-    with tf.Session() as sess:
-        sess.run(init)
-
-        fig = plt.figure()
-        gs = fig.add_gridspec(2, 1)
-        ax3 = fig.add_subplot(gs[:, :])
-        plt.ion()
-
-
-        # define threshold
-        xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-        xuv_t = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"], feed_dict={nn_nodes["gan"]["gan_xuv_out_nolin"]: xuv_coefs_in})
-        threshold = np.max(np.abs(xuv_t[0])) * phase_parameters.params.threshold_scaler
-
-
-        for _ in range(999):
-            gan_in = np.random.random(100).reshape(1, -1)
-
-            out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
-                           feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
-
-            indexmax = phase_parameters.params.threshold_max_index
-            indexmin = phase_parameters.params.threshold_min_index
-
-            indexmin_value = np.max(np.abs(out[0, :indexmin]))
-            indexmax_value = np.max(np.abs(out[0, indexmax:]))
-
-            ax3.cla()
-            ax3.plot(np.real(out[0]), color="blue")
-            ax3.plot(np.abs(out[0]), color="black")
-            ax3.plot([indexmin, indexmin], [indexmin_value, 0], color="red")
-            ax3.plot([indexmax, indexmax], [indexmax_value, 0], color="red")
-            ax3.plot([indexmin, indexmax], [threshold, threshold], color="orange", linestyle="dashed")
-
-            # print(indexmin_value)
-            # print(indexmax_value)
-            # print(threshold)
-
-            if indexmin_value > threshold or indexmax_value > threshold:
-                print("exceeded threshold")
-                plt.ioff()
-                plt.show()
-                exit(0)
-
-
-            plt.pause(0.001)
+    # test_generate_data(nn_nodes)
 
     print("built neural net")
 
