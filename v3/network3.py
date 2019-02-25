@@ -440,7 +440,7 @@ def gan_network(input, output_length):
         return output
 
 
-def phase_retrieval_net(input, total_label_length):
+def phase_retrieval_net(input, total_label_length, streak_params):
 
     # define phase retrieval neural network
     with tf.variable_scope("phase"):
@@ -525,7 +525,7 @@ def setup_neural_net(streak_params):
     x_flat = tf.reshape(x, [1, -1])
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
     # pass image through network
-    y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length)
+    y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length, streak_params=streak_params)
 
 
     # from y_pred generate fields
