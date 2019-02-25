@@ -147,7 +147,7 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
     for j, index in enumerate(indexes):
 
         prediction = pred_in[index]
-        mse = sess.run(nn_nodes["loss"], feed_dict={nn_nodes["x"]: x_in[index].reshape(1, -1),nn_nodes["y_true"]: y_in[index].reshape(1, -1)})
+        mse = sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1),nn_nodes["supervised"]["y_true"]: y_in[index].reshape(1, -1)})
         # print(mse)
         # print(str(mse))
 
@@ -243,7 +243,7 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
 def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_graphs, streak_params):
 
     batch_x_train, batch_y_train = data_obj.evaluate_on_train_data(samples=500)
-    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["x"]: batch_x_train})
+    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train})
 
 
     plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
@@ -257,7 +257,7 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_
                      streak_params=streak_params)
 
     batch_x_test, batch_y_test = data_obj.evaluate_on_test_data()
-    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["x"]: batch_x_test})
+    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test})
 
     plot_predictions(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[0, 1, 2],
                      axes=axes["testplot1"], figure=axes["testfig1"], epoch=epoch, set='test_data_1',
@@ -274,8 +274,8 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_
 
 
 def init_tf_loggers(nn_nodes):
-    test_mse_tb = tf.summary.scalar("test_mse", nn_nodes["loss"])
-    train_mse_tb = tf.summary.scalar("train_mse", nn_nodes["loss"])
+    test_mse_tb = tf.summary.scalar("test_mse", nn_nodes["supervised"]["phase_network_loss"])
+    train_mse_tb = tf.summary.scalar("train_mse", nn_nodes["supervised"]["phase_network_loss"])
 
     trackers = {}
     trackers["test_mse_tb"] = test_mse_tb
@@ -287,14 +287,14 @@ def init_tf_loggers(nn_nodes):
 def add_tensorboard_values(nn_nodes, tf_loggers):
     # view the mean squared error of the train data
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-    print("test MSE: ", sess.run(nn_nodes["loss"], feed_dict={nn_nodes["x"]: batch_x_test, nn_nodes["y_true"]: batch_y_test}))
-    summ = sess.run(tf_loggers["test_mse_tb"], feed_dict={nn_nodes["x"]: batch_x_test, nn_nodes["y_true"]: batch_y_test})
+    print("test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test, nn_nodes["supervised"]["y_true"]: batch_y_test}))
+    summ = sess.run(tf_loggers["test_mse_tb"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test, nn_nodes["supervised"]["y_true"]: batch_y_test})
     writer.add_summary(summ, global_step=i + 1)
 
     # view the mean squared error of the train data
     batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-    print("train MSE: ", sess.run(nn_nodes["loss"], feed_dict={nn_nodes["x"]: batch_x_train, nn_nodes["y_true"]: batch_y_train}))
-    summ = sess.run(tf_loggers["train_mse_tb"], feed_dict={nn_nodes["x"]: batch_x_train, nn_nodes["y_true"]: batch_y_train})
+    print("train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train, nn_nodes["supervised"]["y_true"]: batch_y_train}))
+    summ = sess.run(tf_loggers["train_mse_tb"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train, nn_nodes["supervised"]["y_true"]: batch_y_train})
     writer.add_summary(summ, global_step=i + 1)
 
     writer.flush()
@@ -632,6 +632,7 @@ def setup_neural_net(streak_params):
     nn_nodes["supervised"]["trace_in"] = x_in
     nn_nodes["supervised"]["y_true"] = y_true
     nn_nodes["supervised"]["hold_prob"] = hold_prob
+    nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
 
     # nodes specific to reinforcement learning
     nn_nodes["reinforcement"]["reward_scaler"] = reward_scaler
@@ -717,15 +718,16 @@ if __name__ == "__main__":
 
                 # train network
                 if i < 35:
-                    sess.run(nn_nodes["train"], feed_dict={nn_nodes["x"]: batch_x,
-                                                           nn_nodes["y_true"]: batch_y,
-                                                           nn_nodes["hold_prob"]: 0.8,
-                                                           nn_nodes["s_LR"]: 0.0001})
+                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
+                                                           nn_nodes["supervised"]["y_true"]: batch_y,
+                                                           nn_nodes["supervised"]["hold_prob"]: 0.8,
+                                                           nn_nodes["supervised"]["learningrate"]: 0.0001})
                 else:
-                    sess.run(nn_nodes["train"], feed_dict={nn_nodes["x"]: batch_x,
-                                                           nn_nodes["y_true"]: batch_y,
-                                                           nn_nodes["hold_prob"]: 0.8,
-                                                           nn_nodes["s_LR"]: 0.0001})
+                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
+                                                         nn_nodes["supervised"]["y_true"]: batch_y,
+                                                         nn_nodes["supervised"]["hold_prob"]: 0.8,
+                                                         nn_nodes["supervised"]["learningrate"]: 0.0001})
+
             print("")
 
             add_tensorboard_values(nn_nodes, tf_loggers)
