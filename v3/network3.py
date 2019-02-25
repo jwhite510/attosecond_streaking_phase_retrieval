@@ -535,7 +535,7 @@ def setup_neural_net(streak_params):
     xuv_E_pred_prop = tf_functions.xuv_taylor_to_E(xuv_params_pred)
     ir_E_pred_prop = tf_functions.ir_from_params(ir__params_pred)
 
-    reconstructed_trace = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_pred_prop["f_cropped"][0],
+    reconstructed_trace, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_pred_prop["f_cropped"][0],
                                             ir_cropped_f_in=ir_E_pred_prop["f_cropped"][0])
 
 
@@ -681,7 +681,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run1'
+    modelname = 'run1test'
 
     print('starting ' + modelname)
 
