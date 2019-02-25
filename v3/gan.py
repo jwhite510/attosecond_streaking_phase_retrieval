@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'gan_test_20'
+    run_name = 'gan_test_211'
 
 
     # copy the model to a new version to use for unsupervised learning
@@ -39,6 +39,8 @@ if __name__ == "__main__":
 
     gan_mse_tb = tf.summary.scalar("gan_mse", nn_nodes["gan"]["gan_network_loss"])
 
+    label_mses = []
+    plt.ion()
 
     with tf.Session() as sess:
         saver = tf.train.Saver()
@@ -59,6 +61,26 @@ if __name__ == "__main__":
                 summ = sess.run(gan_mse_tb, feed_dict={nn_nodes["gan"]["gan_input"]: gan_input})
                 writer.add_summary(summ, global_step=i + 1)
                 writer.flush()
+
+
+
+                # check mse between labels
+                y_pred_out = sess.run(nn_nodes["y_pred"],
+                                      feed_dict={nn_nodes["gan"]["gan_input"]: gan_input})
+                y_pred_out = y_pred_out.reshape(-1)
+                gan_label_out = sess.run(nn_nodes["gan"]["gan_label"],
+                                         feed_dict={nn_nodes["gan"]["gan_input"]: gan_input})
+                gan_label_out = gan_label_out.reshape(-1)
+                label_mse_error = (1/len(gan_label_out)) * np.sum((y_pred_out - gan_label_out)**2)
+                print("label mse: ", label_mse_error)
+                label_mses.append(label_mse_error)
+                plt.figure(1)
+                plt.cla()
+                plt.plot(label_mses)
+                # plot the averages
+                #avg = (1/(len(label_mses)))*np.sum(np.array(label_mses))
+                #plt.plot([0, len(label_mses)], [avg, avg], color="red")
+                plt.pause(0.001)
 
 
         #traces, labels = get_data.evaluate_on_test_data()
