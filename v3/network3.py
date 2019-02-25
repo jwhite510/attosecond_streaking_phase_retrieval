@@ -642,6 +642,7 @@ def setup_neural_net(streak_params):
 
     # general nodes of network
     nn_nodes["trace_in"] = x_in
+    nn_nodes["trace_in_image"] = x
     nn_nodes["y_pred"] = y_pred
 
     # after y_pred, reconstruced pulse and fields
