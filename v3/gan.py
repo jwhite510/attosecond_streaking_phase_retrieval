@@ -55,6 +55,7 @@ if __name__ == "__main__":
                                                           })
 
             if i % 10 == 0:
+                print(i)
                 summ = sess.run(gan_mse_tb, feed_dict={nn_nodes["gan"]["gan_input"]: gan_input})
                 writer.add_summary(summ, global_step=i + 1)
                 writer.flush()
