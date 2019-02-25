@@ -57,13 +57,15 @@ def check_time_boundary(indexmin, indexmax, threshold, xuv_t, bad_samples):
     # check to make sure the signal decreases in time
     # indexmin = 100
     # indexmax = 924
-    value_1 = np.abs(xuv_t)[indexmin]
-    value_2 = np.abs(xuv_t)[indexmax]
+
+    value_1 = np.max(np.abs(xuv_t[:indexmin]))
+    value_2 = np.max(np.abs(xuv_t[indexmax:]))
 
 
     if value_1 > threshold or value_2 > threshold:
     # if True:
         bad_samples+=1
+        plt.ioff()
         plt.figure(356)
         plt.cla()
         plt.plot(np.real(xuv_t))
@@ -72,10 +74,9 @@ def check_time_boundary(indexmin, indexmax, threshold, xuv_t, bad_samples):
         plt.plot([indexmin, indexmax], [threshold, threshold], color='red', linestyle='dashed')
         plt.text(0.1, 0.8, 'bad samples:{}'.format(bad_samples), transform=plt.gca().transAxes)
         plt.show()
-        # plt.pause(0.001)
-        return bad_samples, False
+        exit(0)
 
-    return bad_samples, True
+    return None
 
 
 def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, sess, axis):
@@ -101,7 +102,7 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
     # make a sample with no phase to give a comparison
     xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
     xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
-    threshold = np.max(np.abs(xuv_t)) / 300
+    threshold = np.max(np.abs(xuv_t[0])) * phase_parameters.params.threshold_scaler
     indexmin = 100
     indexmax = (2*1024) - 100
 
@@ -115,23 +116,34 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
 
     # open and append the file
     with tables.open_file(filename, mode='a') as hd5file:
+
         for i in range(n_samples):
 
-            xuv_good = False
+            #random coefficients between -0.5 and 0.5
+            xuv_coefs_rand = (2*np.random.rand(4)-1.0).reshape(1, -1)
+            xuv_coefs_in = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
 
-            while not xuv_good:
+            # generate time pulse from these coefficients
+            xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
 
-                #xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+            # check if the pulse is constrained in time window
+            check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
 
-                #random coefficients between -0.5 and 0.5
-                xuv_coefs_rand = (2*np.random.rand(4)-1.0).reshape(1, -1)
-                xuv_coefs_in = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+            # xuv_good = False
 
-                # generate time pulse from these coefficients
-                xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
-
-                # check if the pulse is constrained in time window
-                bad_samples, xuv_good = check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
+            # while not xuv_good:
+            #
+            #     #xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+            #
+            #     #random coefficients between -0.5 and 0.5
+            #     xuv_coefs_rand = (2*np.random.rand(4)-1.0).reshape(1, -1)
+            #     xuv_coefs_in = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+            #
+            #     # generate time pulse from these coefficients
+            #     xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
+            #
+            #     # check if the pulse is constrained in time window
+            #     bad_samples, xuv_good = check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
 
 
             # make ir params
