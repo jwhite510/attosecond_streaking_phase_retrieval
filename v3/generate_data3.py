@@ -103,8 +103,8 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
     xuv_coefs_in = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
     xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in})
     threshold = np.max(np.abs(xuv_t[0])) * phase_parameters.params.threshold_scaler
-    indexmin = 100
-    indexmax = (2*1024) - 100
+    indexmax = phase_parameters.params.threshold_max_index
+    indexmin = phase_parameters.params.threshold_min_index
 
     threshold_dict = {}
     threshold_dict["threshold"] = threshold

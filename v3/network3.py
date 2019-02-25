@@ -634,11 +634,9 @@ if __name__ == "__main__":
             out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["t"],
                            feed_dict={nn_nodes["gan"]["gan_input"]: gan_in})
 
-            # threshold_scaler = 1 / 250
-            # threshold_scaler = 0.01
-            indexmax = 2048 - 100
-            indexmin = 100
-            # threshold = threshold_scaler * np.max(np.abs(out[0]))
+            indexmax = phase_parameters.params.threshold_max_index
+            indexmin = phase_parameters.params.threshold_min_index
+
             indexmin_value = np.max(np.abs(out[0, :indexmin]))
             indexmax_value = np.max(np.abs(out[0, indexmax:]))
 
