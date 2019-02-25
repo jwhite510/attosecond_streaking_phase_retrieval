@@ -121,6 +121,7 @@ def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, s
 
             #random coefficients between -0.5 and 0.5
             xuv_coefs_rand = (2*np.random.rand(4)-1.0).reshape(1, -1)
+            # xuv_coefs_rand = np.array([[1.0, 0.0, 0.0, 0.0]])
             xuv_coefs_in = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
 
             # generate time pulse from these coefficients
