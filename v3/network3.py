@@ -470,9 +470,9 @@ def phase_retrieval_net(input, total_label_length):
                                                   512], activate='relu', stride=[2, 2])
 
         convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-        # full_layer_one = normal_full_layer(convo_3_flat, 1024)
-        full_layer_one = normal_full_layer(convo_3_flat, 2)
-        print("layer needs to be set to 1024!!")
+        full_layer_one = normal_full_layer(convo_3_flat, 1024)
+        #full_layer_one = normal_full_layer(convo_3_flat, 2)
+        #print("layer needs to be set to 1024!!")
 
         # dropout
         hold_prob = tf.placeholder_with_default(1.0, shape=())
@@ -681,7 +681,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run3'
+    modelname = 'run1'
 
     print('starting ' + modelname)
 
