@@ -10,28 +10,42 @@ import matplotlib.pyplot as plt
 
 
 
-def plot_output(out, label):
-    fig = plt.figure(figsize=(16, 8))
-    gs = fig.add_gridspec(1, 1)
-    ax = fig.add_subplot(gs[0, 0])
-    ax.plot(np.real(out[0]), color="blue")
-    ax.plot(np.imag(out[0]), color="red")
-    ax.plot(np.abs(out[0]), color="black", alpha=0.5)
-    axtwin = ax.twinx()
-    axtwin.plot(np.unwrap(np.angle(out[0])), color="green")
+def plot_output(sess, label, name):
 
+
+
+    # get output field
+    field = sess.run(nn_nodes["reconstruction"]["xuv_E_pred_prop"]["f_cropped"], feed_dict={nn_nodes["y_pred"]: label})
+    trace = sess.run(nn_nodes["reconstruction"]["trace"], feed_dict={nn_nodes["y_pred"]: label})
+
+
+    fig = plt.figure(figsize=(16, 8))
+    gs = fig.add_gridspec(1, 2)
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_title(name+" XUV Field")
+    ax.plot(np.real(field[0]), color="blue")
+    ax.plot(np.imag(field[0]), color="red")
+    ax.plot(np.abs(field[0]), color="black", alpha=0.5)
+    axtwin = ax.twinx()
+    axtwin.plot(np.unwrap(np.angle(field[0])), color="green")
     # plot xuv coefs
     slide = 0
     for coeflabel in ["1st", "2nd", "3rd", "4th", "5th"]:
         axtwin.text(0.6+slide, 0.95, coeflabel, transform=axtwin.transAxes, backgroundcolor="white")
-        slide += 0.05
+        slide += 0.08
     axtwin.text(0.6, 0.90, str(np.round(label[:, 0:5], 3)), transform=axtwin.transAxes, backgroundcolor="white")
-
     slide = 0
     for coeflabel in ["$\phi_0$", "$\lambda$", r"$\tau$", "$I_0$"]:
         axtwin.text(0.6+slide, 0.85, coeflabel, transform=axtwin.transAxes, backgroundcolor="white")
-        slide += 0.05
+        slide += 0.08
     axtwin.text(0.6, 0.80, str(np.round(label[:, 5:], 3)), transform=axtwin.transAxes, backgroundcolor="white")
+
+
+    ax = fig.add_subplot(gs[0, 1])
+    ax.pcolormesh(trace, cmap="jet")
+
+    ax.set_title(name+" Trace")
+
 
 
 
@@ -68,7 +82,6 @@ if __name__ == "__main__":
 
 
     tf_generator_graphs, streak_params = network3.initialize_xuv_ir_trace_graphs()
-    assert isinstance(streak_params, object)
     nn_nodes = network3.setup_neural_net(streak_params)
 
     with tf.Session() as sess:
@@ -83,16 +96,13 @@ if __name__ == "__main__":
 
 
 
+        # plot input field and trace
+        # plot y_pred and reconstruction
 
-        out = sess.run(nn_nodes["reconstruction"]["xuv_E_pred_prop"]["f_cropped"], feed_dict={nn_nodes["y_pred"]: y_pred})
-        plot_output(out, y_pred)
+        plot_output(sess, label=y_pred, name="Predicted")
 
-
-
-
-
-        out = sess.run(nn_nodes["reconstruction"]["xuv_E_pred_prop"]["f_cropped"],feed_dict={nn_nodes["y_pred"]: gan_label})
-        plot_output(out, gan_label)
+        #out = sess.run(nn_nodes["reconstruction"]["xuv_E_pred_prop"]["f_cropped"],feed_dict={nn_nodes["y_pred"]: gan_label})
+        plot_output(sess, label=gan_label, name="Input")
 
         plt.show()
 
