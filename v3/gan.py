@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # run name
     # can do multiple run names for the same model
-    run_name = 'gan_test_211'
+    run_name = 'gan_test_2111'
 
 
     # copy the model to a new version to use for unsupervised learning
@@ -92,6 +92,13 @@ if __name__ == "__main__":
         plt.figure(1)
         plt.pcolormesh(out)
 
+        # see the labels
+        print("------labels------")
+        print(sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["gan"]["gan_input"]: gan_input}))
+        print(sess.run(nn_nodes["gan"]["gan_label"], feed_dict={nn_nodes["gan"]["gan_input"]: gan_input}))
+        print("------labels------")
+
+
         out = sess.run(nn_nodes["gan"]["xuv_E_prop"]["f_cropped"], feed_dict={nn_nodes["gan"]["gan_input"]: gan_input})
         plt.figure(2)
         plt.plot(np.real(out[0]), color="blue")
@@ -106,6 +113,7 @@ if __name__ == "__main__":
         plt.plot(np.real(out[0]), color="blue")
         plt.plot(np.imag(out[0]), color="red")
 
+        plt.ioff()
         plt.show()
 
 
