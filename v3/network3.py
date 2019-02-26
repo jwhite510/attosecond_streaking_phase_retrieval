@@ -625,6 +625,7 @@ def setup_neural_net(streak_params):
     nn_nodes["gan"]["xuv_E_prop"] = xuv_E_prop
     nn_nodes["gan"]["ir_E_prop"] = ir_E_prop
     nn_nodes["gan"]["gan_xuv_out_nolin"] = gan_xuv_out_nolin
+    nn_nodes["gan"]["gan_ir_out"] = gan_ir_out
     nn_nodes["gan"]["gan_network_loss"] = gan_network_loss
 
     # nodes specific to supervised learning
