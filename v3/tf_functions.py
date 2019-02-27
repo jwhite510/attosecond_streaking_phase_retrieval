@@ -100,7 +100,7 @@ def xuv_taylor_to_E(coefficients_in):
     E_prop["f"] = Ef_prop
     E_prop["f_cropped"] = Ef_prop_cropped
     E_prop["t"] = Et_prop
-    E_prop["coefs_divided_by_int"] = coefs_divided_by_int
+    #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
 
     return E_prop
 
