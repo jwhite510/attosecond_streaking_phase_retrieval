@@ -33,15 +33,15 @@ def tf_fft(tensor, shift, axis=0):
     return freq_domain
 
 
-def xuv_taylor_to_E(coef_values_normalized):
+def xuv_taylor_to_E(coefficients_in):
 
-    assert int(coef_values_normalized.shape[1]) == phase_parameters.params.xuv_phase_coefs
+    assert int(coefficients_in.shape[1]) == phase_parameters.params.xuv_phase_coefs
 
 
     # check integral of coefficients
-    coef_integral = tf.reduce_sum(tf.abs(coef_values_normalized), axis=1)
+    # coef_integral = tf.reduce_sum(tf.abs(coef_values_normalized), axis=1)
 
-    coefs_divided_by_int = coef_values_normalized / ((1*tf.abs(coef_integral)) + 1e-5)
+    # coefs_divided_by_int = coef_values_normalized / ((1*tf.abs(coef_integral)) + 1e-5)
 
     amplitude = phase_parameters.params.amplitude
     # print(coef_values_normalized)
@@ -53,11 +53,11 @@ def xuv_taylor_to_E(coef_values_normalized):
     fmat_taylor = tf.constant(xuv_spectrum.spectrum.fmat-xuv_spectrum.spectrum.f0, dtype=tf.float32)
 
     # create factorials
-    factorials = tf.constant(factorial(np.array(range(coef_values_normalized.shape[1]))+1), dtype=tf.float32)
+    factorials = tf.constant(factorial(np.array(range(coefficients_in.shape[1]))+1), dtype=tf.float32)
     factorials = tf.reshape(factorials, [1, -1, 1])
 
     # create exponents
-    exponents = tf.constant(np.array(range(coef_values_normalized.shape[1]))+1, dtype=tf.float32)
+    exponents = tf.constant(np.array(range(coefficients_in.shape[1]))+1, dtype=tf.float32)
 
     # reshape the taylor fmat
     fmat_taylor = tf.reshape(fmat_taylor, [1, 1, -1])
@@ -76,7 +76,7 @@ def xuv_taylor_to_E(coef_values_normalized):
     amplitude_scaler = tf.pow(amplitude_mat, exp_mat)
 
     # reshape the coef values and scale them
-    coef_values = tf.reshape(coefs_divided_by_int, [tf.shape(coef_values_normalized)[0], -1, 1]) * amplitude_scaler
+    coef_values = tf.reshape(coefficients_in, [tf.shape(coefficients_in)[0], -1, 1]) * amplitude_scaler
 
     # divide by the factorials
     coef_div_fact = tf.divide(coef_values, factorials)
