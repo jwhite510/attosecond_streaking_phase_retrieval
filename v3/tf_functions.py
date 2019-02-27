@@ -37,16 +37,8 @@ def xuv_taylor_to_E(coefficients_in):
 
     assert int(coefficients_in.shape[1]) == phase_parameters.params.xuv_phase_coefs
 
-
-    # check integral of coefficients
-    # coef_integral = tf.reduce_sum(tf.abs(coef_values_normalized), axis=1)
-
-    # coefs_divided_by_int = coef_values_normalized / ((1*tf.abs(coef_integral)) + 1e-5)
-
     amplitude = phase_parameters.params.amplitude
-    # print(coef_values_normalized)
 
-    # eventually, will have to convert everything to atomic units before inputting here!!
     Ef = tf.constant(xuv_spectrum.spectrum.Ef, dtype=tf.complex64)
     Ef = tf.reshape(Ef, [1, -1])
 
