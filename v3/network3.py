@@ -489,24 +489,19 @@ def setup_neural_net(streak_params):
 
     print('Setting up multires layer network with more conv weights')
 
-
-    # placeholders
-    # x = tf.placeholder(tf.float32, shape=[None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))])
     # define the label for supervised learning of phase retrieval net
     total_label_length = int(xuv_phase_coefs + 4)
-    y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
-    # define phase retrieval network
 
     # define GAN network
     gan_input = tf.placeholder(tf.float32, shape=[1, 100])
-    # the output is one less than the xuv coefs, because linear phase will always be 0
-    # add 4 because of the four IR parameters
-    gan_output = gan_network(input=gan_input, output_length=xuv_phase_coefs-1 + 4)
 
     # GAN output is used to create XUV field and streaking trace
-    # print("xuv_phase_coefs: ", xuv_phase_coefs)
+    # add 4 because of the four IR parameters
+    # the output is one less than the xuv coefs, because linear phase will always be 0
+    gan_output = gan_network(input=gan_input, output_length=xuv_phase_coefs-1 + 4)
     gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
     gan_ir_out = gan_output[:, xuv_phase_coefs-1:]
+
     # append a zero to the xuv gan out, corresponding to linear phase that is always 0
     samples_in = tf.shape(gan_xuv_out)[0]
     zeros_vec = tf.fill([samples_in, 1], 0.0)
@@ -515,49 +510,45 @@ def setup_neural_net(streak_params):
 
     # append to create label
     gan_label = tf.concat([gan_xuv_out_nolin, gan_ir_out], axis=1)
+
+    # create XUV from GAN label
     xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
-    # ir prop
+
+    # create infrared from GAN label
     ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
+
     # use the fields to generate streaking trace
     # sample size of one required as of now
     x, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                             ir_cropped_f_in=ir_E_prop["f_cropped"][0])
     x_flat = tf.reshape(x, [1, -1])
+
+    # this placeholder accepts either an input as placeholder (supervised learning)
+    # or it will default to the GAN generated fields as input
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
-    # pass image through network
+
+    # pass image through phase retrieval network
     y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length, streak_params=streak_params)
 
+    # label for supervised learning
+    y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
 
-    # from y_pred generate fields
+    # split the output into the corresponding XUV and IR parts of the label
     xuv_params_pred = y_pred[:, 0:phase_parameters.params.xuv_phase_coefs]
     ir__params_pred = y_pred[:, phase_parameters.params.xuv_phase_coefs:]
 
+    # from y_pred generate fields
     xuv_E_pred_prop = tf_functions.xuv_taylor_to_E(xuv_params_pred)
     ir_E_pred_prop = tf_functions.ir_from_params(ir__params_pred)
 
+    # generate the reconstructed trace
     reconstructed_trace, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_pred_prop["f_cropped"][0],
-                                            ir_cropped_f_in=ir_E_pred_prop["f_cropped"][0])
-
+                                                          ir_cropped_f_in=ir_E_pred_prop["f_cropped"][0])
 
     # divide the variables to train with gan and phase retrieval net individually
     tvars = tf.trainable_variables()
     phase_net_vars = [var for var in tvars if "phase" in var.name]
     gan_net_vars = [var for var in tvars if "gan" in var.name]
-
-
-    # define a loss function for GAN net reinforcement learning
-    # print(gan_label)
-    # print(gan_label[:, :xuv_phase_coefs])
-
-    reward_scaler = tf.placeholder(tf.float32, shape=[])
-    tf_ones_xuv = tf.ones_like(gan_label[:, :xuv_phase_coefs]) * reward_scaler
-    tf_ones_ir = tf.ones_like(gan_label[:, xuv_phase_coefs:])
-    reinf_label = tf.concat([tf_ones_xuv, tf_ones_ir], axis=1) * tf.stop_gradient(gan_label)
-    reinf_loss = tf.losses.mean_squared_error(labels=reinf_label, predictions=gan_label)
-    reinf_LR = tf.placeholder(tf.float32, shape=[])
-    reinf_optimizer = tf.train.AdamOptimizer(learning_rate=reinf_LR)
-    reinf_network_train = reinf_optimizer.minimize(reinf_loss, var_list=gan_net_vars)
-
 
 
     # loss function for training GAN network
@@ -615,7 +606,6 @@ def setup_neural_net(streak_params):
     nn_nodes["gan"] = {}
     nn_nodes["supervised"] = {}
     nn_nodes["reconstruction"] = {}
-    nn_nodes["reinforcement"] = {}
 
     # nodes specific to GAN training
     nn_nodes["gan"]["train"] = gan_network_train
@@ -635,12 +625,6 @@ def setup_neural_net(streak_params):
     nn_nodes["supervised"]["y_true"] = y_true
     nn_nodes["supervised"]["hold_prob"] = hold_prob
     nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
-
-    # nodes specific to reinforcement learning
-    nn_nodes["reinforcement"]["reward_scaler"] = reward_scaler
-    nn_nodes["reinforcement"]["reinf_label"] = reinf_label
-    nn_nodes["reinforcement"]["reinf_network_train"] = reinf_network_train
-    nn_nodes["reinforcement"]["learningrate"] = reinf_LR
 
     # general nodes of network
     nn_nodes["trace_in"] = x_in
