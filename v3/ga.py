@@ -32,28 +32,28 @@ def plot_image_and_fields(plot_and_graph,
     plot_and_graph["plot_axes"]["actual_ir"].text(0.0, 1.1, "generation: {}".format(str(plot_and_graph["generation"])), transform=plot_and_graph["plot_axes"]["actual_ir"].transAxes)
     plot_and_graph["plot_axes"]["actual_ir"].text(0.0, 1.2, plot_and_graph["run_name"], transform=plot_and_graph["plot_axes"]["actual_ir"].transAxes)
     plot_and_graph["plot_axes"]["actual_ir_twinx"].cla()
-    plot_and_graph["plot_axes"]["actual_ir_twinx"].text(0.0, 0.9, "actual_ir", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_ir_twinx"].transAxes)
+    plot_and_graph["plot_axes"]["actual_ir_twinx"].text(0.0, 1.0, "actual_ir", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_ir_twinx"].transAxes)
     plot_and_graph["plot_axes"]["actual_ir_twinx"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(actual_fields["ir_f"])), color='green')
     plot_and_graph["plot_axes"]["actual_ir_twinx"].tick_params(axis='y', colors='green')
 
     plot_and_graph["plot_axes"]["actual_xuv"].cla()
     plot_and_graph["plot_axes"]["actual_xuv"].plot(spectrum.fmat_cropped, np.abs(actual_fields["xuv_f"]) ** 2, color='black')
     plot_and_graph["plot_axes"]["actual_xuv_twinx"].cla()
-    plot_and_graph["plot_axes"]["actual_xuv_twinx"].text(0.0, 0.9, "actual_xuv", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_xuv_twinx"].transAxes)
+    plot_and_graph["plot_axes"]["actual_xuv_twinx"].text(0.0, 1.0, "actual_xuv", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_xuv_twinx"].transAxes)
     plot_and_graph["plot_axes"]["actual_xuv_twinx"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(actual_fields["xuv_f"])), color='green')
     plot_and_graph["plot_axes"]["actual_xuv_twinx"].tick_params(axis='y', colors='green')
 
     # actual streaking trace
     plot_and_graph["plot_axes"]["actual_trace"].cla()
     plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
-    plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 0.9, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
+    plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
 
 
     # plot predicted trace
     plot_and_graph["plot_axes"]["predicted_ir"].cla()
     plot_and_graph["plot_axes"]["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(predicted_fields["ir_f"].reshape(-1)) ** 2, color='black')
     plot_and_graph["plot_axes"]["predicted_ir_twinx"].cla()
-    plot_and_graph["plot_axes"]["predicted_ir_twinx"].text(0.0, 0.9, "actual_ir", backgroundcolor="white",
+    plot_and_graph["plot_axes"]["predicted_ir_twinx"].text(0.0, 1.0, "actual_ir", backgroundcolor="white",
                                  transform=plot_and_graph["plot_axes"]["actual_ir_twinx"].transAxes)
     plot_and_graph["plot_axes"]["predicted_ir_twinx"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(predicted_fields["ir_f"].reshape(-1))), color='green')
     plot_and_graph["plot_axes"]["predicted_ir_twinx"].tick_params(axis='y', colors='green')
@@ -61,7 +61,7 @@ def plot_image_and_fields(plot_and_graph,
     plot_and_graph["plot_axes"]["predicted_xuv"].cla()
     plot_and_graph["plot_axes"]["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(predicted_fields["xuv_f"].reshape(-1)) ** 2, color='black')
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].cla()
-    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].text(0.0, 0.9, "predicted_xuv", backgroundcolor="white",
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].text(0.0, 1.0, "predicted_xuv", backgroundcolor="white",
                                   transform=plot_and_graph["plot_axes"]["predicted_xuv_twinx"].transAxes)
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(predicted_fields["xuv_f"].reshape(-1))), color='green')
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].tick_params(axis='y', colors='green')
@@ -69,13 +69,13 @@ def plot_image_and_fields(plot_and_graph,
     # predicted streaking trace
     plot_and_graph["plot_axes"]["predicted_trace"].cla()
     plot_and_graph["plot_axes"]["predicted_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], predicted_streaking_trace, cmap='jet')
-    plot_and_graph["plot_axes"]["predicted_trace"].text(0.0, 0.9, "predicted_trace", backgroundcolor="white",
+    plot_and_graph["plot_axes"]["predicted_trace"].text(0.0, 1.0, "predicted_trace", backgroundcolor="white",
                               transform=plot_and_graph["plot_axes"]["predicted_trace"].transAxes)
     plot_and_graph["plot_axes"]["predicted_trace"].text(0.0, 0.1, "rmse: {}".format(str(round(rmse, 5))), backgroundcolor="white",
                                  transform=plot_and_graph["plot_axes"]["predicted_trace"].transAxes)
 
 
-    if plot_and_graph["generation"] % 10 == 0 or plot_and_graph["generation"] == 1:
+    if plot_and_graph["generation"] % 5 == 0 or plot_and_graph["generation"] == 1:
         #plt.savefig("./gapictures/{}.png".format(generation))
 
         dir = "./gapictures/" + plot_and_graph["run_name"] + "/"
@@ -144,6 +144,7 @@ def get_trace(index, filename):
 
         # use the non noise trace
         trace = hdf5_file.root.trace[index,:]
+        #trace = hdf5_file.root.noise_trace[index,:]
 
         actual_params = {}
 
@@ -360,8 +361,7 @@ def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, meas
 
         # return the rmse of final result
         best_ind = tools.selBest(pop, 1)[0]
-        return calc_vecs_and_rmse(best_ind, input_data, frequency_space, spline_params, sess, axes=axes, generation=g,
-                       writer=writer, tensorboard_tools=tensorboard_tools, run_name=run_name)
+        return calc_vecs_and_rmse(best_ind, measured_trace, tf_generator_graphs, sess, plot_and_graph=plot_and_graph)
 
 
 
@@ -369,7 +369,7 @@ if __name__ == "__main__":
 
     tensorboard_tools = create_tensorboard_tools()
 
-    measured_trace, actual_params = get_trace(index=1, filename="train3.hdf5")
+    measured_trace, actual_params = get_trace(index=3, filename="train3.hdf5")
 
     tf_generator_graphs, streak_params = network3.initialize_xuv_ir_trace_graphs()
 
@@ -387,5 +387,5 @@ if __name__ == "__main__":
                                                            ).reshape(-1)
 
 
-    genetic_algorithm(generations=100, pop_size=1, run_name="test1", tf_generator_graphs=tf_generator_graphs,
+    genetic_algorithm(generations=500, pop_size=500, run_name="no_noise", tf_generator_graphs=tf_generator_graphs,
                       measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
