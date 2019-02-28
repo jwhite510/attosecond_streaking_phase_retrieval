@@ -34,28 +34,32 @@ if __name__ == "__main__":
 
 
     plt.figure(1)
-    plt.hist(phi_2, color="blue", width=0.02)
-    plt.title("$\phi$ 2")
+    plt.hist(phi_2, color="blue", width=0.02, bins=50)
+    plt.title("$\phi_2$ ")
     plt.xlabel("coef value")
     plt.ylabel("count")
+    plt.gca().set_yscale("log")
 
     plt.figure(2)
-    plt.hist(phi_3, color="blue", width=0.02)
-    plt.title("$\phi$ 3")
+    plt.hist(phi_3, color="blue", width=0.02, bins=50)
+    plt.title("$\phi_3$ ")
     plt.xlabel("coef value")
     plt.ylabel("count")
+    plt.gca().set_yscale("log")
 
     plt.figure(3)
-    plt.hist(phi_4, color="blue", width=0.02)
-    plt.title("$\phi$ 4")
+    plt.hist(phi_4, color="blue", width=0.02, bins=50)
+    plt.title("$\phi_4$ ")
     plt.xlabel("coef value")
     plt.ylabel("count")
+    plt.gca().set_yscale("log")
 
     plt.figure(4)
-    plt.hist(phi_5, color="blue", width=0.02)
-    plt.title("$\phi$ 5")
+    plt.hist(phi_5, color="blue", width=0.02, bins=50)
+    plt.title("$\phi_5$ ")
     plt.xlabel("coef value")
     plt.ylabel("count")
+    plt.gca().set_yscale("log")
 
 
 
