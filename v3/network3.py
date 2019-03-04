@@ -79,6 +79,16 @@ class GetData():
 
 
 
+
+def concat_fields(xuv, ir):
+
+    xuv_concat = tf.concat([tf.real(xuv), tf.imag(xuv)], axis=1)
+    ir_concat = tf.concat([tf.real(ir), tf.imag(ir)], axis=1)
+    both_fields_concat = tf.concat([xuv_concat, ir_concat], axis=1)
+
+    return both_fields_concat
+
+
 def test_generate_data(nn_nodes):
 
     # generate a bunch of samples and test threshold value
@@ -417,7 +427,12 @@ def initialize_xuv_ir_trace_graphs():
     return tf_graphs, streak_params
 
 
-def gan_network(input, output_length):
+
+def gan_network(input):
+
+    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
+    output_length = xuv_phase_coefs - 1 + 4 + 1 # add 1 for the S scaling factor
+
 
     with tf.variable_scope("gan"):
         hidden1 = tf.layers.dense(inputs=input, units=128)
@@ -429,9 +444,38 @@ def gan_network(input, output_length):
 
         hidden2 = tf.maximum(alpha * hidden2, hidden2)
 
+        # output of neural net between -1 and 1
         output = tf.layers.dense(hidden2, units=output_length, activation=tf.nn.tanh)
 
-        return output
+        # represent taylor series coefficients
+        gan_xuv_out = output[:, 0:xuv_phase_coefs - 1]
+
+        # append a zero to the xuv gan out, corresponding to linear phase that is always 0
+        samples_in = tf.shape(gan_xuv_out)[0]
+        zeros_vec = tf.fill([samples_in, 1], 0.0)
+        gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
+
+        # normalize the xuv coefficients
+
+
+
+
+        gan_ir_out = output[:, xuv_phase_coefs - 1:]
+
+        # generate complex fields from these coefs
+        xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
+        ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
+
+        # concat these vectors to make a label
+        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+
+        outputs = {}
+        outputs["xuv_ir_field_label"] = xuv_ir_field_label
+        outputs["ir_E_prop"] = ir_E_prop
+        outputs["xuv_E_prop"] = xuv_E_prop
+
+
+        return outputs
 
 
 def phase_retrieval_net(input, total_label_length, streak_params):
@@ -492,18 +536,34 @@ def setup_neural_net(streak_params):
     # GAN output is used to create XUV field and streaking trace
     # add 4 because of the four IR parameters
     # the output is one less than the xuv coefs, because linear phase will always be 0
-    gan_output = gan_network(input=gan_input, output_length=xuv_phase_coefs-1 + 4)
-    gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
-    gan_ir_out = gan_output[:, xuv_phase_coefs-1:]
+    gan_output = gan_network(input=gan_input)
+    # gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
+    # gan_ir_out = gan_output[:, xuv_phase_coefs-1:]
+    #
+    # # append a zero to the xuv gan out, corresponding to linear phase that is always 0
+    # samples_in = tf.shape(gan_xuv_out)[0]
+    # zeros_vec = tf.fill([samples_in, 1], 0.0)
+    # gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
+    # # use the gan outputs to generate fields
+    #
+    # # append to create label
+    # gan_label = tf.concat([gan_xuv_out_nolin, gan_ir_out], axis=1)
 
-    # append a zero to the xuv gan out, corresponding to linear phase that is always 0
-    samples_in = tf.shape(gan_xuv_out)[0]
-    zeros_vec = tf.fill([samples_in, 1], 0.0)
-    gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
-    # use the gan outputs to generate fields
+    """"
+    ///////////////continue////////////////////
+    ...
+    """
 
-    # append to create label
-    gan_label = tf.concat([gan_xuv_out_nolin, gan_ir_out], axis=1)
+
+
+
+
+
+    #######
+
+
+
+
 
     # create XUV from GAN label
     xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
