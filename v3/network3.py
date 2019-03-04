@@ -85,7 +85,13 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_actual)
     ir_E_prop = tf_functions.ir_from_params(ir_params_actual)
     xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
-    return xuv_ir_field_label
+
+    fields = {}
+    fields["xuv_E_prop"] = xuv_E_prop
+    fields["ir_E_prop"] = ir_E_prop
+    fields["xuv_ir_field_label"] = xuv_ir_field_label
+
+    return fields
 
 
 
@@ -156,7 +162,7 @@ def separate_xuv_ir_vec(xuv_ir_vec):
     return xuv, ir
 
 
-def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, tf_generator_graphs, sess, streak_params):
+def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess, streak_params):
 
     # get find where in the vector is the ir and xuv
 
@@ -165,24 +171,30 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
 
     for j, index in enumerate(indexes):
 
-        prediction = pred_in[index]
-        mse = sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1),nn_nodes["supervised"]["y_true"]: y_in[index].reshape(1, -1)})
-        # print(mse)
-        # print(str(mse))
+        mse = sess.run(nn_nodes["supervised"]["phase_network_loss"],
+                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1),
+                                  nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
 
-        xuv_in, ir_in = separate_xuv_ir_vec(y_in[index])
-        xuv_pred, ir_pred = separate_xuv_ir_vec(pred_in[index])
+        # get the actual fields
+        actual_xuv_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["xuv_E_prop"]["f_cropped"],
+                       feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
+        actual_ir_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["ir_E_prop"]["f_cropped"],
+                       feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
 
-        xuv_in_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_in.reshape(1, -1)})
-        ir_in_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_in.reshape(1, -1)})
+        # get the predicted fields
+        predicted_xuv_field = sess.run(nn_nodes["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
+        predicted_ir_field = sess.run(nn_nodes["phase_net_output"]["ir_E_prop"]["f_cropped"],
+                                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
 
-        xuv_pred_Ef = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
-        ir_pred_Ef = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1)})
+        actual_xuv_field = actual_xuv_field.reshape(-1)
+        actual_ir_field = actual_ir_field.reshape(-1)
+        predicted_xuv_field = predicted_xuv_field.reshape(-1)
+        predicted_ir_field = predicted_ir_field.reshape(-1)
 
-        xuv_in_Ef = xuv_in_Ef.reshape(-1)
-        ir_in_Ef = ir_in_Ef.reshape(-1)
-        xuv_pred_Ef = xuv_pred_Ef.reshape(-1)
-        ir_pred_Ef = ir_pred_Ef.reshape(-1)
+        # calculate generated streaking trace
+        generated_trace = sess.run(nn_nodes["reconstruction"]["trace"],
+                                   feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
 
 
         axes[j]['input_trace'].cla()
@@ -193,11 +205,11 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
 
         axes[j]['actual_xuv'].cla()
         axes[j]['actual_xuv_twinx'].cla()
-        axes[j]['actual_xuv'].plot(np.real(xuv_in_Ef), color='blue', alpha=0.3)
-        axes[j]['actual_xuv'].plot(np.imag(xuv_in_Ef), color='red', alpha=0.3)
-        axes[j]['actual_xuv'].plot(np.abs(xuv_in_Ef), color='black')
+        axes[j]['actual_xuv'].plot(np.real(actual_xuv_field), color='blue', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.imag(actual_xuv_field), color='red', alpha=0.3)
+        axes[j]['actual_xuv'].plot(np.abs(actual_xuv_field), color='black')
         # plot the phase
-        axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(xuv_in_Ef)), color='green')
+        axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(actual_xuv_field)), color='green')
         axes[j]['actual_xuv_twinx'].tick_params(axis='y', colors='green')
         axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
         axes[j]['actual_xuv'].set_xticks([])
@@ -205,11 +217,11 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
 
         axes[j]['predict_xuv'].cla()
         axes[j]['predict_xuv_twinx'].cla()
-        axes[j]['predict_xuv'].plot(np.real(xuv_pred_Ef), color='blue', alpha=0.3)
-        axes[j]['predict_xuv'].plot(np.imag(xuv_pred_Ef), color='red', alpha=0.3)
-        axes[j]['predict_xuv'].plot(np.abs(xuv_pred_Ef), color='black')
+        axes[j]['predict_xuv'].plot(np.real(predicted_xuv_field), color='blue', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.imag(predicted_xuv_field), color='red', alpha=0.3)
+        axes[j]['predict_xuv'].plot(np.abs(predicted_xuv_field), color='black')
         #plot the phase
-        axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(xuv_pred_Ef)), color='green')
+        axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(predicted_xuv_field)), color='green')
         axes[j]['predict_xuv_twinx'].tick_params(axis='y', colors='green')
         axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
         axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
@@ -218,8 +230,8 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         axes[j]['predict_xuv'].set_yticks([])
 
         axes[j]['actual_ir'].cla()
-        axes[j]['actual_ir'].plot(np.real(ir_in_Ef), color='blue')
-        axes[j]['actual_ir'].plot(np.imag(ir_in_Ef), color='red')
+        axes[j]['actual_ir'].plot(np.real(actual_ir_field), color='blue')
+        axes[j]['actual_ir'].plot(np.imag(actual_ir_field), color='red')
         axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
 
         if j == 0:
@@ -234,15 +246,13 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         axes[j]['actual_ir'].set_yticks([])
 
         axes[j]['predict_ir'].cla()
-        axes[j]['predict_ir'].plot(np.real(ir_pred_Ef), color='blue')
-        axes[j]['predict_ir'].plot(np.imag(ir_pred_Ef), color='red')
+        axes[j]['predict_ir'].plot(np.real(predicted_ir_field), color='blue')
+        axes[j]['predict_ir'].plot(np.imag(predicted_ir_field), color='red')
         axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
         axes[j]['predict_ir'].set_xticks([])
         axes[j]['predict_ir'].set_yticks([])
 
-        # calculate generated streaking trace
-        generated_trace = sess.run(tf_generator_graphs["image"], feed_dict={tf_generator_graphs["ir_values_in"]: ir_pred.reshape(1, -1),
-                                                              tf_generator_graphs["xuv_coefs_in"]: xuv_pred.reshape(1, -1)})
+
 
         axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
         axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
@@ -259,38 +269,29 @@ def plot_predictions(x_in, y_in, pred_in, indexes, axes, figure, epoch, set, net
         figure.savefig(dir + str(epoch) + ".png")
 
 
-def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_graphs, streak_params):
+def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, streak_params):
 
     batch_x_train, batch_y_train = data_obj.evaluate_on_train_data(samples=500)
-    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train})
-
-
-
-
-    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
+    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 1, 2],
                       axes=axes["trainplot1"], figure=axes["trainfig1"], epoch=epoch, set='train_data_1',
-                      net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
+                      net_name=modelname, nn_nodes=nn_nodes, sess=sess,
                      streak_params=streak_params)
-    exit(0)
 
-
-
-    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[3, 4, 5],
+    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[3, 4, 5],
                      axes=axes["trainplot2"], figure=axes["trainfig2"], epoch=epoch, set='train_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
                      streak_params=streak_params)
+
 
     batch_x_test, batch_y_test = data_obj.evaluate_on_test_data()
-    predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test})
-
-    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[0, 1, 2],
+    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2],
                      axes=axes["testplot1"], figure=axes["testfig1"], epoch=epoch, set='test_data_1',
-                     net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
                      streak_params=streak_params)
 
-    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, pred_in=predictions, indexes=[3, 4, 5],
+    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5],
                      axes=axes["testplot2"], figure=axes["testfig2"], epoch=epoch, set='test_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
                      streak_params=streak_params)
 
     plt.show()
@@ -599,7 +600,7 @@ def setup_neural_net(streak_params):
 
     # create label for supervised learning
     actual_coefs_params = tf.placeholder(tf.float32, shape=[None, total_coefs_params_length])
-    true_complex_vectors_label = create_fields_label_from_coefs_params(actual_coefs_params)
+    supervised_label_fields = create_fields_label_from_coefs_params(actual_coefs_params)
 
 
     # generate the reconstructed trace
@@ -621,7 +622,7 @@ def setup_neural_net(streak_params):
 
 
     # loss function for training phase retrieval network
-    phase_network_loss = tf.losses.mean_squared_error(labels=true_complex_vectors_label,
+    phase_network_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_ir_field_label"],
                                                       predictions=phase_net_output["xuv_ir_field_label"])
     s_LR = tf.placeholder(tf.float32, shape=[])
     # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
@@ -659,6 +660,7 @@ def setup_neural_net(streak_params):
     nn_nodes["supervised"]["phase_net_output"] = phase_net_output
     nn_nodes["supervised"]["hold_prob"] = hold_prob
     nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
+    nn_nodes["supervised"]["supervised_label_fields"] = supervised_label_fields
 
     # general nodes of network
     nn_nodes["trace_in"] = x_in
@@ -756,7 +758,7 @@ if __name__ == "__main__":
                 # update the plot
 
                 update_plots(data_obj=get_data, sess=sess, nn_nodes=nn_nodes, modelname=modelname,
-                             epoch=i+1, axes=axes, tf_generator_graphs=tf_generator_graphs,
+                             epoch=i+1, axes=axes,
                              streak_params=streak_params)
 
                 # save model
