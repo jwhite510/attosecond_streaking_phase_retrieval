@@ -78,6 +78,15 @@ class GetData():
         return trace_batch, appended_label_batch
 
 
+def create_fields_label_from_coefs_params(actual_coefs_params):
+
+    xuv_coefs_actual = actual_coefs_params[:, 0:phase_parameters.params.xuv_phase_coefs]
+    ir_params_actual = actual_coefs_params[:, phase_parameters.params.xuv_phase_coefs:]
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_actual)
+    ir_E_prop = tf_functions.ir_from_params(ir_params_actual)
+    xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+    return xuv_ir_field_label
+
 
 
 def concat_fields(xuv, ir):
@@ -482,7 +491,10 @@ def gan_network(input):
         return outputs
 
 
-def phase_retrieval_net(input, total_label_length, streak_params):
+def phase_retrieval_net(input, streak_params):
+
+    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
+    total_coefs_params_length = int(xuv_phase_coefs + 4)
 
     # define phase retrieval neural network
     with tf.variable_scope("phase"):
@@ -520,9 +532,26 @@ def phase_retrieval_net(input, total_label_length, streak_params):
         hold_prob = tf.placeholder_with_default(1.0, shape=())
         dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
-        y_pred = normal_full_layer(dropout_layer, total_label_length)
+        # neural net output coefficients
+        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
 
-        return y_pred, hold_prob
+        xuv_coefs_pred = predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs]
+        ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
+
+        # generate fields from coefficients
+        xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
+        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)
+
+        # generate a label from the complex fields
+        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+
+
+        phase_net_output = {}
+        phase_net_output["xuv_ir_field_label"] = xuv_ir_field_label
+        phase_net_output["ir_E_prop"] = ir_E_prop
+        phase_net_output["xuv_E_prop"] = xuv_E_prop
+
+        return phase_net_output, hold_prob
 
 
 def setup_neural_net(streak_params):
@@ -532,7 +561,7 @@ def setup_neural_net(streak_params):
     print('Setting up multires layer network with more conv weights')
 
     # define the label for supervised learning of phase retrieval net
-    total_label_length = int(xuv_phase_coefs + 4)
+    total_coefs_params_length = int(xuv_phase_coefs + 4)
 
     # define GAN network
     gan_input = tf.placeholder(tf.float32, shape=[1, 100])
@@ -549,43 +578,27 @@ def setup_neural_net(streak_params):
     # or it will default to the GAN generated fields as input
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
 
+
     # pass image through phase retrieval network
-    y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length, streak_params=streak_params)
+    phase_net_output, hold_prob = phase_retrieval_net(input=x_in, streak_params=streak_params)
 
 
-    ##
-    """
-    gan network is done
-    
-    """
-    ##
+    # create label for supervised learning
+    actual_coefs_params = tf.placeholder(tf.float32, shape=[None, total_coefs_params_length])
+    true_complex_vectors_label = create_fields_label_from_coefs_params(actual_coefs_params)
 
-
-
-
-
-
-
-
-    # label for supervised learning
-    y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
-
-    # split the output into the corresponding XUV and IR parts of the label
-    xuv_params_pred = y_pred[:, 0:phase_parameters.params.xuv_phase_coefs]
-    ir__params_pred = y_pred[:, phase_parameters.params.xuv_phase_coefs:]
-
-    # from y_pred generate fields
-    xuv_E_pred_prop = tf_functions.xuv_taylor_to_E(xuv_params_pred)
-    ir_E_pred_prop = tf_functions.ir_from_params(ir__params_pred)
 
     # generate the reconstructed trace
-    reconstructed_trace, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_pred_prop["f_cropped"][0],
-                                                          ir_cropped_f_in=ir_E_pred_prop["f_cropped"][0])
+    reconstructed_trace, _ = tf_functions.streaking_trace(xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
+                                                          ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
 
     # divide the variables to train with gan and phase retrieval net individually
     tvars = tf.trainable_variables()
     phase_net_vars = [var for var in tvars if "phase" in var.name]
     gan_net_vars = [var for var in tvars if "gan" in var.name]
+
+
+    exit(0)
 
 
     # loss function for training GAN network
