@@ -431,7 +431,8 @@ def initialize_xuv_ir_trace_graphs():
 def gan_network(input):
 
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
-    output_length = xuv_phase_coefs - 1 + 4 + 1 # add 1 for the S scaling factor
+    output_length = xuv_phase_coefs - 1 + 4     # remove 1 for no linear phase...
+                                                # add 4 for ir params
 
 
     with tf.variable_scope("gan"):
@@ -447,24 +448,27 @@ def gan_network(input):
         # output of neural net between -1 and 1
         output = tf.layers.dense(hidden2, units=output_length, activation=tf.nn.tanh)
 
+        # scaling factor between 0 and 1
+        s_out = tf.layers.dense(hidden2, units=1, activation=tf.nn.sigmoid)
+
+        # output : [---xuv_coefs-- --ir_params--]
         # represent taylor series coefficients
-        gan_xuv_out = output[:, 0:xuv_phase_coefs - 1]
+        xuv_out = output[:, 0:xuv_phase_coefs - 1]
+        ir_out = output[:, xuv_phase_coefs - 1:]
 
-        # append a zero to the xuv gan out, corresponding to linear phase that is always 0
-        samples_in = tf.shape(gan_xuv_out)[0]
+        # append 0 to the xuv output because 0 linear phase
+        samples_in = tf.shape(xuv_out)[0]
         zeros_vec = tf.fill([samples_in, 1], 0.0)
-        gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
+        xuv_out_nolin = tf.concat([zeros_vec, xuv_out], axis=1)
 
-        # normalize the xuv coefficients
-
-
-
-
-        gan_ir_out = output[:, xuv_phase_coefs - 1:]
+        # normalize the xuv output
+        summation = tf.reduce_sum(tf.abs(xuv_out_nolin), axis=1)
+        quotient = (1 / s_out) * summation
+        xuv_coefs_normalized = xuv_out_nolin / quotient
 
         # generate complex fields from these coefs
-        xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
-        ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
+        xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_normalized)
+        ir_E_prop = tf_functions.ir_from_params(ir_out)
 
         # concat these vectors to make a label
         xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
@@ -534,55 +538,34 @@ def setup_neural_net(streak_params):
     gan_input = tf.placeholder(tf.float32, shape=[1, 100])
 
     # GAN output is used to create XUV field and streaking trace
-    # add 4 because of the four IR parameters
-    # the output is one less than the xuv coefs, because linear phase will always be 0
     gan_output = gan_network(input=gan_input)
-    # gan_xuv_out = gan_output[:, 0:xuv_phase_coefs-1]
-    # gan_ir_out = gan_output[:, xuv_phase_coefs-1:]
-    #
-    # # append a zero to the xuv gan out, corresponding to linear phase that is always 0
-    # samples_in = tf.shape(gan_xuv_out)[0]
-    # zeros_vec = tf.fill([samples_in, 1], 0.0)
-    # gan_xuv_out_nolin = tf.concat([zeros_vec, gan_xuv_out], axis=1)
-    # # use the gan outputs to generate fields
-    #
-    # # append to create label
-    # gan_label = tf.concat([gan_xuv_out_nolin, gan_ir_out], axis=1)
-
-    """"
-    ///////////////continue////////////////////
-    ...
-    """
-
-
-
-
-
-
-    #######
-
-
-
-
-
-    # create XUV from GAN label
-    xuv_E_prop = tf_functions.xuv_taylor_to_E(gan_xuv_out_nolin)
-
-    # create infrared from GAN label
-    ir_E_prop = tf_functions.ir_from_params(gan_ir_out)
 
     # use the fields to generate streaking trace
     # sample size of one required as of now
-    x, _ = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                            ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    x, _ = tf_functions.streaking_trace(xuv_cropped_f_in=gan_output["xuv_E_prop"]["f_cropped"][0],
+                                            ir_cropped_f_in=gan_output["ir_E_prop"]["f_cropped"][0])
     x_flat = tf.reshape(x, [1, -1])
-
     # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
 
     # pass image through phase retrieval network
     y_pred, hold_prob = phase_retrieval_net(input=x_in, total_label_length=total_label_length, streak_params=streak_params)
+
+
+    ##
+    """
+    gan network is done
+    
+    """
+    ##
+
+
+
+
+
+
+
 
     # label for supervised learning
     y_true = tf.placeholder(tf.float32, shape=[None, total_label_length])
