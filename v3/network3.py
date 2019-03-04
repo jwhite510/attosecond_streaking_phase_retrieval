@@ -265,10 +265,15 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, tf_generator_
     predictions = sess.run(nn_nodes["y_pred"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train})
 
 
+
+
     plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[0, 1, 2],
                       axes=axes["trainplot1"], figure=axes["trainfig1"], epoch=epoch, set='train_data_1',
                       net_name=modelname, nn_nodes=nn_nodes, tf_generator_graphs=tf_generator_graphs, sess=sess,
                      streak_params=streak_params)
+    exit(0)
+
+
 
     plot_predictions(x_in=batch_x_train, y_in=batch_y_train, pred_in=predictions, indexes=[3, 4, 5],
                      axes=axes["trainplot2"], figure=axes["trainfig2"], epoch=epoch, set='train_data_2',
@@ -306,14 +311,24 @@ def init_tf_loggers(nn_nodes):
 def add_tensorboard_values(nn_nodes, tf_loggers):
     # view the mean squared error of the train data
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-    print("test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test, nn_nodes["supervised"]["y_true"]: batch_y_test}))
-    summ = sess.run(tf_loggers["test_mse_tb"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test, nn_nodes["supervised"]["y_true"]: batch_y_test})
+    print("test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"],
+                                 feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test,
+                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
+    summ = sess.run(tf_loggers["test_mse_tb"],
+                    feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test,
+                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+
     writer.add_summary(summ, global_step=i + 1)
 
     # view the mean squared error of the train data
     batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-    print("train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train, nn_nodes["supervised"]["y_true"]: batch_y_train}))
-    summ = sess.run(tf_loggers["train_mse_tb"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train, nn_nodes["supervised"]["y_true"]: batch_y_train})
+    print("train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"],
+                                  feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train,
+                                             nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
+    summ = sess.run(tf_loggers["train_mse_tb"],
+                    feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train,
+                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+
     writer.add_summary(summ, global_step=i + 1)
 
     writer.flush()
@@ -640,6 +655,7 @@ def setup_neural_net(streak_params):
     nn_nodes["supervised"]["train"] = phase_network_train
     nn_nodes["supervised"]["learningrate"] = s_LR
     nn_nodes["supervised"]["trace_in"] = x_in
+    nn_nodes["supervised"]["actual_coefs_params"] = actual_coefs_params
     nn_nodes["supervised"]["phase_net_output"] = phase_net_output
     nn_nodes["supervised"]["hold_prob"] = hold_prob
     nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
@@ -722,12 +738,12 @@ if __name__ == "__main__":
                 # train network
                 if i < 35:
                     sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
-                                                           nn_nodes["supervised"]["y_true"]: batch_y,
+                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                            nn_nodes["supervised"]["hold_prob"]: 0.8,
                                                            nn_nodes["supervised"]["learningrate"]: 0.0001})
                 else:
                     sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
-                                                         nn_nodes["supervised"]["y_true"]: batch_y,
+                                                         nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                          nn_nodes["supervised"]["hold_prob"]: 0.8,
                                                          nn_nodes["supervised"]["learningrate"]: 0.0001})
 
