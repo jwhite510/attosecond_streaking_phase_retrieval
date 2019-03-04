@@ -436,7 +436,6 @@ def initialize_xuv_ir_trace_graphs():
     return tf_graphs, streak_params
 
 
-
 def gan_network(input):
 
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
@@ -598,50 +597,22 @@ def setup_neural_net(streak_params):
     gan_net_vars = [var for var in tvars if "gan" in var.name]
 
 
-    exit(0)
-
-
     # loss function for training GAN network
-    gan_network_loss = (1/tf.losses.mean_squared_error(labels=gan_label, predictions=y_pred))
+    gan_network_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
+                                                       predictions=phase_net_output["xuv_ir_field_label"]))
     gan_LR = tf.placeholder(tf.float32, shape=[])
     gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
     gan_network_train = gan_optimizer.minimize(gan_network_loss, var_list=gan_net_vars)
 
 
     # loss function for training phase retrieval network
-    phase_network_loss = tf.losses.mean_squared_error(labels=y_true, predictions=y_pred)
+    phase_network_loss = tf.losses.mean_squared_error(labels=true_complex_vectors_label,
+                                                      predictions=phase_net_output["xuv_ir_field_label"])
     s_LR = tf.placeholder(tf.float32, shape=[])
     # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     phase_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train = phase_optimizer.minimize(phase_network_loss, var_list=phase_net_vars)
 
-
-
-    # init = tf.global_variables_initializer()
-    # with tf.Session() as sess:
-    #     sess.run(init)
-    #
-    #     images = np.zeros((5, 17458))
-    #     for i in range(5):
-    #         # gan_in = np.random.random(600).reshape(6, -1)
-    #         gan_out = np.random.random(9).reshape(1, -1)
-    #         # create images
-    #         image = sess.run(x, feed_dict={gan_xuv_out_nolin: gan_out[:, 0:5],
-    #                                        gan_ir_out: gan_out[:, 5:]})
-    #         images[i, :] = image.reshape(-1)
-    #
-    #     out = sess.run(y_pred, feed_dict={x_in: images})
-    #     print('1')
-    #     print(np.shape(out))
-    #
-    #     gan_in = np.random.random(100).reshape(1, -1)
-    #     out = sess.run(y_pred, feed_dict={gan_input: gan_in})
-    #     print('2')
-    #     print(np.shape(out))
-    #
-    #     out = sess.run(x, feed_dict={gan_input: gan_in})
-    #     print('3')
-    #     print(np.shape(out))
 
 
     # create graph for the unsupervised learning
@@ -652,6 +623,7 @@ def setup_neural_net(streak_params):
     # u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     # u_train = u_optimizer.minimize(u_losses)
 
+
     nn_nodes = {}
     nn_nodes["gan"] = {}
     nn_nodes["supervised"] = {}
@@ -660,31 +632,25 @@ def setup_neural_net(streak_params):
     # nodes specific to GAN training
     nn_nodes["gan"]["train"] = gan_network_train
     nn_nodes["gan"]["learningrate"] = gan_LR
-    nn_nodes["gan"]["gan_label"] = gan_label
     nn_nodes["gan"]["gan_input"] = gan_input
-    nn_nodes["gan"]["xuv_E_prop"] = xuv_E_prop
-    nn_nodes["gan"]["ir_E_prop"] = ir_E_prop
-    nn_nodes["gan"]["gan_xuv_out_nolin"] = gan_xuv_out_nolin
-    nn_nodes["gan"]["gan_ir_out"] = gan_ir_out
+    nn_nodes["gan"]["gan_output"] = gan_output
     nn_nodes["gan"]["gan_network_loss"] = gan_network_loss
 
     # nodes specific to supervised learning
     nn_nodes["supervised"]["train"] = phase_network_train
     nn_nodes["supervised"]["learningrate"] = s_LR
     nn_nodes["supervised"]["trace_in"] = x_in
-    nn_nodes["supervised"]["y_true"] = y_true
+    nn_nodes["supervised"]["phase_net_output"] = phase_net_output
     nn_nodes["supervised"]["hold_prob"] = hold_prob
     nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
 
     # general nodes of network
     nn_nodes["trace_in"] = x_in
     nn_nodes["trace_in_image"] = x
-    nn_nodes["y_pred"] = y_pred
+    nn_nodes["phase_net_output"] = phase_net_output
 
     # after y_pred, reconstruced pulse and fields
     nn_nodes["reconstruction"]["trace"] = reconstructed_trace
-    nn_nodes["reconstruction"]["xuv_E_pred_prop"] = xuv_E_pred_prop
-    nn_nodes["reconstruction"]["ir_E_pred_prop"] = ir_E_pred_prop
 
     return nn_nodes
 
