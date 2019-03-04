@@ -143,8 +143,8 @@ def get_trace(index, filename):
     with tables.open_file(filename, mode='r') as hdf5_file:
 
         # use the non noise trace
-        trace = hdf5_file.root.trace[index,:]
-        #trace = hdf5_file.root.noise_trace[index,:]
+        #trace = hdf5_file.root.trace[index,:]
+        trace = hdf5_file.root.noise_trace[index,:]
 
         actual_params = {}
 
@@ -310,7 +310,7 @@ def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, meas
                 for vector in ['xuv', 'ir']:
                     if random.random() < MUTPB2:
                         # tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.2)
-                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.2, indpb=0.6)
+                        tools.mutGaussian(mutant[vector], mu=0.0, sigma=0.1, indpb=0.6)
                         re_evaluate = True
 
                 if re_evaluate:
@@ -387,5 +387,5 @@ if __name__ == "__main__":
                                                            ).reshape(-1)
 
 
-    genetic_algorithm(generations=500, pop_size=500, run_name="no_noise", tf_generator_graphs=tf_generator_graphs,
+    genetic_algorithm(generations=500, pop_size=500, run_name="with_noise_sigma01", tf_generator_graphs=tf_generator_graphs,
                       measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
