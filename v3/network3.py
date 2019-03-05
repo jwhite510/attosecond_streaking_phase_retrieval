@@ -90,6 +90,7 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
     fields["xuv_E_prop"] = xuv_E_prop
     fields["ir_E_prop"] = ir_E_prop
     fields["xuv_ir_field_label"] = xuv_ir_field_label
+    fields["actual_coefs_params"] = actual_coefs_params
 
     return fields
 
@@ -168,6 +169,17 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
 
     print("plot predicitons")
 
+    batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
+
+    print(nn_nodes["phase_net_output"]["xuv_E_prop"]["f_cropped"])
+    print(np.shape(batch_x_train[0].reshape(1, -1)))
+
+    out = sess.run(nn_nodes["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                   feed_dict={nn_nodes["trace_in"]: batch_x_train[0].reshape(1, -1)})
+    print(out)
+
+    exit(0)
+
 
     for j, index in enumerate(indexes):
 
@@ -186,6 +198,10 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
                                        feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
         predicted_ir_field = sess.run(nn_nodes["phase_net_output"]["ir_E_prop"]["f_cropped"],
                                        feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
+
+        print(predicted_xuv_field)
+        print(predicted_ir_field)
+        exit(0)
 
         actual_xuv_field = actual_xuv_field.reshape(-1)
         actual_ir_field = actual_ir_field.reshape(-1)
@@ -565,6 +581,8 @@ def phase_retrieval_net(input, streak_params):
         phase_net_output["xuv_ir_field_label"] = xuv_ir_field_label
         phase_net_output["ir_E_prop"] = ir_E_prop
         phase_net_output["xuv_E_prop"] = xuv_E_prop
+        phase_net_output["xuv_coefs_pred"] = xuv_coefs_pred
+        phase_net_output["predicted_coefficients_params"] = predicted_coefficients_params
 
         return phase_net_output, hold_prob
 
@@ -688,8 +706,6 @@ if __name__ == "__main__":
 
     print("built neural net")
 
-
-
     # init data object
     get_data = GetData(batch_size=10)
 
@@ -702,7 +718,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run1test'
+    modelname = 'mse_cost'
 
     print('starting ' + modelname)
 
@@ -739,15 +755,70 @@ if __name__ == "__main__":
 
                 # train network
                 if i < 35:
-                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
-                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                           nn_nodes["supervised"]["hold_prob"]: 0.8,
-                                                           nn_nodes["supervised"]["learningrate"]: 0.0001})
+                    pass
+                    #sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
+                    #                                       nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                                       nn_nodes["supervised"]["hold_prob"]: 0.8,
+                    #                                       nn_nodes["supervised"]["learningrate"]: 0.0})
                 else:
                     sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
                                                          nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                          nn_nodes["supervised"]["hold_prob"]: 0.8,
                                                          nn_nodes["supervised"]["learningrate"]: 0.0001})
+
+
+
+
+
+
+
+                batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
+
+
+                # initial output
+                out = sess.run(nn_nodes["phase_net_output"]["predicted_coefficients_params"],
+                               feed_dict={nn_nodes["trace_in"]: batch_x_train[0].reshape(1, -1)})
+                print("initial output:")
+                print(out)
+
+
+
+                # label
+                print("label: ")
+                print(batch_y_train[0].reshape(1, -1))
+
+
+
+                # train with 0 lr
+                for _ in range(1000):
+
+                    sess.run(nn_nodes["supervised"]["train"],
+                             feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train[0].reshape(1, -1),
+                                                          nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train[0].reshape(1, -1),
+                                                          nn_nodes["supervised"]["hold_prob"]: 1.0,
+                                                          nn_nodes["supervised"]["learningrate"]: 0.001})
+
+                # new output
+                out = sess.run(nn_nodes["phase_net_output"]["predicted_coefficients_params"],
+                               feed_dict={nn_nodes["trace_in"]: batch_x_train[0].reshape(1, -1)})
+                print("new output:")
+                print(out)
+                exit(0)
+
+
+
+
+                # plot the output
+                out = sess.run(nn_nodes["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                               feed_dict={nn_nodes["trace_in"]: batch_x_train[0].reshape(1, -1)})
+                #print(out)
+                plt.figure(777)
+                plt.plot(np.real(out[0]), color="blue")
+                plt.plot(np.imag(out[0]), color="red")
+                plt.ioff()
+                plt.show()
+                print("hello")
+                exit(0)
 
             print("")
 
