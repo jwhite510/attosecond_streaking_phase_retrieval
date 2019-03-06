@@ -90,9 +90,9 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
     fields["xuv_E_prop"] = xuv_E_prop
     fields["ir_E_prop"] = ir_E_prop
     fields["xuv_ir_field_label"] = xuv_ir_field_label
+    fields["actual_coefs_params"] = actual_coefs_params
 
     return fields
-
 
 
 def concat_fields(xuv, ir):
@@ -171,21 +171,23 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
 
     for j, index in enumerate(indexes):
 
-        mse = sess.run(nn_nodes["supervised"]["phase_network_loss"],
-                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1),
+        mse = sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
+                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1),
                                   nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
 
         # get the actual fields
         actual_xuv_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["xuv_E_prop"]["f_cropped"],
                        feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
+
         actual_ir_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["ir_E_prop"]["f_cropped"],
                        feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
 
         # get the predicted fields
-        predicted_xuv_field = sess.run(nn_nodes["phase_net_output"]["xuv_E_prop"]["f_cropped"],
-                                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
-        predicted_ir_field = sess.run(nn_nodes["phase_net_output"]["ir_E_prop"]["f_cropped"],
-                                       feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
+        predicted_xuv_field = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
+
+        predicted_ir_field = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],
+                                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
 
         actual_xuv_field = actual_xuv_field.reshape(-1)
         actual_ir_field = actual_ir_field.reshape(-1)
@@ -193,7 +195,7 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
         predicted_ir_field = predicted_ir_field.reshape(-1)
 
         # calculate generated streaking trace
-        generated_trace = sess.run(nn_nodes["reconstruction"]["trace"],
+        generated_trace = sess.run(nn_nodes["general"]["reconstructed_trace"],
                                    feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
 
 
@@ -299,8 +301,8 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, streak_params
 
 
 def init_tf_loggers(nn_nodes):
-    test_mse_tb = tf.summary.scalar("test_mse", nn_nodes["supervised"]["phase_network_loss"])
-    train_mse_tb = tf.summary.scalar("train_mse", nn_nodes["supervised"]["phase_network_loss"])
+    test_mse_tb = tf.summary.scalar("test_mse", nn_nodes["supervised"]["phase_network_fields_loss"])
+    train_mse_tb = tf.summary.scalar("train_mse", nn_nodes["supervised"]["phase_network_fields_loss"])
 
     trackers = {}
     trackers["test_mse_tb"] = test_mse_tb
@@ -312,22 +314,22 @@ def init_tf_loggers(nn_nodes):
 def add_tensorboard_values(nn_nodes, tf_loggers):
     # view the mean squared error of the train data
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-    print("test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"],
-                                 feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test,
+    print("test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
+                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
                                             nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
     summ = sess.run(tf_loggers["test_mse_tb"],
-                    feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_test,
+                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
 
     writer.add_summary(summ, global_step=i + 1)
 
     # view the mean squared error of the train data
     batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-    print("train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_loss"],
-                                  feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train,
+    print("train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
+                                  feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
                                              nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
     summ = sess.run(tf_loggers["train_mse_tb"],
-                    feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x_train,
+                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
 
     writer.add_summary(summ, global_step=i + 1)
@@ -490,15 +492,19 @@ def gan_network(input):
         quotient = (1 / s_out) * summation
         xuv_coefs_normalized = xuv_out_nolin / quotient
 
+        # create label with coefs and params
+        coefs_params_label = tf.concat([xuv_coefs_normalized, ir_out], axis=1)
+
         # generate complex fields from these coefs
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_normalized)
         ir_E_prop = tf_functions.ir_from_params(ir_out)
 
         # concat these vectors to make a label
-        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+        # xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
 
         outputs = {}
-        outputs["xuv_ir_field_label"] = xuv_ir_field_label
+        # outputs["xuv_ir_field_label"] = xuv_ir_field_label
+        outputs["coefs_params_label"] = coefs_params_label
         outputs["ir_E_prop"] = ir_E_prop
         outputs["xuv_E_prop"] = xuv_E_prop
 
@@ -548,7 +554,7 @@ def phase_retrieval_net(input, streak_params):
         dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
         # neural net output coefficients
-        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
+        predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
 
         xuv_coefs_pred = predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs]
         ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
@@ -565,6 +571,7 @@ def phase_retrieval_net(input, streak_params):
         phase_net_output["xuv_ir_field_label"] = xuv_ir_field_label
         phase_net_output["ir_E_prop"] = ir_E_prop
         phase_net_output["xuv_E_prop"] = xuv_E_prop
+        phase_net_output["predicted_coefficients_params"] = predicted_coefficients_params
 
         return phase_net_output, hold_prob
 
@@ -613,62 +620,118 @@ def setup_neural_net(streak_params):
     gan_net_vars = [var for var in tvars if "gan" in var.name]
 
 
-    # loss function for training GAN network
-    gan_network_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
+    #........................................................
+    #........................................................
+    # ..............define loss functions....................
+    #........................................................
+    #........................................................
+
+
+
+
+    #........................................................
+    # .............GAN NETWORK LOSS FUNCTIONS................
+    #........................................................
+    # maximize loss between complex fields
+    gan_fields_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
                                                        predictions=phase_net_output["xuv_ir_field_label"]))
     gan_LR = tf.placeholder(tf.float32, shape=[])
     gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
-    gan_network_train = gan_optimizer.minimize(gan_network_loss, var_list=gan_net_vars)
+    gan_network_train = gan_optimizer.minimize(gan_fields_loss, var_list=gan_net_vars)
 
 
-    # loss function for training phase retrieval network
-    phase_network_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_ir_field_label"],
+
+
+    # ........................................................
+    # ........SUPERVISED LEARNING LOSS FUNCTIONS..............
+    # ........................................................
+    # fields loss function for training phase retrieval network
+    phase_network_fields_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_ir_field_label"],
                                                       predictions=phase_net_output["xuv_ir_field_label"])
     s_LR = tf.placeholder(tf.float32, shape=[])
-    # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-    phase_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
-    phase_network_train = phase_optimizer.minimize(phase_network_loss, var_list=phase_net_vars)
+    phase_fields_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    phase_network_train_fields = phase_fields_optimizer.minimize(phase_network_fields_loss, var_list=phase_net_vars)
+
+    # coefs and params loss function for training phase retrieval network
+    phase_network_coefs_params_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["actual_coefs_params"],
+                                                             predictions=phase_net_output["predicted_coefficients_params"])
+    phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(phase_network_coefs_params_loss, var_list=phase_net_vars)
 
 
 
-    # create graph for the unsupervised learning
-    # xuv_cropped_f_tf, ir_cropped_f_tf = tf_seperate_xuv_ir_vec(y_pred)
-    # image = crab_tf2.build_graph(xuv_cropped_f_in=xuv_cropped_f_tf, ir_cropped_f_in=ir_cropped_f_tf)
-    # u_losses = tf.losses.mean_squared_error(labels=x, predictions=tf.reshape(image, [1, -1]))
-    # u_LR = tf.placeholder(tf.float32, shape=[])
-    # u_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    # u_train = u_optimizer.minimize(u_losses)
 
+    # ..........................................................
+    # .........UNSUPERVISED LEARNING LOSS FUNCTION..............
+    # ..........................................................
+    unsupervised_learning_loss = tf.losses.mean_squared_error(labels=x_in,
+                                                              predictions=tf.reshape(reconstructed_trace, [1, -1]))
+    u_LR = tf.placeholder(tf.float32, shape=[])
+    unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    unsupervised_train = unsupervised_optimizer.minimize(unsupervised_learning_loss,
+                                                                             var_list=phase_net_vars)
+
+
+
+    # ..........................................................
+    # ...................DEFINE NODES FOR USE...................
+    # ..........................................................
 
     nn_nodes = {}
     nn_nodes["gan"] = {}
     nn_nodes["supervised"] = {}
-    nn_nodes["reconstruction"] = {}
+    nn_nodes["unsupervised"] = {}
+    nn_nodes["general"] = {}
 
-    # nodes specific to GAN training
-    nn_nodes["gan"]["train"] = gan_network_train
-    nn_nodes["gan"]["learningrate"] = gan_LR
     nn_nodes["gan"]["gan_input"] = gan_input
     nn_nodes["gan"]["gan_output"] = gan_output
-    nn_nodes["gan"]["gan_network_loss"] = gan_network_loss
+    nn_nodes["gan"]["gan_LR"] = gan_LR
+    nn_nodes["gan"]["gan_network_train"] = gan_network_train
 
-    # nodes specific to supervised learning
-    nn_nodes["supervised"]["train"] = phase_network_train
-    nn_nodes["supervised"]["learningrate"] = s_LR
-    nn_nodes["supervised"]["trace_in"] = x_in
+    nn_nodes["supervised"]["x_in"] = x_in
     nn_nodes["supervised"]["actual_coefs_params"] = actual_coefs_params
-    nn_nodes["supervised"]["phase_net_output"] = phase_net_output
-    nn_nodes["supervised"]["hold_prob"] = hold_prob
-    nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
+    nn_nodes["supervised"]["phase_network_train_fields"] = phase_network_train_fields
+    nn_nodes["supervised"]["phase_network_train_coefs_params"] = phase_network_train_coefs_params
+    nn_nodes["supervised"]["s_LR"] = s_LR
+    nn_nodes["supervised"]["phase_network_fields_loss"] = phase_network_fields_loss
+    nn_nodes["supervised"]["phase_network_coefs_params_loss"] = phase_network_coefs_params_loss
     nn_nodes["supervised"]["supervised_label_fields"] = supervised_label_fields
 
+
+    nn_nodes["unsupervised"]["x_in"] = x_in
+    nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
+    nn_nodes["unsupervised"]["u_LR"] = u_LR
+
+    nn_nodes["general"]["phase_net_output"] = phase_net_output
+    nn_nodes["general"]["reconstructed_trace"] = reconstructed_trace
+    nn_nodes["general"]["hold_prob"] = hold_prob
+    nn_nodes["general"]["x_in"] = x_in
+
+
+    # nodes specific to GAN training
+    # nn_nodes["gan"]["train"] = gan_network_train
+    # nn_nodes["gan"]["learningrate"] = gan_LR
+    # nn_nodes["gan"]["gan_input"] = gan_input
+    # nn_nodes["gan"]["gan_output"] = gan_output
+    # nn_nodes["gan"]["gan_network_loss"] = gan_network_loss
+
+    # nodes specific to supervised learning
+    # nn_nodes["supervised"]["train"] = phase_network_train
+    # nn_nodes["supervised"]["learningrate"] = s_LR
+    # nn_nodes["supervised"]["trace_in"] = x_in
+    # nn_nodes["supervised"]["actual_coefs_params"] = actual_coefs_params
+    # nn_nodes["supervised"]["phase_net_output"] = phase_net_output
+    # nn_nodes["supervised"]["hold_prob"] = hold_prob
+    # nn_nodes["supervised"]["phase_network_loss"] = phase_network_loss
+    # nn_nodes["supervised"]["supervised_label_fields"] = supervised_label_fields
+
     # general nodes of network
-    nn_nodes["trace_in"] = x_in
-    nn_nodes["trace_in_image"] = x
-    nn_nodes["phase_net_output"] = phase_net_output
+    # nn_nodes["trace_in"] = x_in
+    # nn_nodes["trace_in_image"] = x
+    # nn_nodes["phase_net_output"] = phase_net_output
 
     # after y_pred, reconstruced pulse and fields
-    nn_nodes["reconstruction"]["trace"] = reconstructed_trace
+    # nn_nodes["reconstruction"]["trace"] = reconstructed_trace
 
     return nn_nodes
 
@@ -687,8 +750,6 @@ if __name__ == "__main__":
     # test_generate_data(nn_nodes)
 
     print("built neural net")
-
-
 
     # init data object
     get_data = GetData(batch_size=10)
@@ -739,15 +800,15 @@ if __name__ == "__main__":
 
                 # train network
                 if i < 35:
-                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
+                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
                                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                           nn_nodes["supervised"]["hold_prob"]: 0.8,
-                                                           nn_nodes["supervised"]["learningrate"]: 0.0001})
+                                                           nn_nodes["general"]["hold_prob"]: 0.8,
+                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
                 else:
-                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["trace_in"]: batch_x,
-                                                         nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                         nn_nodes["supervised"]["hold_prob"]: 0.8,
-                                                         nn_nodes["supervised"]["learningrate"]: 0.0001})
+                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                                           nn_nodes["general"]["hold_prob"]: 0.8,
+                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
 
             print("")
 
