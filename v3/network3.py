@@ -196,7 +196,7 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
 
         # calculate generated streaking trace
         generated_trace = sess.run(nn_nodes["general"]["reconstructed_trace"],
-                                   feed_dict={nn_nodes["trace_in"]: x_in[index].reshape(1, -1)})
+                                   feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
 
 
         axes[j]['input_trace'].cla()
