@@ -500,10 +500,10 @@ def gan_network(input):
         ir_E_prop = tf_functions.ir_from_params(ir_out)
 
         # concat these vectors to make a label
-        # xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
 
         outputs = {}
-        # outputs["xuv_ir_field_label"] = xuv_ir_field_label
+        outputs["xuv_ir_field_label"] = xuv_ir_field_label
         outputs["coefs_params_label"] = coefs_params_label
         outputs["ir_E_prop"] = ir_E_prop
         outputs["xuv_E_prop"] = xuv_E_prop
@@ -763,7 +763,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'run1test'
+    modelname = 'tanh_out_test1'
 
     print('starting ' + modelname)
 
@@ -800,12 +800,12 @@ if __name__ == "__main__":
 
                 # train network
                 if i < 35:
-                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
                                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                            nn_nodes["general"]["hold_prob"]: 0.8,
                                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
                 else:
-                    sess.run(nn_nodes["supervised"]["train"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
                                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                            nn_nodes["general"]["hold_prob"]: 0.8,
                                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
