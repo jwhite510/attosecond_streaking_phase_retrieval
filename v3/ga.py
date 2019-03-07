@@ -261,7 +261,7 @@ def calc_vecs_and_rmse(individual, measured_trace, tf_generator_graphs, sess, pl
 
     # calculate rmse
     trace_rmse = np.sqrt(
-        (1 / len(measured_trace)) * np.sum(
+        (1 / len(measured_trace.reshape(-1))) * np.sum(
             (measured_trace - generated_trace.reshape(-1)) ** 2))
 
     if plot_and_graph is not None:
@@ -526,5 +526,5 @@ if __name__ == "__main__":
 
 
 
-    genetic_algorithm(generations=500, pop_size=500, run_name="experimental_retrieval", tf_generator_graphs=tf_generator_graphs,
+    genetic_algorithm(generations=500, pop_size=500, run_name="experimental_retrieval1", tf_generator_graphs=tf_generator_graphs,
                       measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
