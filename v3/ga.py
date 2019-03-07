@@ -48,8 +48,8 @@ def plot_image_and_fields(plot_and_graph,
     plot_and_graph["plot_axes"]["actual_trace"].cla()
     plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
     plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
-    plot_and_graph["plot_axes"]["actual_trace"].text(0.5, 1.0, "actual_trace", backgroundcolor="white",
-                                                     transform=plot_and_graph["plot_axes"]["Genetic Algorithm"].transAxes)
+    plot_and_graph["plot_axes"]["actual_trace"].text(0.5, 1.0, "Genetic Algorithm", backgroundcolor="white",
+                                                     transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
 
 
     # plot predicted trace
@@ -113,7 +113,10 @@ def plot_image_and_fields_exp(plot_and_graph,
     # actual streaking trace
     plot_and_graph["plot_axes"]["actual_trace"].cla()
     plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
-    plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
+    plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
+                                                     transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
+    plot_and_graph["plot_axes"]["actual_trace"].text(0.5, 1.0, "Genetic Algorithm", backgroundcolor="white",
+                                                     transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
 
 
     # plot predicted trace
@@ -127,8 +130,9 @@ def plot_image_and_fields_exp(plot_and_graph,
     plot_and_graph["plot_axes"]["predicted_xuv"].cla()
     plot_and_graph["plot_axes"]["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(predicted_fields["xuv_f"].reshape(-1)) ** 2, color='black')
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].cla()
-    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].text(0.0, 1.0, "predicted_xuv", backgroundcolor="white",
-                                  transform=plot_and_graph["plot_axes"]["predicted_xuv_twinx"].transAxes)
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
+                                                            transform=plot_and_graph["plot_axes"][
+                                                                "predicted_xuv_twinx"].transAxes)
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(predicted_fields["xuv_f"].reshape(-1))), color='green')
     plot_and_graph["plot_axes"]["predicted_xuv_twinx"].tick_params(axis='y', colors='green')
 
@@ -528,5 +532,5 @@ if __name__ == "__main__":
 
 
 
-    genetic_algorithm(generations=500, pop_size=500, run_name="experimental_retrieval1", tf_generator_graphs=tf_generator_graphs,
+    genetic_algorithm(generations=500, pop_size=5000, run_name="experimental_retrieval1", tf_generator_graphs=tf_generator_graphs,
                       measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
