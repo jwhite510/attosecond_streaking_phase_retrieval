@@ -188,7 +188,7 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "run4"
+    run_name = "run5_supervised_alternating2"
 
     # copy the model to a new version to use for unsupervised learning
     modelname = "test1_abs_I_2"
@@ -210,6 +210,9 @@ if __name__ == "__main__":
     writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
     unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["unsupervised_learning_loss"])
 
+    # init data object
+    get_data = network3.GetData(batch_size=10)
+
 
     axes = create_plot_axes()
 
@@ -227,7 +230,7 @@ if __name__ == "__main__":
 
 
         plt.ion()
-        for i in range(9999):
+        for i in range(999999):
 
 
             if i % 100 == 0:
@@ -241,11 +244,27 @@ if __name__ == "__main__":
                 # update plots
                 update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1, run_name=run_name)
 
+
+
             # train neural network
             sess.run(nn_nodes["unsupervised"]["unsupervised_train"],
                      feed_dict={
                          nn_nodes["unsupervised"]["u_LR"]: 0.00001,
                          nn_nodes["unsupervised"]["x_in"]: measured_trace.reshape(1, -1)
                      })
+
+
+            # retrieve data
+            if get_data.batch_index >= get_data.samples:
+                get_data.batch_index = 0
+            batch_x, batch_y = get_data.next_batch()
+            sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                     feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                nn_nodes["general"]["hold_prob"]: 0.8,
+                                nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+
+
 
 
