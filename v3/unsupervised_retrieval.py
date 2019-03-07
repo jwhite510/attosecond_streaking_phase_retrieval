@@ -186,7 +186,7 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "run3"
+    run_name = "run4"
 
     # copy the model to a new version to use for unsupervised learning
     modelname = "test1_abs_I_2"
