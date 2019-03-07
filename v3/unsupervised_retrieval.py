@@ -42,6 +42,17 @@ def update_plots(sess, nn_nodes, axes, measured_trace):
 
 
     # ...........................
+    # .....CALCULATE RMSE........
+    # ...........................
+    # calculate rmse
+    trace_rmse = np.sqrt(
+        (1 / len(measured_trace.reshape(-1))) * np.sum(
+            (measured_trace.reshape(-1) - reconstruced.reshape(-1)) ** 2))
+
+
+
+
+    # ...........................
     # ........PLOTTING...........
     # ...........................
     # input trace
@@ -49,6 +60,9 @@ def update_plots(sess, nn_nodes, axes, measured_trace):
 
     # generated trace
     axes["generated_trace"].pcolormesh(reconstruced, cmap='jet')
+    axes["generated_trace"].text(0.1, 0.8, "RMSE: {}".format(str(np.round(trace_rmse, 4))),
+                                 transform=axes["generated_trace"].transAxes,
+                                 backgroundcolor="white")
 
     # xuv predicted
     axes["predicted_xuv_t"].plot(np.abs(xuv_t)**2, color="black")
@@ -146,7 +160,7 @@ if __name__ == "__main__":
     run_name = "run3"
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = "test1_abs_I"
+    modelname = "test1_abs_I_2"
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
@@ -199,7 +213,7 @@ if __name__ == "__main__":
             # train neural network
             sess.run(nn_nodes["unsupervised"]["unsupervised_train"],
                      feed_dict={
-                         nn_nodes["unsupervised"]["u_LR"]: 0.0001,
+                         nn_nodes["unsupervised"]["u_LR"]: 0.00001,
                          nn_nodes["unsupervised"]["x_in"]: measured_trace.reshape(1, -1)
                      })
 
