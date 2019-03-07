@@ -135,7 +135,7 @@ def ir_from_params(ir_param_values):
     scaled_tf_values_si["t0"] =  scaled_tf_values["pulseduration"] * fs
 
     # calculate ponderomotive energy in SI units
-    Up = (sc.elementary_charge ** 2 * scaled_tf_values_si["I"]) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * scaled_tf_values_si["f0"]) ** 2)
+    Up = (sc.elementary_charge ** 2 * tf.abs(scaled_tf_values_si["I"])) / (2 * sc.c * sc.epsilon_0 * sc.electron_mass * (2 * np.pi * scaled_tf_values_si["f0"]) ** 2)
 
     # convert to AU
     values_au = {}

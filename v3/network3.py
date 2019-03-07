@@ -804,7 +804,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'tanh_out_test2'
+    modelname = 'test1_abs_I'
 
     print('starting ' + modelname)
 
