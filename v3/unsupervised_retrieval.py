@@ -230,7 +230,7 @@ if __name__ == "__main__":
         for i in range(9999):
 
 
-            if i % 10 == 0:
+            if i % 100 == 0:
                 print(i)
                 # get MSE between traces
                 summ = sess.run(unsupervised_mse_tb,
