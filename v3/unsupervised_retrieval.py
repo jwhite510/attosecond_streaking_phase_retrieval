@@ -60,6 +60,8 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
     axes["input_trace"].pcolormesh(measured_trace, cmap='jet')
     axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
                                                      transform=axes["input_trace"].transAxes)
+    axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
+                             transform=axes["input_trace"].transAxes)
 
     # generated trace
     axes["generated_trace"].pcolormesh(reconstruced, cmap='jet')
@@ -75,7 +77,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
     # axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
     # axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
     axes["predicted_xuv"].plot(np.abs(xuv_f)**2, color="black")
-    axes["predicted_xuv_phase"].text(0.0, 1.0, "predicted_xuv", backgroundcolor="white",
+    axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
                                                             transform=axes["predicted_xuv_phase"].transAxes)
 
     axes["predicted_xuv_phase"].plot(np.unwrap(np.angle(xuv_f)), color="green")
