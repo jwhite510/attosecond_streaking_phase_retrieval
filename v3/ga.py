@@ -15,6 +15,7 @@ import network3
 import tables
 from ir_spectrum import ir_spectrum
 from xuv_spectrum import spectrum
+import unsupervised_retrieval
 
 
 def plot_image_and_fields(plot_and_graph,
@@ -96,6 +97,77 @@ def plot_image_and_fields(plot_and_graph,
 
     plt.pause(0.0001)
 
+
+
+def plot_image_and_fields_exp(plot_and_graph,
+                          predicted_fields,
+                          predicted_streaking_trace, actual_streaking_trace,
+                          rmse):
+
+
+    trace_c = len(plot_and_graph["streak_params"]["tau_values"])
+    trace_r = len(plot_and_graph["streak_params"]["k_values"])
+
+    # actual streaking trace
+    plot_and_graph["plot_axes"]["actual_trace"].cla()
+    plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
+    plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
+
+
+    # plot predicted trace
+    plot_and_graph["plot_axes"]["predicted_ir"].cla()
+    plot_and_graph["plot_axes"]["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(predicted_fields["ir_f"].reshape(-1)) ** 2, color='black')
+    plot_and_graph["plot_axes"]["predicted_ir_twinx"].cla()
+    plot_and_graph["plot_axes"]["predicted_ir_twinx"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(predicted_fields["ir_f"].reshape(-1))), color='green')
+    plot_and_graph["plot_axes"]["predicted_ir_twinx"].tick_params(axis='y', colors='green')
+
+    # xuv f
+    plot_and_graph["plot_axes"]["predicted_xuv"].cla()
+    plot_and_graph["plot_axes"]["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(predicted_fields["xuv_f"].reshape(-1)) ** 2, color='black')
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].cla()
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].text(0.0, 1.0, "predicted_xuv", backgroundcolor="white",
+                                  transform=plot_and_graph["plot_axes"]["predicted_xuv_twinx"].transAxes)
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(predicted_fields["xuv_f"].reshape(-1))), color='green')
+    plot_and_graph["plot_axes"]["predicted_xuv_twinx"].tick_params(axis='y', colors='green')
+
+    # xuv in time
+    plot_and_graph["plot_axes"]["predicted_xuv_t"].cla()
+    plot_and_graph["plot_axes"]["predicted_xuv_t"].plot(spectrum.tmat, np.abs(predicted_fields["xuv_t"].reshape(-1))**2, color="black")
+
+
+
+
+    # predicted streaking trace
+    plot_and_graph["plot_axes"]["generated_trace"].cla()
+    plot_and_graph["plot_axes"]["generated_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], predicted_streaking_trace, cmap='jet')
+    plot_and_graph["plot_axes"]["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
+                              transform=plot_and_graph["plot_axes"]["generated_trace"].transAxes)
+    plot_and_graph["plot_axes"]["generated_trace"].text(0.0, 0.1, "RMSE: {}".format(str(round(rmse, 3))), backgroundcolor="white",
+                                 transform=plot_and_graph["plot_axes"]["generated_trace"].transAxes)
+
+
+    if plot_and_graph["generation"] % 5 == 0 or plot_and_graph["generation"] == 1:
+        #plt.savefig("./gapictures/{}.png".format(generation))
+
+        dir = "./gapictures/" + plot_and_graph["run_name"] + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        plt.savefig(dir + str(plot_and_graph["generation"]) + ".png")
+
+    # save the raw files
+    if plot_and_graph["generation"] % 100 == 0:
+
+        with open("./gapictures/ga_fields.p", "wb") as file:
+            save_files = {}
+            save_files["predicted_fields"] = predicted_fields
+            save_files["actual_streaking_trace"] = actual_streaking_trace
+            save_files["predicted_streaking_trace"] = predicted_streaking_trace
+            save_files["generation"] = plot_and_graph["generation"]
+            pickle.dump(save_files,file)
+
+
+    plt.pause(0.0001)
+
 def create_plot_axes():
     fig = plt.figure(figsize=(10, 10))
     gs = fig.add_gridspec(4, 2)
@@ -118,6 +190,27 @@ def create_plot_axes():
     axes["predicted_trace"] = fig.add_subplot(gs[3, :])
 
     return axes
+
+def create_exp_plot_axes():
+
+    fig = plt.figure()
+    fig.subplots_adjust(hspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1)
+    gs = fig.add_gridspec(3, 3)
+
+    axes_dict = {}
+    axes_dict["actual_trace"] = fig.add_subplot(gs[0, :])
+
+    axes_dict["predicted_xuv_t"] = fig.add_subplot(gs[1, 2])
+
+    axes_dict["predicted_xuv"] = fig.add_subplot(gs[1, 1])
+    axes_dict["predicted_xuv_twinx"] = axes_dict["predicted_xuv"].twinx()
+
+    axes_dict["predicted_ir"] = fig.add_subplot(gs[1, 0])
+    axes_dict["predicted_ir_twinx"] = axes_dict["predicted_ir"].twinx()
+
+    axes_dict["generated_trace"] = fig.add_subplot(gs[2, :])
+
+    return axes_dict
 
 def add_tensorboard_values(rmse, generation, sess, writer, tensorboard_tools):
 
@@ -178,21 +271,42 @@ def calc_vecs_and_rmse(individual, measured_trace, tf_generator_graphs, sess, pl
                                sess=sess, writer=plot_and_graph["writer"],
                                tensorboard_tools=plot_and_graph["tensorboard_tools"])
 
-        predicted_fields = {}
-        predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-                                            feed_dict={tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-        predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-                                             feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+
+        if "actual_fields" in plot_and_graph:
+            # simulated trace
+            predicted_fields = {}
+            predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
+                                                feed_dict={tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+            predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
+                                                 feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+            # plot
+            plot_image_and_fields(plot_and_graph=plot_and_graph,
+                                  predicted_fields=predicted_fields,
+                                  predicted_streaking_trace=generated_trace,
+                                  actual_streaking_trace=measured_trace,
+                                  rmse=trace_rmse)
+        else:
+            # experimental trace
+            predicted_fields = {}
+            predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
+                                                feed_dict={
+                                                    tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+            predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
+                                                 feed_dict={
+                                                     tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+            predicted_fields["xuv_t"] = sess.run(tf_generator_graphs["xuv_E_prop"]["t"],
+                                                 feed_dict={
+                                                     tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+
+            plot_image_and_fields_exp(plot_and_graph=plot_and_graph,
+                                  predicted_fields=predicted_fields,
+                                  predicted_streaking_trace=generated_trace,
+                                  actual_streaking_trace=measured_trace,
+                                  rmse=trace_rmse)
 
 
-        # plot
-        plot_image_and_fields(plot_and_graph=plot_and_graph,
-                              predicted_fields=predicted_fields,
 
-                              predicted_streaking_trace=generated_trace,
-                              actual_streaking_trace=measured_trace,
 
-                              rmse=trace_rmse)
 
 
     return trace_rmse
@@ -368,24 +482,49 @@ def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, meas
 if __name__ == "__main__":
 
     tensorboard_tools = create_tensorboard_tools()
-
-    measured_trace, actual_params = get_trace(index=3, filename="train3.hdf5")
-
     tf_generator_graphs, streak_params = network3.initialize_xuv_ir_trace_graphs()
 
-    plot_axes = create_plot_axes()
+
+
+
+
+    #..................................
+    #.... retrieve simulated trace.....
+    #..................................
+
+    # plot_axes = create_plot_axes()
+    # plot_and_graph = {}
+    # plot_and_graph["plot_axes"] = plot_axes
+    # plot_and_graph["streak_params"] = streak_params
+    # measured_trace, actual_params = get_trace(index=3, filename="train3.hdf5")
+    # # get the actual fields (from params)
+    # with tf.Session() as sess:
+    #     plot_and_graph["actual_fields"] = {}
+    #     plot_and_graph["actual_fields"]["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
+    #                                                        feed_dict={
+    #                                                            tf_generator_graphs["ir_values_in"]: actual_params[
+    #                                                                "ir_params"].reshape(1, -1)}
+    #                                                        ).reshape(-1)
+    #     plot_and_graph["actual_fields"]["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
+    #                                                         feed_dict={
+    #                                                             tf_generator_graphs["xuv_coefs_in"]: actual_params[
+    #                                                                 "xuv_coefs"].reshape(1, -1)}
+    #                                                         ).reshape(-1)
+
+
+
+
+    #..................................
+    # .....retrieve measured trace.....
+    #..................................
+    plot_axes = create_exp_plot_axes()
     plot_and_graph = {}
     plot_and_graph["plot_axes"] = plot_axes
     plot_and_graph["streak_params"] = streak_params
-    with tf.Session() as sess:
-        plot_and_graph["actual_fields"] = {}
-        plot_and_graph["actual_fields"]["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-                                         feed_dict={tf_generator_graphs["ir_values_in"]: actual_params["ir_params"].reshape(1, -1)}
-                                                           ).reshape(-1)
-        plot_and_graph["actual_fields"]["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-                                         feed_dict={tf_generator_graphs["xuv_coefs_in"]: actual_params["xuv_coefs"].reshape(1, -1)}
-                                                           ).reshape(-1)
+    _, _, measured_trace = unsupervised_retrieval.get_measured_trace()
+    measured_trace = measured_trace.reshape(1, -1)
 
 
-    genetic_algorithm(generations=500, pop_size=500, run_name="with_noise_sigma01", tf_generator_graphs=tf_generator_graphs,
+
+    genetic_algorithm(generations=500, pop_size=500, run_name="experimental_retrieval", tf_generator_graphs=tf_generator_graphs,
                       measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)

@@ -12,10 +12,11 @@ import network3
 import xuv_spectrum.spectrum
 import ir_spectrum.ir_spectrum
 import glob
+import pickle
 
 
 
-def update_plots(sess, nn_nodes, axes, measured_trace):
+def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
 
 
 
@@ -57,23 +58,51 @@ def update_plots(sess, nn_nodes, axes, measured_trace):
     # ...........................
     # input trace
     axes["input_trace"].pcolormesh(measured_trace, cmap='jet')
+    axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
+                                                     transform=axes["input_trace"].transAxes)
 
     # generated trace
     axes["generated_trace"].pcolormesh(reconstruced, cmap='jet')
-    axes["generated_trace"].text(0.1, 0.8, "RMSE: {}".format(str(np.round(trace_rmse, 4))),
+    axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
                                  transform=axes["generated_trace"].transAxes,
                                  backgroundcolor="white")
-
+    axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
+                                                        transform=axes["generated_trace"].transAxes)
     # xuv predicted
+    # xuv t
     axes["predicted_xuv_t"].plot(np.abs(xuv_t)**2, color="black")
-    axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
-    axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
-    axes["predicted_xuv"].plot(np.abs(xuv_f), color="black")
+    # xuv f
+    # axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
+    # axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
+    axes["predicted_xuv"].plot(np.abs(xuv_f)**2, color="black")
+    axes["predicted_xuv_phase"].text(0.0, 1.0, "predicted_xuv", backgroundcolor="white",
+                                                            transform=axes["predicted_xuv_phase"].transAxes)
+
     axes["predicted_xuv_phase"].plot(np.unwrap(np.angle(xuv_f)), color="green")
 
     # ir predicted
     axes["predicted_ir"].plot(np.abs(ir_f)**2, color="black")
     axes["predicted_ir_phase"].plot(np.unwrap(np.angle(ir_f)), color="green")
+
+    # save files
+    dir = "./unsupervised_retrieval/" + run_name + "/"
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
+    plt.savefig(dir + str(i) + ".png")
+    with open("./unsupervised_retrieval/u_fields.p", "wb") as file:
+
+
+        predicted_fields = {}
+        predicted_fields["ir_f"] = ir_f
+        predicted_fields["xuv_f"] = xuv_f
+        predicted_fields["xuv_t"] = xuv_t
+
+        save_files = {}
+        save_files["predicted_fields"] = predicted_fields
+        save_files["measured_trace"] = measured_trace
+        save_files["reconstruced"] = reconstruced
+        save_files["iteration"] = i
+        pickle.dump(save_files,file)
 
 
     plt.pause(0.00001)
@@ -208,7 +237,7 @@ if __name__ == "__main__":
                 writer.flush()
 
                 # update plots
-                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace)
+                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1, run_name=run_name)
 
             # train neural network
             sess.run(nn_nodes["unsupervised"]["unsupervised_train"],
