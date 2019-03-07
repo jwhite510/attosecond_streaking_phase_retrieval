@@ -742,6 +742,7 @@ def setup_neural_net(streak_params):
     nn_nodes["unsupervised"]["x_in"] = x_in
     nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
     nn_nodes["unsupervised"]["u_LR"] = u_LR
+    nn_nodes["unsupervised"]["unsupervised_learning_loss"] = unsupervised_learning_loss
 
     nn_nodes["general"]["phase_net_output"] = phase_net_output
     nn_nodes["general"]["reconstructed_trace"] = reconstructed_trace
