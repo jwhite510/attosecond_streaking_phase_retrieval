@@ -9,14 +9,14 @@ import os
 import csv
 # from network3 import initialize_xuv_ir_trace_graphs, setup_neural_net, separate_xuv_ir_vec
 import network3
-import xuv_spectrum.spectrum
-import ir_spectrum.ir_spectrum
+from xuv_spectrum import spectrum
+from ir_spectrum import ir_spectrum
 import glob
 import pickle
 
 
 
-def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
+def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_params):
 
 
 
@@ -57,14 +57,14 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
     # ........PLOTTING...........
     # ...........................
     # input trace
-    axes["input_trace"].pcolormesh(measured_trace, cmap='jet')
+    axes["input_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], measured_trace, cmap='jet')
     axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
                                                      transform=axes["input_trace"].transAxes)
     axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
                              transform=axes["input_trace"].transAxes)
 
     # generated trace
-    axes["generated_trace"].pcolormesh(reconstruced, cmap='jet')
+    axes["generated_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], reconstruced, cmap='jet')
     axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
                                  transform=axes["generated_trace"].transAxes,
                                  backgroundcolor="white")
@@ -72,19 +72,19 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name):
                                                         transform=axes["generated_trace"].transAxes)
     # xuv predicted
     # xuv t
-    axes["predicted_xuv_t"].plot(np.abs(xuv_t)**2, color="black")
+    axes["predicted_xuv_t"].plot(spectrum.tmat, np.abs(xuv_t)**2, color="black")
     # xuv f
     # axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
     # axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
-    axes["predicted_xuv"].plot(np.abs(xuv_f)**2, color="black")
+    axes["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(xuv_f)**2, color="black")
     axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
                                                             transform=axes["predicted_xuv_phase"].transAxes)
 
-    axes["predicted_xuv_phase"].plot(np.unwrap(np.angle(xuv_f)), color="green")
+    axes["predicted_xuv_phase"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(xuv_f)), color="green")
 
     # ir predicted
-    axes["predicted_ir"].plot(np.abs(ir_f)**2, color="black")
-    axes["predicted_ir_phase"].plot(np.unwrap(np.angle(ir_f)), color="green")
+    axes["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(ir_f)**2, color="black")
+    axes["predicted_ir_phase"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(ir_f)), color="green")
 
     # save files
     dir = "./unsupervised_retrieval/" + run_name + "/"
@@ -188,7 +188,7 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "run5_supervised_alternating2"
+    run_name = "run5_supervised_alternating4"
 
     # copy the model to a new version to use for unsupervised learning
     modelname = "test1_abs_I_2"
@@ -242,7 +242,8 @@ if __name__ == "__main__":
                 writer.flush()
 
                 # update plots
-                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1, run_name=run_name)
+                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1, run_name=run_name,
+                             streak_params=streak_params)
 
 
 
