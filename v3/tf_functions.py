@@ -343,6 +343,44 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
 if __name__ == "__main__":
 
+
+
+
+    # -------------------------
+    # -----Gradient Descent----
+    # -------------------------
+    # w = np.linspace(-10, 10, 100)
+    # C = w ** 2
+    # dcdw = (C[1:] - C[:-1]) / (w[1] - w[0])
+    #
+    # plt.figure(99, figsize=(2,2))
+    # plt.plot(w, C, color="black", linewidth=2.0)
+    # # plt.plot(w[:-1], dcdw)
+    # plt.gca().set_xticks([])
+    # plt.gca().set_yticks([])
+    # plt.ylabel("C cost function")
+    # plt.xlabel("$w$ weight value")
+    # plt.savefig("./costfunc.png")
+    # plt.show()
+    # exit(0)
+
+    # -------------------------
+    # -----Intensity Energy----
+    # -------------------------
+    # energy = np.linspace(-10, 10, 100)
+    # counts = np.exp(-energy**2 / 3**2)
+    # plt.figure(1, figsize=(2.0,2.0))
+    # plt.plot(energy, counts, color="black")
+    # plt.gca().set_xticks([])
+    # plt.gca().set_yticks([])
+    # plt.gca().set_xlabel(r"Energy K $\rightarrow$")
+    # plt.gca().set_ylabel(r"Count Number")
+    # plt.savefig("./countplot.png")
+    # plt.show()
+    # exit(0)
+
+
+
     # xuv creation
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
     xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
@@ -362,46 +400,112 @@ if __name__ == "__main__":
 
 
     # construct streaking image
-    image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image, streak_params = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+
+
+
+    # with tf.Session() as sess:
+    #
+    #     # count the number of bad samples generated
+    #     bad_samples = 0
+    #
+    #     # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
+    #     indexmin = 100
+    #     indexmax = (2*1024) - 100
+    #     xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+    #     xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
+    #     threshold = np.max(np.abs(xuv_t)) / 300
+    #
+    #
+    #     # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
+    #     xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 1.0]])
+    #
+    #     xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+    #     # exit(0)
+    #     print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
+    #     xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
+    #
+    #     fig = plt.figure()
+    #     gs = fig.add_gridspec(2, 2)
+    #     ax = fig.add_subplot(gs[:, :])
+    #     ax.plot(np.real(xuv_t[0]), color="blue")
+    #     ax.plot(np.imag(xuv_t[0]), color="red")
+    #     plt.show()
+    #
+    #
+    #
+    #     bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
+    #
+    #     print(xuv_good)
+    #
+    #     exit(0)
+
+
 
 
 
 
     with tf.Session() as sess:
+        xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 1.0]])
+        ir_input = np.array([[-1.0, 0.0, 0.0, 0.0]])
 
-        # count the number of bad samples generated
-        bad_samples = 0
+        feed_dict = {xuv_coefs_in: xuv_input,ir_values_in: ir_input}
 
-        # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
-        indexmin = 100
-        indexmax = (2*1024) - 100
-        xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-        xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
-        threshold = np.max(np.abs(xuv_t)) / 300
+        xuv_t = sess.run(xuv_E_prop["t"], feed_dict=feed_dict)[0]
+        ir_t = sess.run(ir_E_prop["t"], feed_dict=feed_dict)[0]
+        image_out = sess.run(image, feed_dict=feed_dict)
 
 
-        # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
-        xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 1.0]])
+    fig = plt.figure(figsize=(9,3))
+    hwidth = 0.07
+    hvert = 0.2
+    fig.subplots_adjust(wspace=0.1, hspace=0.3,
+                        top=1.0-0.5*hvert, bottom=0.0+hvert,
+                        right=1.0-hwidth, left=0.0+hwidth)
 
-        xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
-        # exit(0)
-        print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
-        xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
+    gs = fig.add_gridspec(1,3)
 
-        fig = plt.figure()
-        gs = fig.add_gridspec(2, 2)
-        ax = fig.add_subplot(gs[:, :])
-        ax.plot(np.real(xuv_t[0]), color="blue")
-        ax.plot(np.imag(xuv_t[0]), color="red")
-        plt.show()
+    # plot xuv
+    ax = fig.add_subplot(gs[0,0])
+    ax.plot(xuv_spectrum.spectrum.tmat*sc.physical_constants['atomic unit of time'][0]*1e15,
+            np.real(xuv_t), color="blue")
+    ax.set_title("XUV Pulse")
+    ax.set_xlabel("time [fs]")
+    ax.set_yticks([])
+
+    # plot IR
+    ax = fig.add_subplot(gs[0, 1])
+    ax.plot(ir_spectrum.ir_spectrum.tmat*sc.physical_constants['atomic unit of time'][0]*1e15,
+            np.real(ir_t), color="red")
+    ax.set_title("IR Pulse")
+    ax.set_xlabel("time [fs]")
+    ax.set_yticks([])
+
+    # image
+    ax = fig.add_subplot(gs[0, 2])
+    ax.pcolormesh(streak_params["tau_values"]*sc.physical_constants['atomic unit of time'][0]*1e15,
+                  streak_params["k_values"]*sc.physical_constants['atomic unit of energy'][0] / sc.electron_volt,
+                  image_out, cmap="jet")
+    ax.set_title("Streaking Trace")
+    ax.set_xlabel("time delay [fs]")
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
+    ax.set_ylabel("Energy K [eV]")
+    plt.savefig("./5ndorder.png")
+
+    plt.show()
 
 
 
-        bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
 
-        print(xuv_good)
 
-        exit(0)
+    exit(0)
+
+
+
+
+
 
 
 
@@ -412,11 +516,101 @@ if __name__ == "__main__":
         # xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
         ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
+
+
+        # --------------------
+        # ----xuv f_cropped---
+        # --------------------
         out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
                                          ir_values_in: ir_input})
-        plt.figure(1)
-        plt.plot(np.real(out[0]), color='blue')
-        plt.plot(np.imag(out[0]), color='red')
+        # out = np.random.rand(125).reshape(1, -1) + 1j*np.random.rand(125).reshape(1, -1)
+        plt.figure(1, figsize=(2,2))
+        plt.plot(xuv_spectrum.spectrum.fmat_cropped, np.abs(out[0])**2, color='black')
+        plt.gca().set_xlabel(r"Frequency $\rightarrow$")
+        plt.title("XUV Pule")
+        plt.gca().set_ylabel("Intensity")
+        plt.gca().set_yticks([])
+        axtwin = plt.gca().twinx()
+        axtwin.plot(xuv_spectrum.spectrum.fmat_cropped, np.unwrap(np.angle(out[0])), color="green")
+        axtwin.set_ylabel("Spectral Phase $\phi$")
+        axtwin.set_yticks([])
+        plt.gca().yaxis.label.set_color("green")
+        plt.gca().set_xticks([])
+        plt.savefig("./xuv_f.png")
+
+
+
+
+        # --------------------
+        # ----xuv t-----------
+        # --------------------
+        out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
+                                                           ir_values_in: ir_input})
+        # out = np.random.rand(125).reshape(1, -1) + 1j*np.random.rand(125).reshape(1, -1)
+        plt.figure(2, figsize=(2, 2))
+        plt.plot(xuv_spectrum.spectrum.tmat, np.real(out[0]), color='blue')
+        plt.gca().set_xlabel(r"Time $\rightarrow$")
+        plt.title("XUV Pule")
+        plt.gca().set_ylabel("Real E(t)")
+        plt.gca().set_yticks([])
+        plt.gca().set_xticks([])
+        plt.gca().yaxis.label.set_color("blue")
+        plt.savefig("./xuv_t.png")
+
+
+
+        # --------------------
+        # ----IR f------------
+        # --------------------
+        out = sess.run(ir_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
+                                                           ir_values_in: ir_input})
+        # out = np.random.rand(20).reshape(1, -1) + 1j*np.random.rand(20).reshape(1, -1)
+        plt.figure(3, figsize=(2,2))
+        plt.plot(ir_spectrum.ir_spectrum.fmat_cropped, np.abs(out[0])**2, color='black')
+        plt.gca().set_xlabel(r"Frequency $\rightarrow$")
+        plt.title("IR Pule")
+        plt.gca().set_ylabel("Intensity")
+        plt.gca().set_yticks([])
+        axtwin = plt.gca().twinx()
+        axtwin.plot(ir_spectrum.ir_spectrum.fmat_cropped, np.unwrap(np.angle(out[0])), color='green')
+        axtwin.set_yticks([])
+        axtwin.set_ylabel("Spectral Phase $\phi$")
+        plt.gca().yaxis.label.set_color("green")
+        plt.gca().set_xticks([])
+        plt.savefig("./ir_f.png")
+
+
+
+        # --------------------
+        # ----IR t-----------
+        # --------------------
+        out = sess.run(ir_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
+                                                   ir_values_in: ir_input})
+        # out = np.random.rand(125).reshape(1, -1) + 1j*np.random.rand(125).reshape(1, -1)
+        plt.figure(4, figsize=(2, 2))
+        plt.plot(ir_spectrum.ir_spectrum.tmat, np.real(out[0]), color='red')
+        plt.gca().set_xlabel(r"Time $\rightarrow$")
+        plt.title("IR Pule")
+        plt.gca().set_ylabel("Real E(t)")
+        plt.gca().set_yticks([])
+        plt.gca().set_xticks([])
+        plt.gca().yaxis.label.set_color("red")
+        plt.savefig("./ir_t.png")
+
+
+
+
+
+        plt.show()
+        exit(0)
+
+
+
+
+
+
+
+
 
         out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
                                                            ir_values_in: ir_input})
