@@ -18,9 +18,24 @@ ir_param_amplitudes["I_range"] = (0.4, 1.0)
 
 
 
+
+#---------------------------
+#--STREAKING TRACE PARAMS---
+#---------------------------
 Ip_eV = 21.5645
 Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+
+# define delay values
+# these must be smaller values than the IR pulse window timespan (a.u.)
+delay_values = np.array([1, 2, 3])
+
+
+
+
+
+
+
 
 
 # threshold scaler for the generated pulses

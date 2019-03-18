@@ -341,6 +341,80 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     return image, parameters
 
 
+def streaking_trace2(xuv_cropped_f_in, ir_cropped_f_in):
+
+    # ionization potential
+    Ip = phase_parameters.params.Ip
+
+    #-----------------------------------------------------------------
+    # zero pad the spectrum of ir and xuv input to match the full original f matrices
+    #-----------------------------------------------------------------
+    # [pad_before , padafter]
+    paddings_xuv = tf.constant(
+        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
+    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+    # same for the IR
+    paddings_ir = tf.constant(
+        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
+        dtype=tf.int32)
+    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
+    # fourier transform the padded xuv
+    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
+    # fourier transform the padded ir
+    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
+
+
+    #------------------------------------------------------------------
+    #------ zero pad ir in frequency space to match xuv timestep-------
+    #------------------------------------------------------------------
+    # calculate N required to match timestep
+    N_req = int(1 / (xuv_spectrum.spectrum.dt * ir_spectrum.ir_spectrum.df))
+    # this much needs to be padded to each side
+    pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
+    # pad the IR to match dt of xuv
+    paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
+    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+    # calculate ir with matching dt in time
+    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
+    # match the scale of the original
+    scale_factor = tf.constant(N_req/ ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
+    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+
+    #------------------------------------------------------------------
+    # ---------------------integrate ir pulse--------------------------
+    #------------------------------------------------------------------
+    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+    flipped1 = tf.reverse(A_t, axis=[0])
+    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+
+    #-------------------------------------------------------------------
+    # -------find middle index point (0 delay index)--------------------
+    #-------------------------------------------------------------------
+    middle = int(N_req / 2)
+    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - xuv_spectrum.spectrum.N / 2
+    middle_indexes = np.array([middle] * xuv_spectrum.spectrum.N) + rangevals
+
+
+    # delay times
+    delay_times = phase_parameters.params.delay_values
+    # print(delay_times)
+    # print(np.max(ir_spectrum.ir_spectrum.tmat))
+
+    # print("hello")
+
+    nodes = {}
+    nodes["ir_t_matched_dt_scaled"] = ir_t_matched_dt_scaled
+    return nodes
+
+
+
+
+
+
+
 if __name__ == "__main__":
 
     # xuv creation
@@ -362,7 +436,16 @@ if __name__ == "__main__":
 
 
     # construct streaking image
-    image, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    out = streaking_trace2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+    with tf.Session() as sess:
+        feed_dict = {
+            xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[0.0, 0.0, 0.0, 0.0]])
+        }
+        sess.run(out["ir_t_matched_dt_scaled"], feed_dict=feed_dict)
+
+    exit(0)
 
 
 
