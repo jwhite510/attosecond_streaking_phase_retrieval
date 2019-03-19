@@ -301,6 +301,10 @@ def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, streak_params
 
 
 def init_tf_loggers(nn_nodes):
+
+    test_mse_tb_phasecurve = tf.summary.scalar("test_mse_phasecurve", nn_nodes["supervised"]["phase_network_phasecurve_loss"])
+    train_mse_tb_phasecurve = tf.summary.scalar("train_mse_phasecurve", nn_nodes["supervised"]["phase_network_phasecurve_loss"])
+
     test_mse_tb_fields = tf.summary.scalar("test_mse_fields", nn_nodes["supervised"]["phase_network_fields_loss"])
     train_mse_tb_fields = tf.summary.scalar("train_mse_fields", nn_nodes["supervised"]["phase_network_fields_loss"])
 
@@ -308,6 +312,8 @@ def init_tf_loggers(nn_nodes):
     train_mse_tb_coefs_params = tf.summary.scalar("train_mse_coef_params", nn_nodes["supervised"]["phase_network_coefs_params_loss"])
 
     tf_loggers = {}
+    tf_loggers["test_mse_tb_phasecurve"] = test_mse_tb_phasecurve
+    tf_loggers["train_mse_tb_phasecurve"] = train_mse_tb_phasecurve
     tf_loggers["test_mse_tb_fields"] = test_mse_tb_fields
     tf_loggers["train_mse_tb_fields"] = train_mse_tb_fields
     tf_loggers["test_mse_tb_coefs_params"] = test_mse_tb_coefs_params
@@ -319,13 +325,29 @@ def init_tf_loggers(nn_nodes):
 def add_tensorboard_values(nn_nodes, tf_loggers):
 
 
+    #***********************************
     # ..................................
     # ..........test set...............
     # ..................................
+    #***********************************
     # view the mean squared error of the test data
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
 
-    # fields loss
+
+    #---------------------------------
+    # -------phase curve loss---------
+    #---------------------------------
+    print("Phasecurve test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_phasecurve_loss"],
+                                        feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                                   nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
+    summ = sess.run(tf_loggers["test_mse_tb_phasecurve"],
+                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
+                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+    writer.add_summary(summ, global_step=i + 1)
+
+    # ---------------------------------
+    # ----------fields loss------------
+    # ---------------------------------
     print("fields test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
                                  feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
                                             nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
@@ -334,7 +356,9 @@ def add_tensorboard_values(nn_nodes, tf_loggers):
                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
     writer.add_summary(summ, global_step=i + 1)
 
-    # coef params loss
+    # ---------------------------------
+    # --------coef params loss---------
+    # ---------------------------------
     print("coefs params test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_coefs_params_loss"],
                                  feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
                                             nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
@@ -344,13 +368,29 @@ def add_tensorboard_values(nn_nodes, tf_loggers):
     writer.add_summary(summ, global_step=i + 1)
 
 
+    #***********************************
     # ..................................
     # ..........train set................
     # ..................................
+    #***********************************
     # view the mean squared error of the train data
     batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
 
-    # fields loss
+    # ----------------------------------------
+    # ----------phase curve loss--------------
+    # ----------------------------------------
+    print("Phasecurve train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_phasecurve_loss"],
+                                         feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                                    nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
+    summ = sess.run(tf_loggers["train_mse_tb_phasecurve"],
+                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
+                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+    writer.add_summary(summ, global_step=i + 1)
+
+
+    #----------------------------------------
+    # ----------fields loss------------------
+    #----------------------------------------
     print("fields train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
                                         feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
                                                    nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
@@ -359,7 +399,9 @@ def add_tensorboard_values(nn_nodes, tf_loggers):
                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
     writer.add_summary(summ, global_step=i + 1)
 
-    # coef params loss
+    #-----------------------------------------
+    # -----------coef params loss--------------
+    #-----------------------------------------
     print("coefs params train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_coefs_params_loss"],
                                               feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
                                                          nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
@@ -368,12 +410,9 @@ def add_tensorboard_values(nn_nodes, tf_loggers):
                                nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
     writer.add_summary(summ, global_step=i + 1)
 
-
     # ..................................
     # .....write to tensorboard.........
     # ..................................
-
-
     writer.flush()
 
 
@@ -686,16 +725,23 @@ def setup_neural_net(streak_params):
     # ........................................................
     # ........SUPERVISED LEARNING LOSS FUNCTIONS..............
     # ........................................................
+    s_LR = tf.placeholder(tf.float32, shape=[])
+
+    # phase curve loss function
+    phase_network_phasecurve_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_E_prop"]["phasecurve_cropped"],
+                                                        predictions=phase_net_output["xuv_E_prop"]["phasecurve_cropped"])
+    phase_phasecurve_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    phase_network_train_phasecurve = phase_phasecurve_optimizer.minimize(phase_network_phasecurve_loss, var_list=phase_net_vars)
+
     # fields loss function for training phase retrieval network
     phase_network_fields_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_ir_field_label"],
-                                                      predictions=phase_net_output["xuv_ir_field_label"])
-    s_LR = tf.placeholder(tf.float32, shape=[])
+                                                        predictions=phase_net_output["xuv_ir_field_label"])
     phase_fields_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train_fields = phase_fields_optimizer.minimize(phase_network_fields_loss, var_list=phase_net_vars)
 
     # coefs and params loss function for training phase retrieval network
     phase_network_coefs_params_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["actual_coefs_params"],
-                                                             predictions=phase_net_output["predicted_coefficients_params"])
+                                                        predictions=phase_net_output["predicted_coefficients_params"])
     phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(phase_network_coefs_params_loss, var_list=phase_net_vars)
 
@@ -731,9 +777,11 @@ def setup_neural_net(streak_params):
 
     nn_nodes["supervised"]["x_in"] = x_in
     nn_nodes["supervised"]["actual_coefs_params"] = actual_coefs_params
+    nn_nodes["supervised"]["phase_network_train_phasecurve"] = phase_network_train_phasecurve
     nn_nodes["supervised"]["phase_network_train_fields"] = phase_network_train_fields
     nn_nodes["supervised"]["phase_network_train_coefs_params"] = phase_network_train_coefs_params
     nn_nodes["supervised"]["s_LR"] = s_LR
+    nn_nodes["supervised"]["phase_network_phasecurve_loss"] = phase_network_phasecurve_loss
     nn_nodes["supervised"]["phase_network_fields_loss"] = phase_network_fields_loss
     nn_nodes["supervised"]["phase_network_coefs_params_loss"] = phase_network_coefs_params_loss
     nn_nodes["supervised"]["supervised_label_fields"] = supervised_label_fields
@@ -846,6 +894,13 @@ if __name__ == "__main__":
                                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
                                                            nn_nodes["general"]["hold_prob"]: 0.8,
                                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+                elif i < 20:
+                    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                                           nn_nodes["general"]["hold_prob"]: 0.8,
+                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
+
                 else:
                     sess.run(nn_nodes["supervised"]["phase_network_train_fields"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
                                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
