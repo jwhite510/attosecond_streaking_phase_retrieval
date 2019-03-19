@@ -8,6 +8,7 @@ import scipy.constants as sc
 import math
 import phase_parameters.params
 import generate_data3
+import pickle
 
 
 
@@ -390,24 +391,61 @@ def streaking_trace2(xuv_cropped_f_in, ir_cropped_f_in):
     A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
 
 
-    #-------------------------------------------------------------------
-    # -------find middle index point (0 delay index)--------------------
-    #-------------------------------------------------------------------
-    middle = int(N_req / 2)
-    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - xuv_spectrum.spectrum.N / 2
-    middle_indexes = np.array([middle] * xuv_spectrum.spectrum.N) + rangevals
+    # ------------------------------------------------------------------
+    # ---------------------make ir t axis-------------------------------
+    # ------------------------------------------------------------------
+    ir_taxis = xuv_spectrum.spectrum.dt * np.arange(-N_req/2, N_req/2, 1)
 
 
-    # delay times
-    delay_times = phase_parameters.params.delay_values
-    # print(delay_times)
-    # print(np.max(ir_spectrum.ir_spectrum.tmat))
 
-    # print("hello")
+    # ------------------------------------------------------------------
+    # ---------------------find indexes of tau values-------------------
+    # ------------------------------------------------------------------
+    center_indexes = []
+    for delay_value in phase_parameters.params.delay_values:
+        index = np.argmin(np.abs(delay_value - ir_taxis))
+        center_indexes.append(index)
+    center_indexes = np.array(center_indexes)
+    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - int((xuv_spectrum.spectrum.N/2))
+    delayindexes = center_indexes.reshape(1, -1) + rangevals.reshape(-1, 1)
 
-    nodes = {}
-    nodes["ir_t_matched_dt_scaled"] = ir_t_matched_dt_scaled
-    return nodes
+
+    # ------------------------------------------------------------------
+    # ------------gather values from integrated array-------------------
+    # ------------------------------------------------------------------
+    ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
+    ir_values = tf.expand_dims(ir_values, axis=0)
+
+
+
+    #------------------------------------------------------------------
+    #-------------------construct streaking trace----------------------
+    #------------------------------------------------------------------
+    # convert K to atomic units
+    K = phase_parameters.params.K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    K = K.reshape(-1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1)
+    # convert to tensorflow
+    p_tf = tf.constant(p, dtype=tf.float32)
+    # 3d ir mat
+    p_A_t_integ_t_phase3d = p_tf * ir_values
+    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+    # add fourier transform term
+    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+    # add xuv to integrate over
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
+    # multiply elements together
+    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+    # integrate over the xuv time
+    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+    # absolute square the matrix
+    image_not_scaled = tf.square(tf.abs(integration))
+    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
+    image = scaled / tf.reduce_max(scaled)
+
+    return image
 
 
 
@@ -435,83 +473,110 @@ if __name__ == "__main__":
     ir_E_prop = ir_from_params(ir_values_in)
 
 
+    image1, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+
+
     # construct streaking image
-    out = streaking_trace2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image2 = streaking_trace2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
 
     with tf.Session() as sess:
+
         feed_dict = {
-            xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[0.0, 0.0, 0.0, 0.0]])
+            xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
         }
-        sess.run(out["ir_t_matched_dt_scaled"], feed_dict=feed_dict)
+
+
+        out = sess.run(image2, feed_dict=feed_dict)
+        print(np.shape(out))
+        plt.figure(1)
+        plt.pcolormesh(phase_parameters.params.delay_values,
+                       phase_parameters.params.K,
+                       out, cmap="jet")
+        plt.title("new trace")
+
+
+        out = sess.run(image1, feed_dict=feed_dict)
+        print(np.shape(out))
+        plt.figure(2)
+        plt.pcolormesh(phase_parameters.params.delay_values,
+                       phase_parameters.params.K,
+                       out, cmap="jet")
+        plt.title("original trace")
+
+
+
+        plt.show()
 
     exit(0)
 
 
 
 
-    with tf.Session() as sess:
-
-        # count the number of bad samples generated
-        bad_samples = 0
-
-        # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
-        indexmin = 100
-        indexmax = (2*1024) - 100
-        xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-        xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
-        threshold = np.max(np.abs(xuv_t)) / 300
-
-
-        # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
-        xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 1.0]])
-
-        xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
-        # exit(0)
-        print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
-        xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
-
-        fig = plt.figure()
-        gs = fig.add_gridspec(2, 2)
-        ax = fig.add_subplot(gs[:, :])
-        ax.plot(np.real(xuv_t[0]), color="blue")
-        ax.plot(np.imag(xuv_t[0]), color="red")
-        plt.show()
-
-
-
-        bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
-
-        print(xuv_good)
-
-        exit(0)
-
-
-
-
-
-    with tf.Session() as sess:
-        xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
-        # xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
-        ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
-
-        out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
-                                         ir_values_in: ir_input})
-        plt.figure(1)
-        plt.plot(np.real(out[0]), color='blue')
-        plt.plot(np.imag(out[0]), color='red')
-
-        out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
-                                                           ir_values_in: ir_input})
-        plt.figure(2)
-        plt.plot(np.real(out[0]), color='blue')
-        plt.plot(np.imag(out[0]), color='red')
-
-
-        out = sess.run(image, feed_dict={xuv_coefs_in: xuv_input,
-                                                   ir_values_in: ir_input})
-        plt.figure(3)
-        plt.pcolormesh(out)
-        # plt.savefig("./4.png")
-        plt.show()
-
+    # with tf.Session() as sess:
+    #
+    #     # count the number of bad samples generated
+    #     bad_samples = 0
+    #
+    #     # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
+    #     indexmin = 100
+    #     indexmax = (2*1024) - 100
+    #     xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+    #     xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
+    #     threshold = np.max(np.abs(xuv_t)) / 300
+    #
+    #
+    #     # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
+    #     xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 1.0]])
+    #
+    #     xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
+    #     # exit(0)
+    #     print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
+    #     xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
+    #
+    #     fig = plt.figure()
+    #     gs = fig.add_gridspec(2, 2)
+    #     ax = fig.add_subplot(gs[:, :])
+    #     ax.plot(np.real(xuv_t[0]), color="blue")
+    #     ax.plot(np.imag(xuv_t[0]), color="red")
+    #     plt.show()
+    #
+    #
+    #
+    #     bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
+    #
+    #     print(xuv_good)
+    #
+    #     exit(0)
+    #
+    #
+    #
+    #
+    #
+    # with tf.Session() as sess:
+    #     xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
+    #     # xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
+    #     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
+    #
+    #     out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
+    #                                      ir_values_in: ir_input})
+    #     plt.figure(1)
+    #     plt.plot(np.real(out[0]), color='blue')
+    #     plt.plot(np.imag(out[0]), color='red')
+    #
+    #     out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
+    #                                                        ir_values_in: ir_input})
+    #     plt.figure(2)
+    #     plt.plot(np.real(out[0]), color='blue')
+    #     plt.plot(np.imag(out[0]), color='red')
+    #
+    #
+    #     out = sess.run(image, feed_dict={xuv_coefs_in: xuv_input,
+    #                                                ir_values_in: ir_input})
+    #     plt.figure(3)
+    #     plt.pcolormesh(out)
+    #     # plt.savefig("./4.png")
+    #     plt.show()
+    #

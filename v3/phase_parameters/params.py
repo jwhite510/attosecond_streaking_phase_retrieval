@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.constants as sc
+import pickle
 
 
 # includes linear
@@ -26,9 +27,16 @@ Ip_eV = 21.5645
 Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
+
 # define delay values
 # these must be smaller values than the IR pulse window timespan (a.u.)
-delay_values = np.array([1, 2, 3])
+# delay_values = np.linspace(-500, 500, 60) # a.u.
+# these are the delay values from sample 2
+with open("tauvals.p", "rb") as file:
+    delay_values = pickle.load(file)
+
+
+K = np.arange(50, 351, 1) # eV
 
 
 
