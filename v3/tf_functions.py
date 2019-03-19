@@ -78,10 +78,10 @@ def xuv_taylor_to_E(coefficients_in):
     taylor_coefs_mat = coef_div_fact * exp_mat_fmat
 
     # this is the phase angle, summed along the taylor terms
-    taylor_terms_summed = tf.reduce_sum(taylor_coefs_mat, axis=1)
+    phasecurve = tf.reduce_sum(taylor_coefs_mat, axis=1)
 
     # apply the phase angle to Ef
-    Ef_prop = Ef * tf.exp(tf.complex(imag=taylor_terms_summed, real=tf.zeros_like(taylor_terms_summed)))
+    Ef_prop = Ef * tf.exp(tf.complex(imag=phasecurve, real=tf.zeros_like(phasecurve)))
 
     # fourier transform for time propagated signal
     Et_prop = tf_ifft(Ef_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
@@ -89,10 +89,14 @@ def xuv_taylor_to_E(coefficients_in):
     # return the cropped E
     Ef_prop_cropped = Ef_prop[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
 
+    # return cropped phase curve
+    phasecurve_cropped = phasecurve[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
+
     E_prop = {}
     E_prop["f"] = Ef_prop
     E_prop["f_cropped"] = Ef_prop_cropped
     E_prop["t"] = Et_prop
+    E_prop["phasecurve_cropped"] = phasecurve_cropped
     #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
 
     return E_prop
@@ -484,10 +488,26 @@ if __name__ == "__main__":
     with tf.Session() as sess:
 
         feed_dict = {
-            xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            xuv_coefs_in: np.array([[0.0, 0.0, 1.0, 0.0, 0.0]]),
             ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
         }
 
+        #---------------------------
+        # test xuv phase curve output
+        #---------------------------
+        out = sess.run(xuv_E_prop["phasecurve_cropped"], feed_dict=feed_dict)
+        plt.figure(1)
+        plt.plot(out[0], color="green")
+
+        out = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)
+        plt.figure(2)
+        plt.plot(np.real(out[0]), color="blue")
+        plt.plot(np.imag(out[0]), color="red")
+        axtwin = plt.gca().twinx()
+        axtwin.plot(np.unwrap(np.angle(out[0])), color="green")
+
+        plt.show()
+        exit(0)
 
         out = sess.run(image2, feed_dict=feed_dict)
         print(np.shape(out))
