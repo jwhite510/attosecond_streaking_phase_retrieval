@@ -849,7 +849,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'test1_abs_I_2'
+    modelname = 'test1_phasecurve'
 
     print('starting ' + modelname)
 
@@ -885,23 +885,27 @@ if __name__ == "__main__":
                 batch_x, batch_y = get_data.next_batch()
 
                 # train network
-                if i < 10:
-                    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                           nn_nodes["general"]["hold_prob"]: 0.8,
-                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
+                if i < 15:
+                    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        nn_nodes["general"]["hold_prob"]: 0.8,
+                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
 
-                elif i < 20:
-                    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                           nn_nodes["general"]["hold_prob"]: 0.8,
-                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
+                elif i < 30:
+                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
+                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        nn_nodes["general"]["hold_prob"]: 0.8,
+                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
 
                 else:
-                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"], feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                                           nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                                           nn_nodes["general"]["hold_prob"]: 0.8,
-                                                           nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
+                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        nn_nodes["general"]["hold_prob"]: 0.8,
+                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+
 
             print("")
 
