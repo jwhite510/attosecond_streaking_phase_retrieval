@@ -188,10 +188,10 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "run5_supervised_alternating4"
+    run_name = "run1_normal"
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = "test1_abs_I_2"
+    modelname = "test1_phasecurve"
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
