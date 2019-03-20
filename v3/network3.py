@@ -810,6 +810,7 @@ def setup_neural_net(streak_params):
     nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
     nn_nodes["unsupervised"]["unsupervised_train_log"] = unsupervised_train_log
     nn_nodes["unsupervised"]["u_LR"] = u_LR
+    nn_nodes["unsupervised"]["unsupervised_learning_loss"] = unsupervised_learning_loss
     nn_nodes["unsupervised"]["unsupervised_learning_loss_log"] = unsupervised_learning_loss_log
     nn_nodes["unsupervised"]["u_base"] = u_base
     nn_nodes["unsupervised"]["u_translate"] = u_translate
