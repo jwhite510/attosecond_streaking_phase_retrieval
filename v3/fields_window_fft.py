@@ -70,7 +70,7 @@ while index + span -1 < len(xuv_signal_time):
 
     # plot the time slice of the xuv signal
     axes["xuv_timewindow"].cla()
-    axes["xuv_timewindow"].plot(tmat_window, np.real(xuv_signal_time_window))
+    axes["xuv_timewindow"].plot(tmat_window, np.real(xuv_signal_time_window), color="blue")
     axes["xuv_timewindow"].plot([0,0], [np.min(np.real(xuv_signal_time_window)), np.max(np.real(xuv_signal_time_window))], color="red")
     axes["xuv_timewindow"].set_xlabel("time [as]")
     axes["xuv_timewindow"].set_yticks([])
@@ -80,7 +80,7 @@ while index + span -1 < len(xuv_signal_time):
 
     # plot the xuv signal
     axes["xuv_time_sig"].cla()
-    axes["xuv_time_sig"].plot(xuv_time, np.real(xuv_signal_time))
+    axes["xuv_time_sig"].plot(xuv_time, np.real(xuv_signal_time), color="blue")
     axes["xuv_time_sig"].set_xlim(np.min(f_c_time), np.max(f_c_time))
     axes["xuv_time_sig"].set_xlabel("time [as]")
     axes["xuv_time_sig"].set_yticks([])
