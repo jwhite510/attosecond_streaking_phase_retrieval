@@ -37,8 +37,8 @@ def proof_trace(trace):
     filtered_f = tf.complex(real=tf.reshape(index_ones, [1,-1]),
                        imag=tf.zeros_like(tf.reshape(index_ones, [1,-1]))) * freq
 
-    proof = tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values)/2),
-                    axis=1)
+    proof = tf.abs(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values)/2),
+                    axis=1))
 
     nodes = {}
     nodes["freq"] = freq
@@ -595,6 +595,10 @@ if __name__ == "__main__":
         out = sess.run(proof2["proof"], feed_dict=feed_dict)
         plt.figure(5)
         plt.pcolormesh(np.abs(out), cmap="jet")
+        plt.figure(6)
+        plt.pcolormesh(np.real(out), cmap="jet")
+        plt.figure(7)
+        plt.pcolormesh(np.imag(out), cmap="jet")
         plt.show()
 
         exit(0)
