@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import xuv_spectrum.spectrum as xuv_spec
 import scipy.constants as sc
+import imageio
 
 
 
@@ -38,14 +39,16 @@ f_c = np.zeros((samples, span), dtype=np.complex)
 
 
 fig = plt.figure()
-gs = fig.add_gridspec(2,2)
+gs = fig.add_gridspec(2,3)
+fig.subplots_adjust(hspace=0.3)
 
 axes = {}
-axes["fft"] = fig.add_subplot(gs[0,:])
-axes["xuv_timewindow"] = fig.add_subplot(gs[1,0])
-axes["xuv_time_sig"] = fig.add_subplot(gs[1,1])
+axes["xuv_timewindow"] = fig.add_subplot(gs[0,2])
+axes["fft"] = fig.add_subplot(gs[1,:2])
+axes["xuv_time_sig"] = fig.add_subplot(gs[0,:2])
 
 plt.ion()
+movie = []
 while index + span -1 < len(xuv_signal_time):
 
     xuv_signal_time_window = xuv_signal_time[index:index+span]
@@ -57,18 +60,35 @@ while index + span -1 < len(xuv_signal_time):
 
     # plot the ffts
     axes["fft"].cla()
-    axes["fft"].pcolormesh(f_c_time, fmat_window, np.transpose(np.abs(f_c)))
+    axes["fft"].pcolormesh(f_c_time, fmat_window*1e-17, np.transpose(np.abs(f_c)))
+    axes["fft"].set_xlim(np.min(f_c_time), np.max(f_c_time))
+    axes["fft"].set_xlabel("time [as]")
+    axes["fft"].set_ylabel("$10^{17}$Hz")
+    axes["fft"].set_ylim(0, 2)
+
+
+
     # plot the time slice of the xuv signal
     axes["xuv_timewindow"].cla()
     axes["xuv_timewindow"].plot(tmat_window, np.real(xuv_signal_time_window))
+    axes["xuv_timewindow"].plot([0,0], [np.min(np.real(xuv_signal_time_window)), np.max(np.real(xuv_signal_time_window))], color="red")
+    axes["xuv_timewindow"].set_xlabel("time [as]")
+    axes["xuv_timewindow"].set_yticks([])
+
+
+
 
     # plot the xuv signal
     axes["xuv_time_sig"].cla()
     axes["xuv_time_sig"].plot(xuv_time, np.real(xuv_signal_time))
+    axes["xuv_time_sig"].set_xlim(np.min(f_c_time), np.max(f_c_time))
+    axes["xuv_time_sig"].set_xlabel("time [as]")
+    axes["xuv_time_sig"].set_yticks([])
+    axes["xuv_time_sig"].set_ylabel(r"real $E(t)$ $\rightarrow$")
     # plot where is the index center
     time_index_center_window = xuv_time[int(index_center_window)]
     time_index = xuv_time[index]
-    time_ind_plus_span = xuv_time[index + span]
+    time_ind_plus_span = xuv_time[index + span -1]
 
     axes["xuv_time_sig"].plot([time_index_center_window, time_index_center_window], [np.min(np.real(xuv_signal_time)),
                                                                            np.max(np.real(xuv_signal_time))],
@@ -80,6 +100,12 @@ while index + span -1 < len(xuv_signal_time):
                                       color="black",
                                       alpha=0.5)
     plt.pause(0.001)
+    fig.canvas.draw()
+    image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+    image = image.reshape(fig.canvas.get_width_height()[::-1]+(3,))
+    movie.append(image)
 
     index += 1
+
+imageio.mimsave("./fftwindow.gif", movie, fps=10)
 
