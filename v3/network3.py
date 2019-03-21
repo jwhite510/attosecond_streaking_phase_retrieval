@@ -793,8 +793,8 @@ def setup_neural_net(streak_params):
     # .................PROOF RETRIEVAL LOSS FUNC................
     # ..........................................................
     # regular cost function
-    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(labels=tf.reshape(input_image_proof, [1, -1]),
-                                                              predictions=tf.reshape(reconstructed_proof, [1, -1]))
+    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(labels=tf.reshape(input_image_proof["proof"], [1, -1]),
+                                                              predictions=tf.reshape(reconstructed_proof["proof"], [1, -1]))
     proof_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     proof_unsupervised_train = proof_unsupervised_optimizer.minimize(proof_unsupervised_learning_loss,
                                                          var_list=phase_net_vars)
@@ -884,7 +884,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'test1_phasecurve'
+    modelname = 'test1_phasecurve_proof'
 
     print('starting ' + modelname)
 
