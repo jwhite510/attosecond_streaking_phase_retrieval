@@ -99,14 +99,17 @@ while index + span -1 < len(xuv_signal_time):
                                       [np.min(np.real(xuv_signal_time)), np.min(np.real(xuv_signal_time))],
                                       color="black",
                                       alpha=0.5)
-    plt.pause(0.001)
-    fig.canvas.draw()
-    image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
-    image = image.reshape(fig.canvas.get_width_height()[::-1]+(3,))
-    movie.append(image)
+
+    if index % 5 == 0:
+        fig.canvas.draw()
+        plt.pause(0.001)
+        image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+        image = image.reshape(fig.canvas.get_width_height()[::-1]+(3,))
+        movie.append(image)
+
 
     index += 1
 
 plt.savefig("./completeimage.png")
-imageio.mimsave("./fftwindow.gif", movie, fps=30)
+imageio.mimsave("./fftwindow.gif", movie, fps=15)
 
