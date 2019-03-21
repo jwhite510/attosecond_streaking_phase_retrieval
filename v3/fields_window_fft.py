@@ -60,7 +60,7 @@ while index + span -1 < len(xuv_signal_time):
 
     # plot the ffts
     axes["fft"].cla()
-    axes["fft"].pcolormesh(f_c_time, fmat_window*1e-17, np.transpose(np.abs(f_c)))
+    axes["fft"].pcolormesh(f_c_time, fmat_window*1e-17, np.transpose(np.abs(f_c)), cmap="jet")
     axes["fft"].set_xlim(np.min(f_c_time), np.max(f_c_time))
     axes["fft"].set_xlabel("time [as]")
     axes["fft"].set_ylabel("$10^{17}$Hz")
