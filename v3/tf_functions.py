@@ -12,6 +12,49 @@ import pickle
 
 
 
+
+
+
+
+
+def proof_trace(trace):
+    freq = tf_fft(tensor=tf.complex(real=trace, imag=tf.zeros_like(trace)),
+                               shift=int(len(phase_parameters.params.delay_values)/2),
+                               axis=1)
+
+    # summation along vertical axis
+    summationf = tf.reduce_sum(freq, axis=0)
+
+    _, top_k_ind = tf.math.top_k(tf.abs(summationf), k=3, sorted=True)
+    # get the 2nd and 3rd max values (+/- w1)
+    w1_indexes = top_k_ind[1:]
+
+    sparse_tens = tf.SparseTensor(indices=[[w1_indexes[0]], [w1_indexes[1]]], values=[1.0,1.0],
+                                  dense_shape=[int(len(phase_parameters.params.delay_values))],
+                                  )
+    index_ones = tf.zeros_like(tf.abs(summationf)) + tf.sparse_tensor_to_dense(sparse_tens)
+
+    filtered_f = tf.complex(real=tf.reshape(index_ones, [1,-1]),
+                       imag=tf.zeros_like(tf.reshape(index_ones, [1,-1]))) * freq
+
+    proof = tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values)/2),
+                    axis=1)
+
+    nodes = {}
+    nodes["freq"] = freq
+    nodes["summationf"] = summationf
+    nodes["top_k_ind"] = top_k_ind
+    nodes["sparse_tens"] = sparse_tens
+    nodes["index_ones"] = index_ones
+    nodes["proof"] = proof
+
+    return nodes
+
+
+
+
+
+
 def tf_ifft(tensor, shift, axis=0):
 
     shifted = tf.manip.roll(tensor, shift=shift, axis=axis)
@@ -484,6 +527,13 @@ if __name__ == "__main__":
     # construct streaking image
     image2 = streaking_trace2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
+    # construct proof trace
+    proof2 = proof_trace(image2)
+
+
+
+
+
 
     with tf.Session() as sess:
 
@@ -495,19 +545,25 @@ if __name__ == "__main__":
         #---------------------------
         # test xuv phase curve output
         #---------------------------
-        out = sess.run(xuv_E_prop["phasecurve_cropped"], feed_dict=feed_dict)
-        plt.figure(1)
-        plt.plot(out[0], color="green")
+        #out = sess.run(xuv_E_prop["phasecurve_cropped"], feed_dict=feed_dict)
+        #plt.figure(1)
+        #plt.plot(out[0], color="green")
+#
+        #out = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)
+        #plt.figure(2)
+        #plt.plot(np.real(out[0]), color="blue")
+        #plt.plot(np.imag(out[0]), color="red")
+        #axtwin = plt.gca().twinx()
+        #axtwin.plot(np.unwrap(np.angle(out[0])), color="green")
+#
+        #plt.show()
+        #exit(0)
 
-        out = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)
-        plt.figure(2)
-        plt.plot(np.real(out[0]), color="blue")
-        plt.plot(np.imag(out[0]), color="red")
-        axtwin = plt.gca().twinx()
-        axtwin.plot(np.unwrap(np.angle(out[0])), color="green")
 
-        plt.show()
-        exit(0)
+
+        #===============================================
+        #===========testing proof trace=================
+        #===============================================
 
         out = sess.run(image2, feed_dict=feed_dict)
         print(np.shape(out))
@@ -518,13 +574,41 @@ if __name__ == "__main__":
         plt.title("new trace")
 
 
-        out = sess.run(image1, feed_dict=feed_dict)
+        out = sess.run(proof2["freq"], feed_dict=feed_dict)
         print(np.shape(out))
         plt.figure(2)
-        plt.pcolormesh(phase_parameters.params.delay_values,
-                       phase_parameters.params.K,
-                       out, cmap="jet")
-        plt.title("original trace")
+        plt.pcolormesh(np.abs(out), cmap="jet")
+
+
+        out = sess.run(proof2["summationf"], feed_dict=feed_dict)
+        plt.figure(3)
+        plt.plot(np.abs(out))
+
+        out = sess.run(proof2["top_k_ind"], feed_dict=feed_dict)
+        print(out)
+
+        out = sess.run(proof2["index_ones"], feed_dict=feed_dict)
+        print(np.shape(out))
+        plt.figure(4)
+        plt.plot(out)
+
+        out = sess.run(proof2["proof"], feed_dict=feed_dict)
+        plt.figure(5)
+        plt.pcolormesh(np.abs(out), cmap="jet")
+        plt.show()
+
+        exit(0)
+
+
+
+
+        #out = sess.run(image1, feed_dict=feed_dict)
+        #print(np.shape(out))
+        #plt.figure(2)
+        #plt.pcolormesh(phase_parameters.params.delay_values,
+        #               phase_parameters.params.K,
+        #               out, cmap="jet")
+        #plt.title("original trace")
 
 
 
