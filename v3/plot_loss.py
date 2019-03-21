@@ -79,5 +79,17 @@ ax.legend()
 plt.savefig("unsupervised_normal_retrieval.png")
 
 
+
+fig, ax = plt.subplots(1, 1, figsize=(6,5))
+# fig.subplots_adjust(wspace=0.0, hspace=0.0, top=1.0, left=0.1, bottom=0.1)
+data = get_csv(filename="run_run1_log_b10_t1-tag-trace_mse.csv")
+ax.plot(data[:, 1], data[:, 2], color="blue", label="$log_{10}(trace+1)$\nTrace MSE")
+ax.set_yscale("log")
+ax.set_xlabel("Epoch")
+ax.set_ylim(0, np.max(data[:, 2]))
+ax.legend()
+plt.savefig("unsupervised_log_retrieval.png")
+
+
 plt.show()
 
