@@ -107,5 +107,6 @@ while index + span -1 < len(xuv_signal_time):
 
     index += 1
 
-imageio.mimsave("./fftwindow.gif", movie, fps=10)
+plt.savefig("./completeimage.png")
+imageio.mimsave("./fftwindow.gif", movie, fps=30)
 
