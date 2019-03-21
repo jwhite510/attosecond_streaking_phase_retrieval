@@ -698,6 +698,15 @@ def setup_neural_net(streak_params):
     reconstructed_trace, _ = tf_functions.streaking_trace(xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
                                                           ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
 
+    # generate proof trace
+    reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
+
+
+    # input proof trace
+    x_in_reshaped = tf.reshape(x_in, [len(streak_params["p_values"]), len(streak_params["tau_values"])])
+    input_image_proof = tf_functions.proof_trace(x_in_reshaped)
+
+
     # divide the variables to train with gan and phase retrieval net individually
     tvars = tf.trainable_variables()
     phase_net_vars = [var for var in tvars if "phase" in var.name]
@@ -779,6 +788,20 @@ def setup_neural_net(streak_params):
                                                         var_list=phase_net_vars)
 
 
+
+    # ..........................................................
+    # .................PROOF RETRIEVAL LOSS FUNC................
+    # ..........................................................
+    # regular cost function
+    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(labels=tf.reshape(input_image_proof, [1, -1]),
+                                                              predictions=tf.reshape(reconstructed_proof, [1, -1]))
+    proof_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    proof_unsupervised_train = proof_unsupervised_optimizer.minimize(proof_unsupervised_learning_loss,
+                                                         var_list=phase_net_vars)
+
+
+
+
     # ..........................................................
     # ...................DEFINE NODES FOR USE...................
     # ..........................................................
@@ -814,6 +837,17 @@ def setup_neural_net(streak_params):
     nn_nodes["unsupervised"]["unsupervised_learning_loss_log"] = unsupervised_learning_loss_log
     nn_nodes["unsupervised"]["u_base"] = u_base
     nn_nodes["unsupervised"]["u_translate"] = u_translate
+
+    nn_nodes["unsupervised"]["proof"] = {}
+    nn_nodes["unsupervised"]["proof"]["x_in"] = x_in
+    nn_nodes["unsupervised"]["proof"]["u_LR"] = u_LR
+    nn_nodes["unsupervised"]["proof"]["reconstructed_proof"] = reconstructed_proof
+    nn_nodes["unsupervised"]["proof"]["input_image_proof"] = input_image_proof
+    nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"] = proof_unsupervised_train
+    nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"] = proof_unsupervised_learning_loss
+
+
+
 
     nn_nodes["general"]["phase_net_output"] = phase_net_output
     nn_nodes["general"]["reconstructed_trace"] = reconstructed_trace
