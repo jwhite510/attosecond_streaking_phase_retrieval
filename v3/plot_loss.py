@@ -13,6 +13,11 @@ def get_csv(filename):
 
 
 
+#---------------------------------------------
+#---------------------------------------------
+# -----------supervised learning---------------
+#---------------------------------------------
+#---------------------------------------------
 fig, ax = plt.subplots(3, 1, figsize=(6,9))
 fig.subplots_adjust(wspace=0.0, hspace=0.0, top=1.0, left=0.1, bottom=0.1)
 data = get_csv(filename="run_test1_phasecurve-tag-train_mse_coef_params.csv")
@@ -54,8 +59,25 @@ ax[2].plot(data[:, 1], data[:, 2], color="orange", label="validation Set")
 # ax[2].set_xlim(0, 60)
 ax[2].legend()
 
-
-
 plt.savefig("./mses_full.png")
+
+
+
+#---------------------------------------------
+#---------------------------------------------
+# -----------unsupervised learning------------
+#---------------------------------------------
+#---------------------------------------------
+fig, ax = plt.subplots(1, 1, figsize=(6,5))
+# fig.subplots_adjust(wspace=0.0, hspace=0.0, top=1.0, left=0.1, bottom=0.1)
+data = get_csv(filename="run_run1_normal-tag-trace_mse.csv")
+ax.plot(data[:, 1], data[:, 2], color="blue", label="Trace MSE")
+ax.set_yscale("log")
+ax.set_xlabel("Epoch")
+ax.set_ylim(0, np.max(data[:, 2]))
+ax.legend()
+plt.savefig("unsupervised_normal_retrieval.png")
+
+
 plt.show()
 
