@@ -15,7 +15,11 @@ import pickle
 
 
 
+def autocorrelate(trace):
 
+    correlate = tf.expand_dims(trace, axis=1) * tf.expand_dims(trace, axis=2)
+    summation = tf.reduce_sum(correlate, axis=0)
+    return summation
 
 def proof_trace(trace):
     freq = tf_fft(tensor=tf.complex(real=trace, imag=tf.zeros_like(trace)),
@@ -526,6 +530,9 @@ if __name__ == "__main__":
     # construct proof trace
     proof2 = proof_trace(image2)
 
+    autocorrelateion2 = autocorrelate(image2)
+
+
 
 
 
@@ -561,38 +568,55 @@ if __name__ == "__main__":
         #===========testing proof trace=================
         #===============================================
 
-        out = sess.run(proof2, feed_dict=feed_dict)
+        # out = sess.run(proof2, feed_dict=feed_dict)
+        #
+        # plt.figure(1)
+        # plt.pcolormesh(out["trace"], cmap="jet")
+        # plt.savefig("./1_2.png")
+        #
+        # plt.figure(2)
+        # plt.pcolormesh(out["proof"], cmap="jet")
+        # plt.savefig("./2_2.png")
+        #
+        # plt.figure(3)
+        # plt.plot(out["w1_indexes_tens_1"])
+        # plt.savefig("./3_2.png")
+        #
+        # plt.show()
+        #
+        # exit(0)
+        #
+        # plt.show()
+
+        # ===============================================
+        # =======testing autocorrelation trace===========
+        # ===============================================
+
+        out = sess.run(autocorrelateion2, feed_dict=feed_dict)
 
         plt.figure(1)
-        plt.pcolormesh(out["trace"], cmap="jet")
-        plt.savefig("./1_2.png")
-
-        plt.figure(2)
-        plt.pcolormesh(out["proof"], cmap="jet")
-        plt.savefig("./2_2.png")
-
-        plt.figure(3)
-        plt.plot(out["w1_indexes_tens_1"])
-        plt.savefig("./3_2.png")
-
+        plt.pcolormesh(out, cmap="jet")
         plt.show()
-
         exit(0)
 
 
 
 
-        #out = sess.run(image1, feed_dict=feed_dict)
-        #print(np.shape(out))
-        #plt.figure(2)
-        #plt.pcolormesh(phase_parameters.params.delay_values,
-        #               phase_parameters.params.K,
-        #               out, cmap="jet")
-        #plt.title("original trace")
 
 
 
-        plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
 
     exit(0)
 
