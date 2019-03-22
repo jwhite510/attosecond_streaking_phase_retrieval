@@ -23,9 +23,9 @@ def proof_trace(trace):
                                axis=1)
 
     # summation along vertical axis
-    summationf = tf.reduce_sum(freq, axis=0)
+    summationf = tf.reduce_sum(tf.abs(freq), axis=0)
 
-    _, top_k_ind = tf.math.top_k(tf.abs(summationf), k=3, sorted=True)
+    _, top_k_ind = tf.math.top_k(summationf, k=3, sorted=True)
     # get the 2nd and 3rd max values (+/- w1)
     w1_indexes = top_k_ind[1:]
 
@@ -41,8 +41,11 @@ def proof_trace(trace):
 
     nodes = {}
     nodes["proof"] = proof
+    nodes["freq"] = freq
     nodes["trace"] = trace
     nodes["filtered_f"] = filtered_f
+    nodes["summationf"] = summationf
+    nodes["w1_indexes"] = w1_indexes
     nodes["w1_indexes_tens_1"] = w1_indexes_tens_1
 
     return nodes
@@ -572,7 +575,7 @@ if __name__ == "__main__":
         plt.plot(out["w1_indexes_tens_1"])
         plt.savefig("./3_2.png")
 
-        # plt.show()
+        plt.show()
 
         exit(0)
 
