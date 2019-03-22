@@ -16,6 +16,38 @@ import pickle
 
 
 
+def show_proof_calculation(trace, sess, nn_nodes):
+
+    feed_dict = {nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
+    out = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"],
+                    feed_dict=feed_dict)
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(4,3)
+
+    # plot the input trace
+    ax = fig.add_subplot(gs[0,:])
+    ax.pcolormesh(trace)
+
+    # plot ft of the trace
+    ax = fig.add_subplot(gs[1, :])
+    ax.pcolormesh(np.abs(out["freq"]))
+
+    # plot the summation
+    ax = fig.add_subplot(gs[2,:])
+    ax.plot(out["summationf"])
+
+
+    # mark the indexes
+    ax.plot([out["w1_indexes"][0], out["w1_indexes"][0]], [np.max(out["summationf"]), 0], color="red")
+    ax.plot([out["w1_indexes"][1], out["w1_indexes"][1]], [np.max(out["summationf"]), 0], color="red")
+
+    # plot the proof trace
+    ax = fig.add_subplot(gs[3, :])
+    ax.pcolormesh(out["proof"])
+    time2 = time.time()
+
+
 def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_params, retrieval):
 
     if retrieval == "normal":
@@ -314,6 +346,25 @@ if __name__ == "__main__":
 
 
     axes = create_plot_axes()
+
+
+    # =================================================
+    # check the measured and training data proof traces
+    # =================================================
+    # with tf.Session() as sess:
+    #
+    #     # get a sample trace
+    #     batch_x, batch_y = get_data.next_batch()
+    #     trace_sample = batch_x[0].reshape(len(streak_params["p_values"]), len(streak_params["tau_values"]))
+    #
+    #     show_proof_calculation(trace=trace_sample, sess=sess, nn_nodes=nn_nodes)
+    #     show_proof_calculation(trace=measured_trace, sess=sess, nn_nodes=nn_nodes)
+    #
+    #     plt.show()
+    #
+    #
+    # exit(0)
+
 
 
 
