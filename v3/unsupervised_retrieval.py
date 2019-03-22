@@ -112,8 +112,8 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_param
     elif retrieval == "proof":
 
         feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-        input_proof = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"], feed_dict=feed_dict)
-        reconstruced_proof = sess.run(nn_nodes["unsupervised"]["proof"]["reconstructed_proof"], feed_dict=feed_dict)
+        input_proof = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=feed_dict)
+        reconstruced_proof = sess.run(nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=feed_dict)
         ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
@@ -280,7 +280,7 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "proof"
+    run_name = "proof1"
 
     #===================
     #==Retrieval Type===
@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = "test1_phasecurve"
+    modelname = "test1_phasecurve_proof1"
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
