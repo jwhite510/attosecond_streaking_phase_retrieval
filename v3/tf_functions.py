@@ -29,30 +29,23 @@ def proof_trace(trace):
     # get the 2nd and 3rd max values (+/- w1)
     w1_indexes = top_k_ind[1:]
 
-    sparse_tens = tf.SparseTensor(indices=[[w1_indexes[0]], [w1_indexes[1]]], values=[1.0,1.0],
-                                  dense_shape=[int(len(phase_parameters.params.delay_values))],
-                                  )
-    index_ones = tf.zeros_like(tf.abs(summationf)) + tf.sparse_tensor_to_dense(sparse_tens)
+    #return w1_indexes
+    w1_indexes_tens = tf.one_hot(indices=w1_indexes, depth=int(len(phase_parameters.params.delay_values)))
+    w1_indexes_tens_1 = tf.reduce_sum(w1_indexes_tens, axis=0)
 
-    filtered_f = tf.complex(real=tf.reshape(index_ones, [1,-1]),
-                       imag=tf.zeros_like(tf.reshape(index_ones, [1,-1]))) * freq
+    filtered_f = tf.complex(real=tf.reshape(w1_indexes_tens_1, [1, -1]),
+                            imag=tf.zeros_like(tf.reshape(w1_indexes_tens_1, [1, -1]))) * freq
 
-    proof = tf.abs(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values)/2),
-                    axis=1))
+    proof = tf.abs(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values) / 2),
+                           axis=1))
 
     nodes = {}
-    nodes["freq"] = freq
-    nodes["summationf"] = summationf
-    nodes["top_k_ind"] = top_k_ind
-    nodes["sparse_tens"] = sparse_tens
-    nodes["index_ones"] = index_ones
     nodes["proof"] = proof
+    nodes["trace"] = trace
+    nodes["filtered_f"] = filtered_f
+    nodes["w1_indexes_tens_1"] = w1_indexes_tens_1
 
     return nodes
-
-
-
-
 
 
 def tf_ifft(tensor, shift, axis=0):
@@ -533,8 +526,6 @@ if __name__ == "__main__":
 
 
 
-
-
     with tf.Session() as sess:
 
         feed_dict = {
@@ -561,45 +552,27 @@ if __name__ == "__main__":
 
 
 
+
+
         #===============================================
         #===========testing proof trace=================
         #===============================================
 
-        out = sess.run(image2, feed_dict=feed_dict)
-        print(np.shape(out))
+        out = sess.run(proof2, feed_dict=feed_dict)
+
         plt.figure(1)
-        plt.pcolormesh(phase_parameters.params.delay_values,
-                       phase_parameters.params.K,
-                       out, cmap="jet")
-        plt.title("new trace")
+        plt.pcolormesh(out["trace"], cmap="jet")
+        plt.savefig("./1_2.png")
 
-
-        out = sess.run(proof2["freq"], feed_dict=feed_dict)
-        print(np.shape(out))
         plt.figure(2)
-        plt.pcolormesh(np.abs(out), cmap="jet")
+        plt.pcolormesh(out["proof"], cmap="jet")
+        plt.savefig("./2_2.png")
 
-
-        out = sess.run(proof2["summationf"], feed_dict=feed_dict)
         plt.figure(3)
-        plt.plot(np.abs(out))
+        plt.plot(out["w1_indexes_tens_1"])
+        plt.savefig("./3_2.png")
 
-        out = sess.run(proof2["top_k_ind"], feed_dict=feed_dict)
-        print(out)
-
-        out = sess.run(proof2["index_ones"], feed_dict=feed_dict)
-        print(np.shape(out))
-        plt.figure(4)
-        plt.plot(out)
-
-        out = sess.run(proof2["proof"], feed_dict=feed_dict)
-        plt.figure(5)
-        plt.pcolormesh(np.abs(out), cmap="jet")
-        plt.figure(6)
-        plt.pcolormesh(np.real(out), cmap="jet")
-        plt.figure(7)
-        plt.pcolormesh(np.imag(out), cmap="jet")
-        plt.show()
+        # plt.show()
 
         exit(0)
 
