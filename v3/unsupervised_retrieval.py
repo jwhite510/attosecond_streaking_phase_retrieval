@@ -45,7 +45,6 @@ def show_proof_calculation(trace, sess, nn_nodes):
     # plot the proof trace
     ax = fig.add_subplot(gs[3, :])
     ax.pcolormesh(out["proof"])
-    time2 = time.time()
 
 
 def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_params, retrieval):
