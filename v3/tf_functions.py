@@ -10,6 +10,7 @@ import phase_parameters.params
 import generate_data3
 import pickle
 import unsupervised_retrieval
+import imageio
 
 
 
@@ -693,29 +694,19 @@ if __name__ == "__main__":
         axes["trace_diff"] = fig.add_subplot(gs[2:4, 5:7])
 
 
+        # calculate feed dicts
+        feed_dicts = []
+        step = 0.4
+        gdd_vals = np.arange(-3.0, 3.0+step, step)
+        for val in gdd_vals:
 
-        feed_dicts = [
-            {
-                xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
-                ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-            },
-            {
-                xuv_coefs_in: np.array([[0.0, -0.5, 0.0, 0.0, 0.0]]),
-                ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-            },
-            {
-                xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-            },
-            {
-                xuv_coefs_in: np.array([[0.0, 0.5, 0.0, 0.0, 0.0]]),
-                ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-            },
-            {
-                xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            feed_dict_i = {
+                xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
                 ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
             }
-        ]
+            feed_dicts.append(feed_dict_i)
+
+        gif_images = []
 
         for feed_dict in feed_dicts:
             # generate output
@@ -782,6 +773,7 @@ if __name__ == "__main__":
 
             axes["trace_diff"].cla()
             diff_im = np.abs(out_A - out_A2)
+            # for setting the colorbar
             diff_im[0,0] = 0.2
             diff_im[0,1] = 0.0
             im = axes["trace_diff"].pcolormesh(
@@ -798,10 +790,19 @@ if __name__ == "__main__":
 
             textdraw = "_XUV Phase_"
             for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
-                textdraw += "\n" + "$\phi$" + type + " : " + str(phasecoef)
+                textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
             axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
 
-            plt.pause(4.0)
+
+            plt.pause(0.001)
+            fig.canvas.draw()
+            image_draw = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+            image_draw = image_draw.reshape(fig.canvas.get_width_height()[::-1]+(3,))
+            gif_images.append(image_draw)
+
+        print("making gif")
+        imageio.mimsave('./A2diff.gif', gif_images, fps=10)
+
 
         exit(0)
 
