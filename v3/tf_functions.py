@@ -906,8 +906,8 @@ if __name__ == "__main__":
 
 
 
-        # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
-        animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
+        compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
+        # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
 
 
         exit(0)
