@@ -664,10 +664,10 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
 
-        feed_dict = {
-            xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        }
+        # feed_dict = {
+        #     xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
+        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        # }
 
 
         # ===============================================
@@ -711,6 +711,75 @@ if __name__ == "__main__":
         #=========================================================
         #=========animate proof trace=============================
         #=========================================================
+        # make graph
+        fig = plt.figure(figsize=(12,5))
+        fig.subplots_adjust(wspace=0.3, left=0.05, right=0.95)
+        gs = fig.add_gridspec(2,3)
+        plt.ion()
+
+        # create axes
+        axes = {}
+        axes["xuv_Et"] = fig.add_subplot(gs[0,0])
+        axes["xuv_It"] = fig.add_subplot(gs[1,0])
+        axes["xuv_f"] = fig.add_subplot(gs[0,1])
+        axes["xuv_f_phase"] = axes["xuv_f"].twinx()
+        axes["trace"] = fig.add_subplot(gs[0:2,2])
+
+        feed_dicts = [
+            {
+            xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            },
+            {
+            xuv_coefs_in: np.array([[0.0, -0.5, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            },
+            {
+            xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            },
+            {
+            xuv_coefs_in: np.array([[0.0, 0.5, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            },
+            {
+            xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            }
+            ]
+
+        for feed_dict in feed_dicts:
+            # generate output
+            xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
+            out_2 = sess.run(image2_2, feed_dict=feed_dict)
+            # plot output
+            axes["xuv_Et"].cla()
+            axes["xuv_Et"].plot(np.real(xuv_out["t"][0]), color="blue")
+            axes["xuv_Et"].set_title("$E(t)$")
+            axes["xuv_Et"].set_xticks([])
+            axes["xuv_Et"].set_ylim(-0.05,0.05)
+            axes["xuv_It"].cla()
+            axes["xuv_It"].plot(np.abs(xuv_out["t"][0])**2, color="black")
+            axes["xuv_It"].set_title("$I(t)$")
+            axes["xuv_It"].set_ylim(0, 0.002)
+            axes["xuv_f"].cla()
+            axes["xuv_f"].plot(np.abs(xuv_out["f_cropped"][0])**2, color="black")
+            axes["xuv_f"].set_title("XUV spectral phase")
+            axes["xuv_f_phase"].cla()
+            axes["xuv_f_phase"].plot(xuv_out["phasecurve_cropped"][0], color="green")
+            axes["xuv_f_phase"].tick_params(axis='y', colors='green')
+            axes["xuv_f_phase"].set_ylim(-20, 20)
+            axes["trace"].cla()
+            axes["trace"].pcolormesh(out_2, cmap="jet")
+
+            textdraw = "_XUV Phase_"
+            for type, phasecoef in zip(["1","2","3","4","5"], feed_dict[xuv_coefs_in][0]):
+                textdraw += "\n"+"$\phi$"+type+" : "+str(phasecoef)
+            axes["xuv_f_phase"].text(0.5,-1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
+
+
+            plt.pause(1.0)
+
 
 
 
