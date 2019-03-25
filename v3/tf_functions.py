@@ -13,7 +13,11 @@ import unsupervised_retrieval
 
 
 
-
+def find_second_minima(sorted):
+    # function for finding the second minima in fwhm calculation
+    for j, i in enumerate(sorted[1:]):
+        if np.abs(i - index1) > j + 1:
+            return i
 
 
 def autocorrelate(trace):
@@ -768,8 +772,21 @@ if __name__ == "__main__":
             axes["xuv_Et"].set_ylim(-0.05,0.05)
 
             axes["xuv_It"].cla()
-            axes["xuv_It"].plot(xuv_spectrum.spectrum.tmat*sc.physical_constants['atomic unit of time'][0]*1e18,
-                                np.abs(xuv_out["t"][0])**2, color="black")
+            xuv_time_fs = xuv_spectrum.spectrum.tmat*sc.physical_constants['atomic unit of time'][0]*1e18
+            I_t = np.abs(xuv_out["t"][0])**2
+            axes["xuv_It"].plot(xuv_time_fs,
+                                I_t, color="black")
+
+            # calc fwhm
+            halfmaxI = np.max(I_t)/2
+            I2_I = np.abs(I_t - halfmaxI)
+            sorted = np.argsort(I2_I)
+            index1 = sorted[0]
+            index2 = find_second_minima(sorted)
+            fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
+            axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]],[halfmaxI, halfmaxI], color="red", linewidth=2)
+            axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: "+str(round(fwhm,2)), transform=axes["xuv_It"].transAxes, color="red",
+                                backgroundcolor="white")
             axes["xuv_It"].set_xlabel("time [as]")
             axes["xuv_It"].set_title("$I(t)$")
             axes["xuv_It"].set_ylim(0, 0.002)
