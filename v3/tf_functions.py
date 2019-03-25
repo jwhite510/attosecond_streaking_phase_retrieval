@@ -751,7 +751,7 @@ if __name__ == "__main__":
             axes["xuv_f_phase"].cla()
             axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
             axes["xuv_f_phase"].tick_params(axis='y', colors='green')
-            axes["xuv_f_phase"].set_ylim(-20, 20)
+            axes["xuv_f_phase"].set_ylim(-40, 40)
 
             axes["trace_A2"].cla()
             axes["trace_A2"].pcolormesh(
@@ -761,6 +761,8 @@ if __name__ == "__main__":
             axes["trace_A2"].set_xlabel("Delay [fs]")
             axes["trace_A2"].set_ylabel("Energy [eV]")
             axes["trace_A2"].set_title(r"$\int \frac{1}{2} A(t)^2_L$")
+            axes["trace_A2"].set_yticks([])
+
 
             axes["trace_A"].cla()
             axes["trace_A"].pcolormesh(
@@ -801,7 +803,7 @@ if __name__ == "__main__":
             gif_images.append(image_draw)
 
         print("making gif")
-        imageio.mimsave('./A2diff.gif', gif_images, fps=10)
+        imageio.mimsave('./A2diff2.gif', gif_images, fps=10)
 
 
         exit(0)
