@@ -70,7 +70,7 @@ def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
         I2_I = np.abs(I_t - halfmaxI)
         sorted = np.argsort(I2_I)
         index1 = sorted[0]
-        index2 = find_second_minima(sorted)
+        index2 = find_second_minima(sorted, index1)
         fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
         axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]], [halfmaxI, halfmaxI], color="red", linewidth=2)
         axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
@@ -175,7 +175,7 @@ def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, i
         I2_I = np.abs(I_t - halfmaxI)
         sorted = np.argsort(I2_I)
         index1 = sorted[0]
-        index2 = find_second_minima(sorted)
+        index2 = find_second_minima(sorted, index1)
         fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
         axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]], [halfmaxI, halfmaxI], color="red",
                             linewidth=2)
@@ -248,7 +248,7 @@ def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, i
 
 
 
-def find_second_minima(sorted):
+def find_second_minima(sorted, index1):
     # function for finding the second minima in fwhm calculation
     for j, i in enumerate(sorted[1:]):
         if np.abs(i - index1) > j + 1:
@@ -906,7 +906,7 @@ if __name__ == "__main__":
 
 
 
-        compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
+        # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
         animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
 
 
