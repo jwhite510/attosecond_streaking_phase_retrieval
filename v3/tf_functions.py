@@ -9,6 +9,7 @@ import math
 import phase_parameters.params
 import generate_data3
 import pickle
+import unsupervised_retrieval
 
 
 
@@ -712,9 +713,9 @@ if __name__ == "__main__":
         #=========animate proof trace=============================
         #=========================================================
         # make graph
-        fig = plt.figure(figsize=(12,5))
-        fig.subplots_adjust(wspace=0.3, left=0.05, right=0.95)
-        gs = fig.add_gridspec(2,3)
+        fig = plt.figure(figsize=(17,5))
+        fig.subplots_adjust(wspace=0.4, left=0.05, right=0.95)
+        gs = fig.add_gridspec(2,4)
         plt.ion()
 
         # create axes
@@ -724,6 +725,13 @@ if __name__ == "__main__":
         axes["xuv_f"] = fig.add_subplot(gs[0,1])
         axes["xuv_f_phase"] = axes["xuv_f"].twinx()
         axes["trace"] = fig.add_subplot(gs[0:2,2])
+        axes["trace_meas"] = fig.add_subplot(gs[0:2, 3])
+        # plot the measured trace
+        delay, energy, measured_trace = unsupervised_retrieval.get_measured_trace()
+        axes["trace_meas"].pcolormesh(delay*1e15, energy, measured_trace, cmap="jet")
+        axes["trace_meas"].set_title("measured trace")
+
+
 
         feed_dicts = [
             {
@@ -758,19 +766,31 @@ if __name__ == "__main__":
             axes["xuv_Et"].set_title("$E(t)$")
             axes["xuv_Et"].set_xticks([])
             axes["xuv_Et"].set_ylim(-0.05,0.05)
+
             axes["xuv_It"].cla()
-            axes["xuv_It"].plot(np.abs(xuv_out["t"][0])**2, color="black")
+            axes["xuv_It"].plot(xuv_spectrum.spectrum.tmat*sc.physical_constants['atomic unit of time'][0]*1e18,
+                                np.abs(xuv_out["t"][0])**2, color="black")
+            axes["xuv_It"].set_xlabel("time [as]")
             axes["xuv_It"].set_title("$I(t)$")
             axes["xuv_It"].set_ylim(0, 0.002)
+
             axes["xuv_f"].cla()
-            axes["xuv_f"].plot(np.abs(xuv_out["f_cropped"][0])**2, color="black")
+            xuv_f_hz = xuv_spectrum.spectrum.fmat_cropped / sc.physical_constants['atomic unit of time'][0]
+            xuv_f_hz = xuv_f_hz * 1e-17
+            axes["xuv_f"].plot(xuv_f_hz, np.abs(xuv_out["f_cropped"][0])**2, color="black")
             axes["xuv_f"].set_title("XUV spectral phase")
+            axes["xuv_f"].set_xlabel("frequency [$10^{17}$Hz]")
             axes["xuv_f_phase"].cla()
-            axes["xuv_f_phase"].plot(xuv_out["phasecurve_cropped"][0], color="green")
+            axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
             axes["xuv_f_phase"].tick_params(axis='y', colors='green')
             axes["xuv_f_phase"].set_ylim(-20, 20)
+
             axes["trace"].cla()
-            axes["trace"].pcolormesh(out_2, cmap="jet")
+            axes["trace"].pcolormesh(phase_parameters.params.delay_values*sc.physical_constants['atomic unit of time'][0]*1e15,
+                                     phase_parameters.params.K,
+                                     out_2, cmap="jet")
+            axes["trace"].set_xlabel("Delay [fs]")
+            axes["trace"].set_ylabel("Energy [eV]")
 
             textdraw = "_XUV Phase_"
             for type, phasecoef in zip(["1","2","3","4","5"], feed_dict[xuv_coefs_in][0]):
@@ -778,7 +798,7 @@ if __name__ == "__main__":
             axes["xuv_f_phase"].text(0.5,-1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
 
 
-            plt.pause(1.0)
+            plt.pause(5.0)
 
 
 
