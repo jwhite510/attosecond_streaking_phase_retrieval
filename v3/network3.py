@@ -678,11 +678,15 @@ def setup_neural_net():
 
     # generate proof trace
     reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
-
-
     # input proof trace
     x_in_reshaped = tf.reshape(x_in, [len(K_values), len(tau_values)])
     input_image_proof = tf_functions.proof_trace(x_in_reshaped)
+
+
+    # generate autocorrelation trace
+    reconstructed_autocorrelate = tf_functions.autocorrelate(reconstructed_trace)
+    # input autocorrelation trace
+    input_image_autocorrelate = tf_functions.autocorrelate(x_in_reshaped)
 
 
     # divide the variables to train with gan and phase retrieval net individually
@@ -777,6 +781,19 @@ def setup_neural_net():
     proof_unsupervised_train = proof_unsupervised_optimizer.minimize(proof_unsupervised_learning_loss,
                                                          var_list=phase_net_vars)
 
+    # ..........................................................
+    # .............AUTOCORRELATION RETRIEVAL LOSS FUNC..........
+    # ..........................................................
+    # regular cost function
+    autocorrelate_unsupervised_learning_loss = tf.losses.mean_squared_error(
+        labels=tf.reshape(input_image_autocorrelate, [1, -1]),
+        predictions=tf.reshape(reconstructed_autocorrelate, [1, -1]))
+    autocorrelate_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    autocorrelate_unsupervised_train = autocorrelate_unsupervised_optimizer.minimize(
+                                            autocorrelate_unsupervised_learning_loss,
+                                            var_list=phase_net_vars)
+
+
 
 
 
@@ -824,7 +841,13 @@ def setup_neural_net():
     nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"] = proof_unsupervised_train
     nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"] = proof_unsupervised_learning_loss
 
-
+    nn_nodes["unsupervised"]["autocorrelate"] = {}
+    nn_nodes["unsupervised"]["autocorrelate"]["x_in"] = x_in
+    nn_nodes["unsupervised"]["autocorrelate"]["u_LR"] = u_LR
+    nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"] = reconstructed_autocorrelate
+    nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"] = input_image_autocorrelate
+    nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"] = autocorrelate_unsupervised_train
+    nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"] = autocorrelate_unsupervised_learning_loss
 
 
     nn_nodes["general"]["phase_net_output"] = phase_net_output
