@@ -49,10 +49,10 @@ K = np.arange(50, 351, 1) # eV
 # threshold scaler for the generated pulses
 threshold_scaler = 0.03
 
-# threshold_min_index = 100
-threshold_min_index = 50
-# threshold_max_index = (2*1024) - 100
-threshold_max_index = 1024 - 50
+threshold_min_index = 100
+# threshold_min_index = 50
+threshold_max_index = (2*1024) - 100
+# threshold_max_index = 1024 - 50
 
 
 
