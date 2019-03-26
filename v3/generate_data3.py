@@ -11,8 +11,12 @@ import phase_parameters.params
 
 
 
-def generate_xuv_coefs():
 
+def generate_xuv_coefs_int():
+
+    # ==============================================
+    # ============Integration method================
+    # ==============================================
     # random coefficients between -1 and 1
     xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
 
@@ -27,10 +31,40 @@ def generate_xuv_coefs():
     integral = np.sum(np.abs(xuv_coefs_in))
 
     # calculate the value to divide by
-    quotient = (1/scalar) * integral
+    quotient = (1 / scalar) * integral
 
     # divide the coefficients by the quotient
     xuv_coefs = xuv_coefs_in / quotient
+
+    return xuv_coefs
+
+
+
+def generate_xuv_coefs_single():
+
+    # ==============================================
+    # ==============Single Value====================
+    # ==============================================
+    xuv_coefs_init = np.zeros((1, 5))
+    # generate random index between 1 and 4
+    index_rand = np.random.randint(1, 5)
+    # generate amplitude
+    amplitude = (2 * np.random.rand(1) - 1.0)
+    xuv_coefs_init[0, index_rand] = amplitude
+
+    return xuv_coefs_init
+
+
+
+def generate_xuv_coefs():
+
+    choose = np.random.rand(1)
+
+    if choose > 0.5:
+        xuv_coefs = generate_xuv_coefs_int()
+
+    else:
+        xuv_coefs = generate_xuv_coefs_single()
 
     return xuv_coefs
 
