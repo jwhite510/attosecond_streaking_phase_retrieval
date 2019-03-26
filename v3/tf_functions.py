@@ -469,7 +469,7 @@ def ir_from_params(ir_param_values):
     return E_prop
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_trace_old(xuv_cropped_f_in, ir_cropped_f_in):
 
     Ip = phase_parameters.params.Ip
 
@@ -629,7 +629,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     return image, parameters
 
 
-def streaking_trace2(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
 
     # this is the second version of streaking trace generator which
     # accepts pre set delay values
@@ -740,7 +740,7 @@ def streaking_trace2(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace2_2(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
     # this is the second version of streaking trace generator which also includes
     # the A^2 term in the integral
@@ -885,13 +885,13 @@ if __name__ == "__main__":
     ir_E_prop = ir_from_params(ir_values_in)
 
 
-    # image1, _ = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # image1, _ = streaking_trace_old(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
 
 
     # construct streaking image
-    image2 = streaking_trace2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
-    image2_2 = streaking_trace2_2(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image2 = streaking_traceA(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image2_2 = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     # construct proof trace
     proof2 = proof_trace(image2)
