@@ -15,6 +15,26 @@ import imageio
 
 
 
+def plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2):
+
+    f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
+    tmat_xuv = xuv_spectrum.spectrum.tmat
+    xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
+    trace = sess.run(image2_2, feed_dict=feed_dict)
+    plt.figure(1)
+    plt.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
+    plt.figure(2)
+    plt.plot(f_cropped_fmat, np.real(xuv_out["f_cropped"][0]), color="blue")
+    plt.plot(f_cropped_fmat, np.imag(xuv_out["f_cropped"][0]), color="red")
+    axtwin = plt.gca().twinx()
+    axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
+    plt.figure(3)
+    plt.pcolormesh(trace, cmap="jet")
+    plt.show()
+
+
+
+
 def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
     # make graph
     fig = plt.figure(figsize=(17, 5))
@@ -906,11 +926,34 @@ if __name__ == "__main__":
 
 
 
-        compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
+        # ==========================================
+        # ===========Animation Functions============
+        # ==========================================
+        # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
         # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
 
 
+        # ==========================================
+        # ===========View XUV and trace=============
+        # ==========================================
+        feed_dict = {
+            xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2)
         exit(0)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
