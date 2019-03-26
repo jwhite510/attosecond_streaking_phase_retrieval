@@ -704,15 +704,15 @@ def setup_neural_net():
 
 
 
-    #........................................................
-    # .............GAN NETWORK LOSS FUNCTIONS................
-    #........................................................
-    # maximize loss between complex fields
-    gan_fields_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
-                                                       predictions=phase_net_output["xuv_ir_field_label"]))
-    gan_LR = tf.placeholder(tf.float32, shape=[])
-    gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
-    gan_network_train = gan_optimizer.minimize(gan_fields_loss, var_list=gan_net_vars)
+    # #........................................................
+    # # .............GAN NETWORK LOSS FUNCTIONS................
+    # #........................................................
+    # # maximize loss between complex fields
+    # gan_fields_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
+    #                                                    predictions=phase_net_output["xuv_ir_field_label"]))
+    # gan_LR = tf.placeholder(tf.float32, shape=[])
+    # gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
+    # gan_network_train = gan_optimizer.minimize(gan_fields_loss, var_list=gan_net_vars)
 
 
 
@@ -755,19 +755,19 @@ def setup_neural_net():
     unsupervised_train = unsupervised_optimizer.minimize(unsupervised_learning_loss,
                                                         var_list=phase_net_vars)
 
-    # log cost function
-    # log1 = log_base(x=0.5, base=10.0, translate=1)
-    u_base = tf.placeholder(tf.float32, shape=[])
-    u_translate = tf.placeholder(tf.float32, shape=[])
-    unsupervised_learning_loss_log = tf.losses.mean_squared_error(
-                            labels=log_base(x=x_in, base=u_base, translate=u_translate),
-                            predictions=log_base(x=tf.reshape(reconstructed_trace, [1, -1]),
-                                                 base=u_base,
-                                                 translate=u_translate)
-    )
-    unsupervised_optimizer_log = tf.train.AdamOptimizer(learning_rate=u_LR)
-    unsupervised_train_log = unsupervised_optimizer_log.minimize(unsupervised_learning_loss_log,
-                                                        var_list=phase_net_vars)
+    # # log cost function
+    # # log1 = log_base(x=0.5, base=10.0, translate=1)
+    # u_base = tf.placeholder(tf.float32, shape=[])
+    # u_translate = tf.placeholder(tf.float32, shape=[])
+    # unsupervised_learning_loss_log = tf.losses.mean_squared_error(
+    #                         labels=log_base(x=x_in, base=u_base, translate=u_translate),
+    #                         predictions=log_base(x=tf.reshape(reconstructed_trace, [1, -1]),
+    #                                              base=u_base,
+    #                                              translate=u_translate)
+    # )
+    # unsupervised_optimizer_log = tf.train.AdamOptimizer(learning_rate=u_LR)
+    # unsupervised_train_log = unsupervised_optimizer_log.minimize(unsupervised_learning_loss_log,
+    #                                                     var_list=phase_net_vars)
 
 
 
@@ -807,10 +807,10 @@ def setup_neural_net():
     nn_nodes["unsupervised"] = {}
     nn_nodes["general"] = {}
 
-    nn_nodes["gan"]["gan_input"] = gan_input
-    nn_nodes["gan"]["gan_output"] = gan_output
-    nn_nodes["gan"]["gan_LR"] = gan_LR
-    nn_nodes["gan"]["gan_network_train"] = gan_network_train
+    # nn_nodes["gan"]["gan_input"] = gan_input
+    # nn_nodes["gan"]["gan_output"] = gan_output
+    # nn_nodes["gan"]["gan_LR"] = gan_LR
+    # nn_nodes["gan"]["gan_network_train"] = gan_network_train
 
     nn_nodes["supervised"]["x_in"] = x_in
     nn_nodes["supervised"]["actual_coefs_params"] = actual_coefs_params
@@ -826,12 +826,12 @@ def setup_neural_net():
 
     nn_nodes["unsupervised"]["x_in"] = x_in
     nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
-    nn_nodes["unsupervised"]["unsupervised_train_log"] = unsupervised_train_log
+    # nn_nodes["unsupervised"]["unsupervised_train_log"] = unsupervised_train_log
     nn_nodes["unsupervised"]["u_LR"] = u_LR
     nn_nodes["unsupervised"]["unsupervised_learning_loss"] = unsupervised_learning_loss
-    nn_nodes["unsupervised"]["unsupervised_learning_loss_log"] = unsupervised_learning_loss_log
-    nn_nodes["unsupervised"]["u_base"] = u_base
-    nn_nodes["unsupervised"]["u_translate"] = u_translate
+    # nn_nodes["unsupervised"]["unsupervised_learning_loss_log"] = unsupervised_learning_loss_log
+    # nn_nodes["unsupervised"]["u_base"] = u_base
+    # nn_nodes["unsupervised"]["u_translate"] = u_translate
 
     nn_nodes["unsupervised"]["proof"] = {}
     nn_nodes["unsupervised"]["proof"]["x_in"] = x_in
