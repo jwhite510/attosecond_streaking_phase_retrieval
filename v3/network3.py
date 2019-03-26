@@ -166,11 +166,13 @@ def separate_xuv_ir_vec(xuv_ir_vec):
     return xuv, ir
 
 
-def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess, streak_params):
+def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess):
 
     # get find where in the vector is the ir and xuv
 
     print("plot predicitons")
+    K_values = phase_parameters.params.K
+    tau_values = phase_parameters.params.delay_values
 
 
     for j, index in enumerate(indexes):
@@ -204,7 +206,7 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
 
 
         axes[j]['input_trace'].cla()
-        axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(streak_params["p_values"]), len(streak_params["tau_values"])), cmap='jet')
+        axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(K_values), len(tau_values)), cmap='jet')
         axes[j]['input_trace'].text(0.0, 1.0, 'input_trace', transform=axes[j]['input_trace'].transAxes,backgroundcolor='white')
         axes[j]['input_trace'].set_xticks([])
         axes[j]['input_trace'].set_yticks([])
@@ -275,30 +277,30 @@ def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn
         figure.savefig(dir + str(epoch) + ".png")
 
 
-def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes, streak_params):
+def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes):
 
     batch_x_train, batch_y_train = data_obj.evaluate_on_train_data(samples=500)
     plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 1, 2],
                       axes=axes["trainplot1"], figure=axes["trainfig1"], epoch=epoch, set='train_data_1',
-                      net_name=modelname, nn_nodes=nn_nodes, sess=sess,
-                     streak_params=streak_params)
+                      net_name=modelname, nn_nodes=nn_nodes, sess=sess)
+
 
     plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[3, 4, 5],
                      axes=axes["trainplot2"], figure=axes["trainfig2"], epoch=epoch, set='train_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
-                     streak_params=streak_params)
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
+
 
 
     batch_x_test, batch_y_test = data_obj.evaluate_on_test_data()
     plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2],
                      axes=axes["testplot1"], figure=axes["testfig1"], epoch=epoch, set='test_data_1',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
-                     streak_params=streak_params)
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
+
 
     plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5],
                      axes=axes["testplot2"], figure=axes["testfig2"], epoch=epoch, set='test_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess,
-                     streak_params=streak_params)
+                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
+
 
     plt.show()
     plt.pause(0.001)
@@ -506,36 +508,6 @@ def convolutional_layer(input_x, shape, activate, stride):
         return conv2d(input_x, W, stride) + b
 
 
-def initialize_xuv_ir_trace_graphs():
-
-    # initialize XUV generator
-    xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
-    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
-    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
-
-
-    # IR creation
-    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
-
-    # initialize streaking trace generator
-    # Neon
-
-
-    # construct streaking image
-    image, streak_params = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                                        ir_cropped_f_in=ir_E_prop["f_cropped"][0],
-                                                        )
-
-    tf_graphs = {}
-    tf_graphs["xuv_coefs_in"] = xuv_coefs_in
-    tf_graphs["ir_values_in"] = ir_values_in
-    tf_graphs["xuv_E_prop"] = xuv_E_prop
-    tf_graphs["ir_E_prop"] = ir_E_prop
-    tf_graphs["image"] = image
-
-    return tf_graphs, streak_params
-
 
 def gan_network(input):
 
@@ -595,7 +567,10 @@ def gan_network(input):
         return outputs
 
 
-def phase_retrieval_net(input, streak_params):
+def phase_retrieval_net(input):
+
+    K_values = phase_parameters.params.K
+    tau_values = phase_parameters.params.delay_values
 
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
     total_coefs_params_length = int(xuv_phase_coefs + 4)
@@ -603,7 +578,7 @@ def phase_retrieval_net(input, streak_params):
     # define phase retrieval neural network
     with tf.variable_scope("phase"):
         # input image
-        x_image = tf.reshape(input, [-1, len(streak_params["p_values"]), len(streak_params["tau_values"]), 1])
+        x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
 
         # six convolutional layers
         multires_filters = [11, 7, 5, 3]
@@ -660,7 +635,10 @@ def phase_retrieval_net(input, streak_params):
         return phase_net_output, hold_prob
 
 
-def setup_neural_net(streak_params):
+def setup_neural_net():
+
+    K_values = phase_parameters.params.K
+    tau_values = phase_parameters.params.delay_values
 
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
 
@@ -682,11 +660,11 @@ def setup_neural_net(streak_params):
     x_flat = tf.reshape(x, [1, -1])
     # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
-    x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(streak_params["p_values"]) * len(streak_params["tau_values"]))))
+    x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(K_values) * len(tau_values))))
 
 
     # pass image through phase retrieval network
-    phase_net_output, hold_prob = phase_retrieval_net(input=x_in, streak_params=streak_params)
+    phase_net_output, hold_prob = phase_retrieval_net(input=x_in)
 
 
     # create label for supervised learning
@@ -703,7 +681,7 @@ def setup_neural_net(streak_params):
 
 
     # input proof trace
-    x_in_reshaped = tf.reshape(x_in, [len(streak_params["p_values"]), len(streak_params["tau_values"])])
+    x_in_reshaped = tf.reshape(x_in, [len(K_values), len(tau_values)])
     input_image_proof = tf_functions.proof_trace(x_in_reshaped)
 
 
@@ -860,13 +838,8 @@ def setup_neural_net(streak_params):
 
 if __name__ == "__main__":
 
-
-
-    # initialize xuv, IR, and trace graphs
-    tf_generator_graphs, streak_params = initialize_xuv_ir_trace_graphs()
-
     # build neural net graph
-    nn_nodes = setup_neural_net(streak_params)
+    nn_nodes = setup_neural_net()
 
     # test_generate_data(nn_nodes)
 
@@ -951,8 +924,8 @@ if __name__ == "__main__":
                 # update the plot
 
                 update_plots(data_obj=get_data, sess=sess, nn_nodes=nn_nodes, modelname=modelname,
-                             epoch=i+1, axes=axes,
-                             streak_params=streak_params)
+                             epoch=i+1, axes=axes)
+
 
                 # save model
                 saver.save(sess, "models/" + modelname + ".ckpt")
