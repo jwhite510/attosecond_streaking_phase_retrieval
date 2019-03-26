@@ -6,7 +6,7 @@ import pickle
 # includes linear
 xuv_phase_coefs=5
 # phase amplitude
-amplitude=8.0
+amplitude=20.0
 # amplitude=4.0
 
 #infrared params

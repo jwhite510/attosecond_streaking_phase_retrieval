@@ -371,8 +371,12 @@ def xuv_taylor_to_E(coefficients_in):
     # amplitude scales with exponent
     amplitude_scaler = tf.pow(amplitude_mat, exp_mat)
 
+    # additional scaler
+    # these are arbitrary numbers that were found to keep the field in the time window
+    scaler_2 = tf.constant(np.array([1.0, 1.0, 0.2, 0.06, 0.04]).reshape(1,-1,1), dtype=tf.float32)
+
     # reshape the coef values and scale them
-    coef_values = tf.reshape(coefficients_in, [tf.shape(coefficients_in)[0], -1, 1]) * amplitude_scaler
+    coef_values = tf.reshape(coefficients_in, [tf.shape(coefficients_in)[0], -1, 1]) * amplitude_scaler * scaler_2
 
     # divide by the factorials
     coef_div_fact = tf.divide(coef_values, factorials)
@@ -936,10 +940,31 @@ if __name__ == "__main__":
         # ==========================================
         # ===========View XUV and trace=============
         # ==========================================
+        # feed_dict = {
+        #     xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        # }
+        # feed_dict = {
+        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.2, 0.0, 0.0]]),
+        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        # }
+        # feed_dict = {
+        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.06, 0.0]]),
+        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        # }
+        # feed_dict = {
+        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.04]]),
+        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        # }
         feed_dict = {
             xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
             ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
         }
+
+        # coefficient scalers
+        plt.figure(999)
+        plt.plot([1.0, 0.2, 0.06, 0.04])
+
         plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2)
         exit(0)
 
