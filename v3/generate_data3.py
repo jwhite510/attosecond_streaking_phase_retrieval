@@ -35,7 +35,7 @@ def generate_xuv_coefs():
     return xuv_coefs
 
 
-def plot_opened_file(xuv_coefs, ir_params, trace, sess, tf_graphs, streak_params):
+def plot_opened_file(xuv_coefs, ir_params, trace, sess, tf_graphs):
 
     fig = plt.figure()
     gs = fig.add_gridspec(2, 2)
@@ -57,9 +57,12 @@ def plot_opened_file(xuv_coefs, ir_params, trace, sess, tf_graphs, streak_params
 
 
     # plot trace
+
     ax = fig.add_subplot(gs[1, :])
-    ax.pcolormesh(streak_params["tau_values"], streak_params["p_values"],
-                  trace.reshape(len(streak_params["p_values"]), len(streak_params["tau_values"])), cmap='jet')
+    kvals = phase_parameters.params.K
+    tauvals = phase_parameters.params.delay_values
+    ax.pcolormesh(tauvals, kvals,
+                  trace.reshape(len(kvals), len(tauvals)), cmap='jet')
 
 
 def update_plots2(axes, trace, xuv_t, threshold):
@@ -104,16 +107,18 @@ def check_time_boundary(indexmin, indexmax, threshold, xuv_t, bad_samples):
     return None
 
 
-def generate_samples(tf_graphs, n_samples, filename, streak_params, xuv_coefs, sess, axis):
+def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
     print('creating file: ' + filename)
+    num_E = len(phase_parameters.params.K)
+    num_tau = len(phase_parameters.params.delay_values)
 
     # create hdf5 file
     with tables.open_file(filename, mode='w') as hd5file:
         # create array for trace
-        hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, len(streak_params["p_values"]) * len(streak_params["tau_values"])))
+        hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, num_E * num_tau))
 
         # noise trace
-        hd5file.create_earray(hd5file.root, 'noise_trace', tables.Float64Atom(),shape=(0, len(streak_params["p_values"]) * len(streak_params["tau_values"])))
+        hd5file.create_earray(hd5file.root, 'noise_trace', tables.Float64Atom(),shape=(0, num_E * num_tau))
 
         # create array for XUV
         hd5file.create_earray(hd5file.root, 'xuv_coefs', tables.Float64Atom(), shape=(0, xuv_coefs))
@@ -233,7 +238,7 @@ if __name__ == "__main__":
     Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
     # construct streaking image
-    image, streak_params = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+    image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                          ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
 
@@ -250,11 +255,11 @@ if __name__ == "__main__":
 
 
         generate_samples(tf_graphs=tf_graphs, n_samples=60000,
-                         filename="train3.hdf5", streak_params=streak_params,
+                         filename="train3.hdf5",
                          xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 
         generate_samples(tf_graphs=tf_graphs, n_samples=500,
-                         filename="test3.hdf5", streak_params=streak_params,
+                         filename="test3.hdf5",
                          xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 
 
@@ -266,8 +271,8 @@ if __name__ == "__main__":
             trace = hd5file.root.noise_trace[index, :]
 
         plot_opened_file(xuv_coefs=xuv_coefs, ir_params=ir_params,
-                         trace=trace, sess=sess, tf_graphs=tf_graphs,
-                         streak_params=streak_params)
+                         trace=trace, sess=sess, tf_graphs=tf_graphs)
+
 
         plt.ioff()
         plt.show()
