@@ -20,11 +20,11 @@ def retrieve_spectrum(plotting=False):
     Intensity = np.array(Intensity)
 
     # define tmat and famt
-    # N = 2*1024
-    N = 1024
-    # N = int(2 * 1024)
-    # tmax = 1600e-18
-    tmax = 800e-18
+    N = 2*1024
+    # N = 1024
+    N = int(2 * 1024)
+    tmax = 1600e-18
+    # tmax = 800e-18
     dt = 2 * tmax / N
     tmat = dt * np.arange(-N / 2, N / 2, 1)
     df = 1 / (N * dt)
@@ -51,11 +51,8 @@ def retrieve_spectrum(plotting=False):
     linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
 
     # set the indexes for cropped input
-    # span = 230
-    # indexmin = 1080
-    span = 405 - 280
-    indexmin = 540
-    indexmax = int(indexmin + span)
+    indexmin = np.argmin(np.abs(fmat - 1.75e16))
+    indexmax = np.argmin(np.abs(fmat - 9.5625e16))
 
 
 
