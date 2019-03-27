@@ -880,7 +880,7 @@ if __name__ == "__main__":
     epochs = 900000
 
     # set the name of the neural net test run and save the settigns
-    modelname = 'test1_phasecurve_proof_1a'
+    modelname = 'test1a'
 
     print('starting ' + modelname)
 
@@ -925,33 +925,40 @@ if __name__ == "__main__":
                                         nn_nodes["supervised"]["s_LR"]: 0.0001})
 
                 else:
-                    # alternate between all three cost functions
-                    if alternate_training_counter == 0:
-                        # train with coefficients
-                        sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
-                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                            nn_nodes["general"]["hold_prob"]: 0.8,
-                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
-                        alternate_training_counter+=1
+                    # train with fields
+                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
+                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        nn_nodes["general"]["hold_prob"]: 0.8,
+                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
 
-                    elif alternate_training_counter == 1:
-                        # train with fields
-                        sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
-                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                            nn_nodes["general"]["hold_prob"]: 0.8,
-                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
-                        alternate_training_counter += 1
+                    ## alternate between all three cost functions
+                    #if alternate_training_counter == 0:
+                    #    # train with coefficients
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter+=1
 
-                    elif alternate_training_counter == 2:
-                        # train with phase curve
-                        sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
-                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                            nn_nodes["general"]["hold_prob"]: 0.8,
-                                            nn_nodes["supervised"]["s_LR"]: 0.0001})
-                        alternate_training_counter = 0
+                    #elif alternate_training_counter == 1:
+                    #    # train with fields
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter += 1
+
+                    #elif alternate_training_counter == 2:
+                    #    # train with phase curve
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter = 0
 
             print("")
 
