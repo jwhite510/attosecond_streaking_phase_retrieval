@@ -10,10 +10,89 @@ import csv
 # from network3 import initialize_xuv_ir_trace_graphs, setup_neural_net, separate_xuv_ir_vec
 import network3
 from xuv_spectrum import spectrum
+from phase_parameters import params
 from ir_spectrum import ir_spectrum
 import glob
 import pickle
 
+
+
+def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i):
+
+    tau_vals = params.delay_values
+    k_vals = params.K
+
+    # ...........................
+    # ........CLEAR AXES.........
+    # ...........................
+    # input trace
+    axes["input_trace"].cla()
+    # xuv predicted
+    axes["predicted_xuv_t"].cla()
+    axes["predicted_xuv"].cla()
+    axes["predicted_xuv_phase"].cla()
+    # predicted ir
+    axes["predicted_ir"].cla()
+    axes["predicted_ir_phase"].cla()
+    # generated trace
+    axes["generated_trace"].cla()
+
+    # ...........................
+    # .....CALCULATE RMSE........
+    # ...........................
+    # calculate rmse
+    trace_rmse = np.sqrt(
+        (1 / len(trace_meas.reshape(-1))) * np.sum(
+            (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
+
+    # ...........................
+    # ........PLOTTING...........
+    # ...........................
+    # input trace
+    axes["input_trace"].pcolormesh(params.delay_values, params.K, trace_meas, cmap='jet')
+    axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
+                             transform=axes["input_trace"].transAxes)
+    axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
+                             transform=axes["input_trace"].transAxes)
+
+    # generated trace
+    axes["generated_trace"].pcolormesh(params.delay_values, params.K, trace_reconstructed, cmap='jet')
+    axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
+                                 transform=axes["generated_trace"].transAxes,
+                                 backgroundcolor="white")
+    axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
+                                 transform=axes["generated_trace"].transAxes)
+    # xuv predicted
+    # xuv t
+    axes["predicted_xuv_t"].plot(spectrum.tmat, np.abs(xuv_t) ** 2, color="black")
+    # xuv f
+    axes["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(xuv_f) ** 2, color="black")
+    axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
+                                     transform=axes["predicted_xuv_phase"].transAxes)
+
+    axes["predicted_xuv_phase"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(xuv_f)), color="green")
+
+    # ir predicted
+    axes["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(ir_f) ** 2, color="black")
+    axes["predicted_ir_phase"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(ir_f)), color="green")
+
+    # save files
+    dir = "./unsupervised_retrieval/" + run_name + "/"
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
+    plt.savefig(dir + str(i) + ".png")
+    with open("./unsupervised_retrieval/" + run_name + "/u_fields.p", "wb") as file:
+        predicted_fields = {}
+        predicted_fields["ir_f"] = ir_f
+        predicted_fields["xuv_f"] = xuv_f
+        predicted_fields["xuv_t"] = xuv_t
+
+        save_files = {}
+        save_files["predicted_fields"] = predicted_fields
+        save_files["trace_meas"] = trace_meas
+        save_files["trace_reconstructed"] = trace_reconstructed
+        save_files["i"] = i
+        pickle.dump(save_files, file)
 
 
 def show_proof_calculation(trace, sess, nn_nodes):
@@ -49,6 +128,7 @@ def show_proof_calculation(trace, sess, nn_nodes):
 
 def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_params, retrieval):
 
+
     if retrieval == "normal":
 
         feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
@@ -57,88 +137,10 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_param
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
 
-        #...........................
-        #........CLEAR AXES.........
-        #...........................
-        # input trace
-        axes["input_trace"].cla()
-        # xuv predicted
-        axes["predicted_xuv_t"].cla()
-        axes["predicted_xuv"].cla()
-        axes["predicted_xuv_phase"].cla()
-        # predicted ir
-        axes["predicted_ir"].cla()
-        axes["predicted_ir_phase"].cla()
-        # generated trace
-        axes["generated_trace"].cla()
-
-
-        # ...........................
-        # .....CALCULATE RMSE........
-        # ...........................
-        # calculate rmse
-        trace_rmse = np.sqrt(
-            (1 / len(measured_trace.reshape(-1))) * np.sum(
-                (measured_trace.reshape(-1) - reconstruced.reshape(-1)) ** 2))
-
-
-
-
-        # ...........................
-        # ........PLOTTING...........
-        # ...........................
-        # input trace
-        axes["input_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], measured_trace, cmap='jet')
-        axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
-                                                         transform=axes["input_trace"].transAxes)
-        axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
-                                 transform=axes["input_trace"].transAxes)
-
-        # generated trace
-        axes["generated_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], reconstruced, cmap='jet')
-        axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
-                                     transform=axes["generated_trace"].transAxes,
-                                     backgroundcolor="white")
-        axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
-                                                            transform=axes["generated_trace"].transAxes)
-        # xuv predicted
-        # xuv t
-        axes["predicted_xuv_t"].plot(spectrum.tmat, np.abs(xuv_t)**2, color="black")
-        # xuv f
-        # axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
-        # axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
-        axes["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(xuv_f)**2, color="black")
-        axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
-                                                                transform=axes["predicted_xuv_phase"].transAxes)
-
-        axes["predicted_xuv_phase"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(xuv_f)), color="green")
-
-        # ir predicted
-        axes["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(ir_f)**2, color="black")
-        axes["predicted_ir_phase"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(ir_f)), color="green")
-
-        # save files
-        dir = "./unsupervised_retrieval/" + run_name + "/"
-        if not os.path.isdir(dir):
-            os.makedirs(dir)
-        plt.savefig(dir + str(i) + ".png")
-        with open("./unsupervised_retrieval/"+run_name+"/u_fields.p", "wb") as file:
-
-
-            predicted_fields = {}
-            predicted_fields["ir_f"] = ir_f
-            predicted_fields["xuv_f"] = xuv_f
-            predicted_fields["xuv_t"] = xuv_t
-
-            save_files = {}
-            save_files["predicted_fields"] = predicted_fields
-            save_files["measured_trace"] = measured_trace
-            save_files["reconstruced"] = reconstruced
-            save_files["iteration"] = i
-            pickle.dump(save_files,file)
-
-
+        plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstruced, xuv_f=xuv_f,
+                           xuv_t=xuv_t, ir_f=ir_f, i=i)
         plt.pause(0.00001)
+
 
     elif retrieval == "proof":
 
@@ -148,94 +150,9 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_param
         ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
-
-        # ...........................
-        # ........CLEAR AXES.........
-        # ...........................
-        # input trace
-        axes["input_trace"].cla()
-        # xuv predicted
-        axes["predicted_xuv_t"].cla()
-        axes["predicted_xuv"].cla()
-        axes["predicted_xuv_phase"].cla()
-        # predicted ir
-        axes["predicted_ir"].cla()
-        axes["predicted_ir_phase"].cla()
-        # generated trace
-        axes["generated_trace"].cla()
-
-        # ...........................
-        # .....CALCULATE RMSE........
-        # ...........................
-        # calculate rmse
-        proof_rmse = np.sqrt(
-            (1 / len(input_proof.reshape(-1))) * np.sum(
-                (input_proof.reshape(-1) - reconstruced_proof.reshape(-1)) ** 2))
-
-        # ...........................
-        # ........PLOTTING...........
-        # ...........................
-        # input trace
-        axes["input_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], input_proof,
-                                       cmap='jet')
-        axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
-                                 transform=axes["input_trace"].transAxes)
-        axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
-                                 transform=axes["input_trace"].transAxes)
-
-        # generated trace
-        axes["generated_trace"].pcolormesh(streak_params["tau_values"], streak_params["k_values"], reconstruced_proof,
-                                           cmap='jet')
-        axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(proof_rmse, 3))),
-                                     transform=axes["generated_trace"].transAxes,
-                                     backgroundcolor="white")
-        axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
-                                     transform=axes["generated_trace"].transAxes)
-        # xuv predicted
-        # xuv t
-        axes["predicted_xuv_t"].plot(spectrum.tmat, np.abs(xuv_t) ** 2, color="black")
-        # xuv f
-        # axes["predicted_xuv"].plot(np.real(xuv_f), color="blue")
-        # axes["predicted_xuv"].plot(np.imag(xuv_f), color="red")
-        axes["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(xuv_f) ** 2, color="black")
-        axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
-                                         transform=axes["predicted_xuv_phase"].transAxes)
-
-        axes["predicted_xuv_phase"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(xuv_f)), color="green")
-
-        # ir predicted
-        axes["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(ir_f) ** 2, color="black")
-        axes["predicted_ir_phase"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(ir_f)), color="green")
-
-        # save files
-        dir = "./unsupervised_retrieval/" + run_name + "/"
-        if not os.path.isdir(dir):
-            os.makedirs(dir)
-        plt.savefig(dir + str(i) + ".png")
-        with open("./unsupervised_retrieval/"+run_name+"/u_fields_proof.p", "wb") as file:
-
-            predicted_fields = {}
-            predicted_fields["ir_f"] = ir_f
-            predicted_fields["xuv_f"] = xuv_f
-            predicted_fields["xuv_t"] = xuv_t
-
-            save_files = {}
-            save_files["predicted_fields"] = predicted_fields
-            save_files["input_proof"] = input_proof
-            save_files["reconstruced_proof"] = reconstruced_proof
-            save_files["iteration"] = i
-            pickle.dump(save_files, file)
-
+        plot_images_fields(axes=axes, trace_meas=input_proof, trace_reconstructed=reconstruced_proof, xuv_f=xuv_f,
+                           xuv_t=xuv_t, ir_f=ir_f, i=i)
         plt.pause(0.00001)
-
-
-
-
-
-
-
-
-
 
 
 def create_plot_axes():
