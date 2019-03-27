@@ -4,10 +4,8 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 import tables
 import shutil
-import matplotlib.pyplot as plt
 import os
 import csv
-# from network3 import initialize_xuv_ir_trace_graphs, setup_neural_net, separate_xuv_ir_vec
 import network3
 from xuv_spectrum import spectrum
 from phase_parameters import params
@@ -18,9 +16,6 @@ import pickle
 
 
 def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i):
-
-    tau_vals = params.delay_values
-    k_vals = params.K
 
     # ...........................
     # ........CLEAR AXES.........
@@ -126,7 +121,7 @@ def show_proof_calculation(trace, sess, nn_nodes):
     ax.pcolormesh(out["proof"])
 
 
-def update_plots(sess, nn_nodes, axes, measured_trace, i, run_name, streak_params, retrieval):
+def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
 
 
     if retrieval == "normal":
@@ -177,8 +172,6 @@ def create_plot_axes():
     return axes_dict
 
 
-
-
 def get_measured_trace():
 
 
@@ -223,9 +216,6 @@ def get_measured_trace():
     return Delay_even, Energy, values_even
 
 
-
-
-
 if __name__ == "__main__":
 
     run_name = "proof1"
@@ -246,12 +236,8 @@ if __name__ == "__main__":
     # get the measured trace
     _, _, measured_trace = get_measured_trace()
 
-
-    # initialize xuv, IR, and trace graphs
-    tf_generator_graphs, streak_params = network3.initialize_xuv_ir_trace_graphs()
-
     # build neural net graph
-    nn_nodes = network3.setup_neural_net(streak_params)
+    nn_nodes = network3.setup_neural_net()
 
     # create mse measurer
     writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
@@ -280,27 +266,16 @@ if __name__ == "__main__":
     #
     #
     # exit(0)
-
-
-
-
-
-
-
-
     with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
-
 
         # get the initial output
         reconstruced = sess.run(nn_nodes["general"]["reconstructed_trace"],
                                 feed_dict={nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)})
 
-
         plt.ion()
         for i in range(999999):
-
 
             if i % 100 == 0:
                 print(i)
@@ -311,31 +286,32 @@ if __name__ == "__main__":
                 writer.flush()
 
                 # update plots
-                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1, run_name=run_name,
-                             streak_params=streak_params, retrieval=retrieval)
-
-
+                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1,
+                             retrieval=retrieval)
 
             # train neural network
-            #========================
-            #=======logairthmic======
-            #========================
-            #sess.run(nn_nodes["unsupervised"]["unsupervised_train_log"],
-            #         feed_dict={
-            #             nn_nodes["unsupervised"]["u_LR"]: 0.00001,
-            #             nn_nodes["unsupervised"]["x_in"]: measured_trace.reshape(1, -1),
-            #             nn_nodes["unsupervised"]["u_base"]: 10.0,
-            #             nn_nodes["unsupervised"]["u_translate"]: 1.0
-            #         })
+            if retrieval == "normal":
+                #========================
+                #=========regular========
+                #========================
+                sess.run(nn_nodes["unsupervised"]["unsupervised_train"],
+                         feed_dict={
+                             nn_nodes["unsupervised"]["u_LR"]: 0.00001,
+                             nn_nodes["unsupervised"]["x_in"]: measured_trace.reshape(1, -1),
+                         })
 
-            # ========================
-            # =========proof==========
-            # ========================
-            sess.run(nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"],
-                     feed_dict={
-                         nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
-                         nn_nodes["unsupervised"]["proof"]["x_in"]: measured_trace.reshape(1, -1),
-                     })
+            elif retrieval == "proof":
+                # ========================
+                # =========proof==========
+                # ========================
+                sess.run(nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"],
+                         feed_dict={
+                             nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
+                             nn_nodes["unsupervised"]["proof"]["x_in"]: measured_trace.reshape(1, -1),
+                         })
+
+
+
 
             # ========================
             # =========supervised=====
