@@ -149,6 +149,18 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
                            xuv_t=xuv_t, ir_f=ir_f, i=i)
         plt.pause(0.00001)
 
+    elif retrieval == "autocorrelation":
+
+        feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
+        input_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=feed_dict)
+        reconstruced_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=feed_dict)
+        ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
+        xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
+        xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
+        plot_images_fields(axes=axes, trace_meas=input_auto, trace_reconstructed=reconstruced_auto, xuv_f=xuv_f,
+                           xuv_t=xuv_t, ir_f=ir_f, i=i)
+        plt.pause(0.00001)
+
 
 def create_plot_axes():
 
@@ -224,6 +236,7 @@ if __name__ == "__main__":
     #==Retrieval Type===
     #===================
     # retrieval = "normal"
+    # retrieval = "autocorrelation"
     retrieval = "proof"
 
 
@@ -308,6 +321,16 @@ if __name__ == "__main__":
                          feed_dict={
                              nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
                              nn_nodes["unsupervised"]["proof"]["x_in"]: measured_trace.reshape(1, -1),
+                         })
+
+            elif retrieval == "autocorrelation":
+                # ========================
+                # =========proof==========
+                # ========================
+                sess.run(nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"],
+                         feed_dict={
+                             nn_nodes["unsupervised"]["autocorrelate"]["u_LR"]: 0.00001,
+                             nn_nodes["unsupervised"]["autocorrelate"]["x_in"]: measured_trace.reshape(1, -1),
                          })
 
 
