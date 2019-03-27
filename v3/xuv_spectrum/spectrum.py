@@ -20,7 +20,7 @@ def retrieve_spectrum(plotting=False):
     Intensity = np.array(Intensity)
 
     # define tmat and famt
-    N = 2*1024
+    #N = 2*1024
     # N = 1024
     N = int(2 * 1024)
     tmax = 1600e-18
