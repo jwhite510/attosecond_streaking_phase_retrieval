@@ -15,7 +15,7 @@ import pickle
 
 
 
-def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i):
+def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis):
 
     # ...........................
     # ........CLEAR AXES.........
@@ -44,14 +44,14 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     # ........PLOTTING...........
     # ...........................
     # input trace
-    axes["input_trace"].pcolormesh(params.delay_values, params.K, trace_meas, cmap='jet')
+    axes["input_trace"].pcolormesh(params.delay_values, trace_yaxis, trace_meas, cmap='jet')
     axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
                              transform=axes["input_trace"].transAxes)
     axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
                              transform=axes["input_trace"].transAxes)
 
     # generated trace
-    axes["generated_trace"].pcolormesh(params.delay_values, params.K, trace_reconstructed, cmap='jet')
+    axes["generated_trace"].pcolormesh(params.delay_values, trace_yaxis, trace_reconstructed, cmap='jet')
     axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
                                  transform=axes["generated_trace"].transAxes,
                                  backgroundcolor="white")
@@ -132,7 +132,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
 
         plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstruced, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i)
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K)
         plt.pause(0.00001)
 
     elif retrieval == "proof":
@@ -144,7 +144,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
         plot_images_fields(axes=axes, trace_meas=input_proof, trace_reconstructed=reconstruced_proof, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i)
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K)
         plt.pause(0.00001)
 
     elif retrieval == "autocorrelation":
@@ -156,7 +156,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
         plot_images_fields(axes=axes, trace_meas=input_auto, trace_reconstructed=reconstruced_auto, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i)
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.delay_values)
         plt.pause(0.00001)
 
 
@@ -228,18 +228,20 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "proof1"
+    run_name = "1A"
+    iterations = 5000
 
     #===================
     #==Retrieval Type===
     #===================
-    # retrieval = "normal"
-    # retrieval = "autocorrelation"
-    retrieval = "proof"
+    #retrieval = "normal"
+    retrieval = "autocorrelation"
+    #retrieval = "proof"
 
+    run_name = run_name + retrieval
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = "test1_phasecurve_proof1"
+    modelname = "test1a"
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
