@@ -235,8 +235,8 @@ if __name__ == "__main__":
     #==Retrieval Type===
     #===================
     #retrieval = "normal"
-    retrieval = "autocorrelation"
-    #retrieval = "proof"
+    #retrieval = "autocorrelation"
+    retrieval = "proof"
 
     run_name = run_name + retrieval
 
@@ -295,7 +295,7 @@ if __name__ == "__main__":
                                 feed_dict={nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)})
 
         plt.ion()
-        for i in range(999999):
+        for i in range(iterations):
 
             if i % 100 == 0:
                 print(i)
