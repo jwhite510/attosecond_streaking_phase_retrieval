@@ -123,7 +123,6 @@ def show_proof_calculation(trace, sess, nn_nodes):
 
 def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
 
-
     if retrieval == "normal":
 
         feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
@@ -135,7 +134,6 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstruced, xuv_f=xuv_f,
                            xuv_t=xuv_t, ir_f=ir_f, i=i)
         plt.pause(0.00001)
-
 
     elif retrieval == "proof":
 
@@ -254,7 +252,14 @@ if __name__ == "__main__":
 
     # create mse measurer
     writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
-    unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["unsupervised_learning_loss"])
+    if retrieval == "normal":
+        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["unsupervised_learning_loss"])
+    elif retrieval == "proof":
+        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"])
+    elif retrieval == "autocorrelation":
+        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"])
+    else:
+        unsupervised_mse_tb = None
 
     # init data object
     get_data = network3.GetData(batch_size=10)
