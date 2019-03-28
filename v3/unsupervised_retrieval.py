@@ -264,7 +264,7 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "2A"
+    run_name = "3A"
     iterations = 5000
 
     #===================
@@ -333,7 +333,8 @@ if __name__ == "__main__":
         plt.ion()
         for i in range(iterations):
 
-            if i % 500 == 0:
+            if i % 10 == 0 or i == (iterations-1):
+
                 print(i)
                 # get MSE between traces
                 summ = sess.run(unsupervised_mse_tb,
@@ -341,6 +342,7 @@ if __name__ == "__main__":
                 writer.add_summary(summ, global_step=i + 1)
                 writer.flush()
 
+            if i % 500 == 0 or i == (iterations-1):
                 # update plots
                 update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1,
                              retrieval=retrieval, run_name=run_name)
