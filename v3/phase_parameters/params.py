@@ -34,6 +34,7 @@ Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 # these are the delay values from sample 2
 with open("tauvals.p", "rb") as file:
     delay_values = pickle.load(file)
+    delay_values_fs = delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15
 
 
 K = np.arange(50, 351, 1) # eV

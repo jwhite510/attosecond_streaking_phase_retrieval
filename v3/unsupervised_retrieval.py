@@ -14,8 +14,25 @@ import glob
 import pickle
 
 
+def calc_fwhm(tmat, I_t):
 
-def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis):
+    half_max = np.max(I_t)/2
+    index1 = 0
+    index2 = len(I_t) - 1
+
+    while I_t[index1] < half_max:
+        index1 += 1
+    while I_t[index2] < half_max:
+        index2 -= 1
+
+    t1 = tmat[index1]
+    t2 = tmat[index2]
+    fwhm = t2 - t1
+    return fwhm, t1, t2, half_max
+
+
+def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
+                       run_name):
 
     # ...........................
     # ........CLEAR AXES.........
@@ -31,7 +48,6 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     axes["predicted_ir_phase"].cla()
     # generated trace
     axes["generated_trace"].cla()
-
     # ...........................
     # .....CALCULATE RMSE........
     # ...........................
@@ -39,37 +55,58 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     trace_rmse = np.sqrt(
         (1 / len(trace_meas.reshape(-1))) * np.sum(
             (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
-
     # ...........................
     # ........PLOTTING...........
     # ...........................
     # input trace
-    axes["input_trace"].pcolormesh(params.delay_values, trace_yaxis, trace_meas, cmap='jet')
+    axes["input_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_meas, cmap='jet')
+    axes["input_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
                              transform=axes["input_trace"].transAxes)
-    axes["input_trace"].text(0.5, 1.0, "Unsupervised Learning", backgroundcolor="white",
+    axes["input_trace"].text(0.5, 1.1, "Unsupervised Learning", backgroundcolor="white", ha="center",
                              transform=axes["input_trace"].transAxes)
-
     # generated trace
-    axes["generated_trace"].pcolormesh(params.delay_values, trace_yaxis, trace_reconstructed, cmap='jet')
+    axes["generated_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_reconstructed, cmap='jet')
     axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
                                  transform=axes["generated_trace"].transAxes,
                                  backgroundcolor="white")
+    axes["generated_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
                                  transform=axes["generated_trace"].transAxes)
     # xuv predicted
     # xuv t
-    axes["predicted_xuv_t"].plot(spectrum.tmat, np.abs(xuv_t) ** 2, color="black")
+    tmat_as = spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
+    I_t = np.abs(xuv_t) ** 2
+    axes["predicted_xuv_t"].plot(tmat_as, I_t, color="black")
+    #calculate FWHM
+    fwhm, t1, t2, half_max = calc_fwhm(tmat=tmat_as, I_t=I_t)
+    axes["predicted_xuv_t"].text(1.0, 0.9, "FWHM:\n %.2f [as]" % fwhm, color="red", backgroundcolor="white", ha="center",
+                                 transform=axes["predicted_xuv_t"].transAxes)
+    #plot FWHM
+    axes["predicted_xuv_t"].plot([t1, t2], [half_max, half_max], color="red", linewidth=2.0)
+    axes["predicted_xuv_t"].set_yticks([])
+    axes["predicted_xuv_t"].set_xlabel("time [as]")
+    axes["predicted_xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
+                                     transform=axes["predicted_xuv_t"].transAxes)
     # xuv f
-    axes["predicted_xuv"].plot(spectrum.fmat_cropped, np.abs(xuv_f) ** 2, color="black")
-    axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted_xuv", backgroundcolor="white",
+    fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
+    axes["predicted_xuv"].plot(fmat_hz, np.abs(xuv_f) ** 2, color="black")
+    axes["predicted_xuv"].set_yticks([])
+    axes["predicted_xuv"].set_xlabel("Frequency [$10^{17}$Hz]")
+    axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted XUV spectrum", backgroundcolor="white",
                                      transform=axes["predicted_xuv_phase"].transAxes)
-
-    axes["predicted_xuv_phase"].plot(spectrum.fmat_cropped, np.unwrap(np.angle(xuv_f)), color="green")
+    axes["predicted_xuv_phase"].tick_params(axis='y', colors='green')
+    axes["predicted_xuv_phase"].plot(fmat_hz, np.unwrap(np.angle(xuv_f)), color="green")
 
     # ir predicted
-    axes["predicted_ir"].plot(ir_spectrum.fmat_cropped, np.abs(ir_f) ** 2, color="black")
-    axes["predicted_ir_phase"].plot(ir_spectrum.fmat_cropped, np.unwrap(np.angle(ir_f)), color="green")
+    fmat_ir_hz = ir_spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-14
+    axes["predicted_ir"].plot(fmat_ir_hz, np.abs(ir_f) ** 2, color="black")
+    axes["predicted_ir"].set_yticks([])
+    axes["predicted_ir"].set_xlabel("Frequency [$10^{14}$Hz]")
+    axes["predicted_ir_phase"].plot(fmat_ir_hz, np.unwrap(np.angle(ir_f)), color="green")
+    axes["predicted_ir_phase"].tick_params(axis='y', colors='green')
+    axes["predicted_ir_phase"].text(0.0, 1.1, "predicted IR spectrum", backgroundcolor="white",
+                                     transform=axes["predicted_ir_phase"].transAxes)
 
     # save files
     dir = "./unsupervised_retrieval/" + run_name + "/"
@@ -121,18 +158,17 @@ def show_proof_calculation(trace, sess, nn_nodes):
     ax.pcolormesh(out["proof"])
 
 
-def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
+def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval, run_name):
 
     if retrieval == "normal":
 
         feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-        reconstruced = sess.run(nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
+        reconstructed = sess.run(nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
         ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
-
-        plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstruced, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K)
+        plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstructed, xuv_f=xuv_f,
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "proof":
@@ -144,7 +180,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
         plot_images_fields(axes=axes, trace_meas=input_proof, trace_reconstructed=reconstruced_proof, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K)
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "autocorrelation":
@@ -156,14 +192,14 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval):
         xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
         xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
         plot_images_fields(axes=axes, trace_meas=input_auto, trace_reconstructed=reconstruced_auto, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.delay_values)
+                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.delay_values_fs, run_name=run_name)
         plt.pause(0.00001)
 
 
 def create_plot_axes():
 
-    fig = plt.figure()
-    fig.subplots_adjust(hspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1)
+    fig = plt.figure(figsize=(8,7))
+    fig.subplots_adjust(hspace=0.6, left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
     gs = fig.add_gridspec(3, 3)
 
     axes_dict = {}
@@ -228,15 +264,15 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "1A"
+    run_name = "2A"
     iterations = 5000
 
     #===================
     #==Retrieval Type===
     #===================
-    #retrieval = "normal"
+    retrieval = "normal"
     #retrieval = "autocorrelation"
-    retrieval = "proof"
+    #retrieval = "proof"
 
     run_name = run_name + retrieval
 
@@ -297,7 +333,7 @@ if __name__ == "__main__":
         plt.ion()
         for i in range(iterations):
 
-            if i % 100 == 0:
+            if i % 500 == 0:
                 print(i)
                 # get MSE between traces
                 summ = sess.run(unsupervised_mse_tb,
@@ -307,7 +343,7 @@ if __name__ == "__main__":
 
                 # update plots
                 update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1,
-                             retrieval=retrieval)
+                             retrieval=retrieval, run_name=run_name)
 
             # train neural network
             if retrieval == "normal":
