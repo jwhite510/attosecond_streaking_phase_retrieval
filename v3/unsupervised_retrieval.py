@@ -12,6 +12,64 @@ from phase_parameters import params
 from ir_spectrum import ir_spectrum
 import glob
 import pickle
+import tf_functions
+
+
+def apply_noise(trace, counts):
+
+    discrete_trace = np.round(trace * counts)
+    noise = np.random.poisson(lam=discrete_trace) - discrete_trace
+    noisy_trace = discrete_trace + noise
+    noisy_trace_normalized = noisy_trace / np.max(noisy_trace)
+    return noisy_trace_normalized
+
+
+def get_fake_measured_trace(counts, plotting, run_name=None):
+
+    # initialize XUV generator
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, params.xuv_phase_coefs])
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+
+    # initialize IR generator
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
+
+    # construct streaking image
+    image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+                                         ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+    tf_graphs = {}
+    tf_graphs["xuv_coefs_in"] = xuv_coefs_in
+    tf_graphs["ir_values_in"] = ir_values_in
+    tf_graphs["image"] = image
+
+    xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
+    ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
+
+    with tf.Session() as sess:
+        feed_dict = {tf_graphs["xuv_coefs_in"]: xuv_input, tf_graphs["ir_values_in"]: ir_input}
+        trace = sess.run(tf_graphs["image"], feed_dict=feed_dict)
+        xuv_t = sess.run(xuv_E_prop["t"], feed_dict=feed_dict)[0]
+        xuv_f = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)[0]
+        ir_f = sess.run(ir_E_prop["f_cropped"], feed_dict=feed_dict)[0]
+
+    noisy_trace = apply_noise(trace, counts)
+
+    tf.reset_default_graph()
+
+    if plotting:
+        axes = create_plot_axes()
+        plot_images_fields(axes=axes, trace_meas=noisy_trace, trace_reconstructed=trace,
+                           xuv_f=xuv_f, xuv_t=xuv_t, ir_f=ir_f, i=None, trace_yaxis=params.K,
+                           run_name=None, true_fields=True)
+
+        # save files
+        dir = "./unsupervised_retrieval/" + run_name + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        plt.savefig(dir+"actual_fields" + str(counts) + ".png")
+
+    return noisy_trace
 
 
 def calc_fwhm(tmat, I_t):
@@ -32,7 +90,7 @@ def calc_fwhm(tmat, I_t):
 
 
 def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
-                       run_name):
+                       run_name, true_fields=False):
 
     # ...........................
     # ........CLEAR AXES.........
@@ -58,21 +116,37 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     # ...........................
     # ........PLOTTING...........
     # ...........................
+
+
     # input trace
     axes["input_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_meas, cmap='jet')
     axes["input_trace"].set_xlabel(r"$\tau$ Delay [fs]")
-    axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
-                             transform=axes["input_trace"].transAxes)
-    axes["input_trace"].text(0.5, 1.1, "Unsupervised Learning", backgroundcolor="white", ha="center",
-                             transform=axes["input_trace"].transAxes)
+
+    if true_fields:
+        axes["input_trace"].text(0.0, 1.0, "noisy_trace", backgroundcolor="white",
+                                 transform=axes["input_trace"].transAxes)
+        axes["input_trace"].text(0.5, 1.1, "Actual Fields", backgroundcolor="yellow", ha="center",
+                                 transform=axes["input_trace"].transAxes)
+    else:
+        axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
+                                 transform=axes["input_trace"].transAxes)
+        axes["input_trace"].text(0.5, 1.1, "Unsupervised Learning", backgroundcolor="white", ha="center",
+                                 transform=axes["input_trace"].transAxes)
+
+
     # generated trace
     axes["generated_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_reconstructed, cmap='jet')
     axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
                                  transform=axes["generated_trace"].transAxes,
                                  backgroundcolor="white")
     axes["generated_trace"].set_xlabel(r"$\tau$ Delay [fs]")
-    axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
-                                 transform=axes["generated_trace"].transAxes)
+    if true_fields:
+        axes["generated_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
+                                     transform=axes["generated_trace"].transAxes)
+    else:
+        axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
+                                     transform=axes["generated_trace"].transAxes)
+
     # xuv predicted
     # xuv t
     tmat_as = spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
@@ -86,17 +160,33 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     axes["predicted_xuv_t"].plot([t1, t2], [half_max, half_max], color="red", linewidth=2.0)
     axes["predicted_xuv_t"].set_yticks([])
     axes["predicted_xuv_t"].set_xlabel("time [as]")
-    axes["predicted_xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
+
+    if true_fields:
+        axes["predicted_xuv_t"].text(0.0, 1.1, "actual XUV $I(t)$", backgroundcolor="white",
                                      transform=axes["predicted_xuv_t"].transAxes)
+    else:
+        axes["predicted_xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
+                                         transform=axes["predicted_xuv_t"].transAxes)
+
+
+
     # xuv f
     fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
     axes["predicted_xuv"].plot(fmat_hz, np.abs(xuv_f) ** 2, color="black")
     axes["predicted_xuv"].set_yticks([])
     axes["predicted_xuv"].set_xlabel("Frequency [$10^{17}$Hz]")
-    axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted XUV spectrum", backgroundcolor="white",
-                                     transform=axes["predicted_xuv_phase"].transAxes)
+
+    if true_fields:
+        axes["predicted_xuv_phase"].text(0.0, 1.1, "actual XUV spectrum", backgroundcolor="white",
+                                         transform=axes["predicted_xuv_phase"].transAxes)
+    else:
+        axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted XUV spectrum", backgroundcolor="white",
+                                         transform=axes["predicted_xuv_phase"].transAxes)
+
     axes["predicted_xuv_phase"].tick_params(axis='y', colors='green')
     axes["predicted_xuv_phase"].plot(fmat_hz, np.unwrap(np.angle(xuv_f)), color="green")
+
+
 
     # ir predicted
     fmat_ir_hz = ir_spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-14
@@ -105,26 +195,33 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     axes["predicted_ir"].set_xlabel("Frequency [$10^{14}$Hz]")
     axes["predicted_ir_phase"].plot(fmat_ir_hz, np.unwrap(np.angle(ir_f)), color="green")
     axes["predicted_ir_phase"].tick_params(axis='y', colors='green')
-    axes["predicted_ir_phase"].text(0.0, 1.1, "predicted IR spectrum", backgroundcolor="white",
-                                     transform=axes["predicted_ir_phase"].transAxes)
+    if true_fields:
+        axes["predicted_ir_phase"].text(0.0, 1.1, "actual IR spectrum", backgroundcolor="white",
+                                        transform=axes["predicted_ir_phase"].transAxes)
+    else:
+        axes["predicted_ir_phase"].text(0.0, 1.1, "predicted IR spectrum", backgroundcolor="white",
+                                        transform=axes["predicted_ir_phase"].transAxes)
 
-    # save files
-    dir = "./unsupervised_retrieval/" + run_name + "/"
-    if not os.path.isdir(dir):
-        os.makedirs(dir)
-    plt.savefig(dir + str(i) + ".png")
-    with open("./unsupervised_retrieval/" + run_name + "/u_fields.p", "wb") as file:
-        predicted_fields = {}
-        predicted_fields["ir_f"] = ir_f
-        predicted_fields["xuv_f"] = xuv_f
-        predicted_fields["xuv_t"] = xuv_t
+    # if true fields arent passed as an input
+    # retrieval is running, so save images and fields
+    if not true_fields:
+        # save files
+        dir = "./unsupervised_retrieval/" + run_name + "/"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        plt.savefig(dir + str(i) + ".png")
+        with open("./unsupervised_retrieval/" + run_name + "/u_fields.p", "wb") as file:
+            predicted_fields = {}
+            predicted_fields["ir_f"] = ir_f
+            predicted_fields["xuv_f"] = xuv_f
+            predicted_fields["xuv_t"] = xuv_t
 
-        save_files = {}
-        save_files["predicted_fields"] = predicted_fields
-        save_files["trace_meas"] = trace_meas
-        save_files["trace_reconstructed"] = trace_reconstructed
-        save_files["i"] = i
-        pickle.dump(save_files, file)
+            save_files = {}
+            save_files["predicted_fields"] = predicted_fields
+            save_files["trace_meas"] = trace_meas
+            save_files["trace_reconstructed"] = trace_reconstructed
+            save_files["i"] = i
+            pickle.dump(save_files, file)
 
 
 def show_proof_calculation(trace, sess, nn_nodes):
@@ -264,8 +361,8 @@ def get_measured_trace():
 
 if __name__ == "__main__":
 
-    run_name = "3A"
-    iterations = 5000
+    run_name = "known_trace_200ct"
+    iterations = 2500
 
     #===================
     #==Retrieval Type===
@@ -283,7 +380,12 @@ if __name__ == "__main__":
         shutil.copy(file, file_newname)
 
     # get the measured trace
-    _, _, measured_trace = get_measured_trace()
+    # _, _, measured_trace = get_measured_trace()
+
+    # get "measured" trace
+    measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=run_name)
+    # plt.show()
+
 
     # build neural net graph
     nn_nodes = network3.setup_neural_net()
