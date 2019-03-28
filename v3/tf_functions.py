@@ -15,12 +15,13 @@ import imageio
 
 
 
-def plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2):
+def plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2, proofnode):
 
     f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
     tmat_xuv = xuv_spectrum.spectrum.tmat
     xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
     trace = sess.run(image2_2, feed_dict=feed_dict)
+    proof = sess.run(proofnode, feed_dict=feed_dict)
     plt.figure(1)
     plt.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
     plt.figure(2)
@@ -30,6 +31,12 @@ def plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2):
     axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
     plt.figure(3)
     plt.pcolormesh(trace, cmap="jet")
+    plt.savefig("trace1.png")
+    plt.figure(4)
+    plt.pcolormesh(proof, cmap="jet")
+    plt.savefig("proof1.png")
+    with open("proof1.p", "wb") as file:
+        pickle.dump(proof, file)
     plt.show()
 
 
@@ -901,7 +908,7 @@ if __name__ == "__main__":
     amplitudes["phase_range"] = (0, 2 * np.pi)
     # amplitudes["clambda_range"] = (1.6345, 1.6345)
     amplitudes["clambda_range"] = (1.0, 1.6345)
-    amplitudes["pulseduration_range"] =  (7.0, 12.0)
+    amplitudes["pulseduration_range"] = (7.0, 12.0)
     amplitudes["I_range"] = (0.4, 1.0)
 
 
@@ -918,7 +925,7 @@ if __name__ == "__main__":
     image2_2 = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     # construct proof trace
-    proof2 = proof_trace(image2)
+    proof2 = proof_trace(image2_2)
 
     autocorrelateion2 = autocorrelate(image2)
 
@@ -958,14 +965,14 @@ if __name__ == "__main__":
         # }
         feed_dict = {
             xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+            ir_values_in: np.array([[1.0, 0.0, -1.0, 0.0]])
         }
 
         # coefficient scalers
         plt.figure(999)
         plt.plot([1.0, 0.2, 0.06, 0.04])
 
-        plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2)
+        plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2, proof2["proof"])
         exit(0)
 
 
