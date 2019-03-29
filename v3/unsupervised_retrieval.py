@@ -89,7 +89,7 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 
-def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
+def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
                        run_name, true_fields=False):
 
     # ...........................
@@ -109,10 +109,18 @@ def plot_images_fields(axes, trace_meas, trace_reconstructed, xuv_f, xuv_t, ir_f
     # ...........................
     # .....CALCULATE RMSE........
     # ...........................
-    # calculate rmse
-    trace_rmse = np.sqrt(
-        (1 / len(trace_meas.reshape(-1))) * np.sum(
-            (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
+    # calculate rmse for each trace
+
+    #==================================
+    #==================================
+    print("hello")
+    #==================================
+    #==================================
+
+    for measured, reconstructed in zip(traces_meas, traces_reconstructed):
+        # calculate the rmse for each trace
+        trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
+                            (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
     # ...........................
     # ........PLOTTING...........
     # ...........................
@@ -256,40 +264,64 @@ def show_proof_calculation(trace, sess, nn_nodes):
 
 
 def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval, run_name):
+     
+    feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
+     
+    ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
+    xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
+    xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
+
+    #================================================
+    #==================INPUT TRACES==================
+    #================================================
+
+    # calculate INPUT Autocorrelation from input image
+    input_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=feed_dict)
+
+    # calculate INPUT PROOF trace from input image
+    input_proof = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=feed_dict)
+
+    #================================================
+    #==================MEASURED TRACES===============
+    #================================================
+    
+    # reconstructed regular trace from input image
+    reconstructed = sess.run(nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
+
+    # calculate reconstructed proof trace
+    reconstructed_proof = sess.run(nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=feed_dict)
+
+    # calculate reconstructed autocorrelation trace
+    reconstruced_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=feed_dict)
+
+    # measured/calculated from input traces
+    input_traces = dict()
+    input_traces["measured_trace"] = measured_trace
+    input_traces["input_auto"] = input_auto
+    input_traces["input_proof"] = input_proof
+
+    # reconstruction traces
+    recons_traces = dict()
+    recons_traces["reconstructed"] = reconstructed
+    recons_traces["reconstructed_proof"] = reconstructed_proof
+    recons_traces["reconstruced_auto"] =  reconstruced_auto 
+
 
     if retrieval == "normal":
-
-        feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-        reconstructed = sess.run(nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
-        ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
-        xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
-        xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
-        plot_images_fields(axes=axes, trace_meas=measured_trace, trace_reconstructed=reconstructed, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
+        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "proof":
 
-        feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-        input_proof = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=feed_dict)
-        reconstruced_proof = sess.run(nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=feed_dict)
-        ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
-        xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
-        xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
-        plot_images_fields(axes=axes, trace_meas=input_proof, trace_reconstructed=reconstruced_proof, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
+        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "autocorrelation":
 
-        feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-        input_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=feed_dict)
-        reconstruced_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=feed_dict)
-        ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
-        xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
-        xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
-        plot_images_fields(axes=axes, trace_meas=input_auto, trace_reconstructed=reconstruced_auto, xuv_f=xuv_f,
-                           xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.delay_values_fs, run_name=run_name)
+        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
 
@@ -380,10 +412,10 @@ if __name__ == "__main__":
         shutil.copy(file, file_newname)
 
     # get the measured trace
-    # _, _, measured_trace = get_measured_trace()
+     _, _, measured_trace = get_measured_trace()
 
     # get "measured" trace
-    measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=run_name)
+    # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=run_name)
     # plt.show()
 
 
