@@ -26,6 +26,9 @@ def retrieve_trace3():
     trace = trace[:, :-1]
     delay = delay[:-1]
 
+    # convert to seconds
+    delay = delay * 1e-15
+
     # normalize trace
     trace = trace / np.max(trace)
 

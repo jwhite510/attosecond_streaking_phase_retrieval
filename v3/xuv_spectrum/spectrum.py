@@ -183,44 +183,6 @@ def retrieve_spectrum3(plotting=False):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    plt.figure(1)
-    plt.plot(electronvolts, Intensity, color="black")
-    plt.show()
-
-    exit(0)
-
-    # print(repr(matrix[0]))
-    # print(repr(matrix[0].strip("\n")))
-
-    electronvolt = matrix[0].strip("\n").split(", ")[0]
-    intensity = matrix[0].strip("\n").split(", ")[1]
-
-    exit(0)
-
-    # print(float())
-    # print(float(matrix[0].strip("\n").split(" ,")[1]))
-
-    print("hello")
-    print(np.shape(matrix))
-    print(matrix[0])
-    print(matrix[1])
-    exit(0)
-
-
-
-
 #==============================
 #========select sample=========
 #==============================

@@ -13,7 +13,7 @@ from ir_spectrum import ir_spectrum
 import glob
 import pickle
 import tf_functions
-
+import measured_trace.get_trace as measured_trace
 
 def apply_noise(trace, counts):
 
@@ -347,50 +347,6 @@ def create_plot_axes():
     return axes_dict
 
 
-def get_measured_trace():
-
-
-
-    filepath = './measured_trace/sample2/MSheet1_1.csv'
-    with open(filepath) as csvfile:
-        reader = csv.reader(csvfile)
-        matrix = np.array(list(reader))
-
-        Energy = matrix[1:, 0].astype('float') # eV
-        Delay = matrix[0, 1:].astype('float') # fs
-        Values = matrix[1:, 1:].astype('float')
-
-    #print(Delay)
-    # print('len(Energy): ', len(Energy))
-    # print('Energy: ', Energy)
-
-
-    # construct frequency axis with even number for fourier transform
-    values_even = Values[:, :-1]
-    Delay_even = Delay[:-1]
-    Delay_even = Delay_even * 1e-15  # convert to seconds
-    # Dtau = Delay_even[-1] - Delay_even[-2]
-    # print('Delay: ', Delay)
-    # print('Delay_even: ', Delay_even)
-    # print('np.shape(values_even): ', np.shape(values_even))
-    # print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
-    # print('Dtau: ', Dtau)
-    # print('Delay max', Delay_even[-1])
-    # print('N: ', len(Delay_even))
-    # print('Energy: ', len(Energy))
-    # f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
-    # print(f0)  # in seconds
-    # lam0 = sc.c / f0
-    # print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
-    # print('lam0: ', lam0)
-
-
-    # normalize values
-
-    #exit(0)
-    return Delay_even, Energy, values_even
-
-
 if __name__ == "__main__":
 
     run_name = "known_trace_200ct"
@@ -412,7 +368,8 @@ if __name__ == "__main__":
         shutil.copy(file, file_newname)
 
     # get the measured trace
-     _, _, measured_trace = get_measured_trace()
+    # _, _, measured_trace = get_measured_trace()
+    _, _, measured_trace = measured_trace.delay, measured_trace.energy, measured_trace.trace
 
     # get "measured" trace
     # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=run_name)
