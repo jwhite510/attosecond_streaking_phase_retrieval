@@ -842,7 +842,8 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # ---------------------find indexes of tau values-------------------
     # ------------------------------------------------------------------
     center_indexes = []
-    for delay_value in phase_parameters.params.delay_values:
+    delay_vals_au = phase_parameters.params.delay_values/sc.physical_constants['atomic unit of time'][0]
+    for delay_value in delay_vals_au:
         index = np.argmin(np.abs(delay_value - ir_taxis))
         center_indexes.append(index)
     center_indexes = np.array(center_indexes)
