@@ -18,7 +18,7 @@ from xuv_spectrum import spectrum
 import unsupervised_retrieval
 import tf_functions
 import phase_parameters.params
-
+import measured_trace.get_trace as measured_trace
 
 
 def initialize_xuv_ir_trace_graphs():
@@ -563,7 +563,8 @@ if __name__ == "__main__":
     plot_axes = create_exp_plot_axes()
     plot_and_graph = {}
     plot_and_graph["plot_axes"] = plot_axes
-    _, _, measured_trace = unsupervised_retrieval.get_measured_trace()
+    # _, _, measured_trace = unsupervised_retrieval.get_measured_trace()
+    measured_trace = measured_trace.trace
     measured_trace = measured_trace.reshape(1, -1)
 
 
