@@ -16,6 +16,41 @@ import tables
 from ir_spectrum import ir_spectrum
 from xuv_spectrum import spectrum
 import unsupervised_retrieval
+import tf_functions
+import phase_parameters.params
+
+
+
+def initialize_xuv_ir_trace_graphs():
+
+    # initialize XUV generator
+    xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+
+
+    # IR creation
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
+
+    # initialize streaking trace generator
+    # Neon
+
+
+    # construct streaking image
+    image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+                                                        ir_cropped_f_in=ir_E_prop["f_cropped"][0],
+                                                        )
+
+    tf_graphs = {}
+    tf_graphs["xuv_coefs_in"] = xuv_coefs_in
+    tf_graphs["ir_values_in"] = ir_values_in
+    tf_graphs["xuv_E_prop"] = xuv_E_prop
+    tf_graphs["ir_E_prop"] = ir_E_prop
+    tf_graphs["image"] = image
+
+    return tf_graphs
+
 
 
 def plot_image_and_fields(plot_and_graph,
@@ -24,8 +59,10 @@ def plot_image_and_fields(plot_and_graph,
                           rmse):
 
     actual_fields = plot_and_graph["actual_fields"]
-    trace_c = len(plot_and_graph["streak_params"]["tau_values"])
-    trace_r = len(plot_and_graph["streak_params"]["k_values"])
+    # trace_c = len(plot_and_graph["streak_params"]["tau_values"])
+    trace_c = len(phase_parameters.params.delay_values_fs)
+    # trace_r = len(plot_and_graph["streak_params"]["k_values"])
+    trace_r = len(phase_parameters.params.K)
 
 
     plot_and_graph["plot_axes"]["actual_ir"].cla()
@@ -46,7 +83,7 @@ def plot_image_and_fields(plot_and_graph,
 
     # actual streaking trace
     plot_and_graph["plot_axes"]["actual_trace"].cla()
-    plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
+    plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
     plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white", transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
     plot_and_graph["plot_axes"]["actual_trace"].text(0.5, 1.0, "Genetic Algorithm", backgroundcolor="white",
                                                      transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
@@ -71,7 +108,7 @@ def plot_image_and_fields(plot_and_graph,
 
     # predicted streaking trace
     plot_and_graph["plot_axes"]["predicted_trace"].cla()
-    plot_and_graph["plot_axes"]["predicted_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], predicted_streaking_trace, cmap='jet')
+    plot_and_graph["plot_axes"]["predicted_trace"].pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, predicted_streaking_trace, cmap='jet')
     plot_and_graph["plot_axes"]["predicted_trace"].text(0.0, 1.0, "predicted_trace", backgroundcolor="white",
                               transform=plot_and_graph["plot_axes"]["predicted_trace"].transAxes)
     plot_and_graph["plot_axes"]["predicted_trace"].text(0.0, 0.1, "rmse: {}".format(str(round(rmse, 5))), backgroundcolor="white",
@@ -107,12 +144,12 @@ def plot_image_and_fields_exp(plot_and_graph,
                           rmse):
 
 
-    trace_c = len(plot_and_graph["streak_params"]["tau_values"])
-    trace_r = len(plot_and_graph["streak_params"]["k_values"])
+    trace_c = len(phase_parameters.params.delay_values_fs)
+    trace_r = len(phase_parameters.params.K)
 
     # actual streaking trace
     plot_and_graph["plot_axes"]["actual_trace"].cla()
-    plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
+    plot_and_graph["plot_axes"]["actual_trace"].pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, actual_streaking_trace.reshape(trace_r, trace_c), cmap='jet')
     plot_and_graph["plot_axes"]["actual_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
                                                      transform=plot_and_graph["plot_axes"]["actual_trace"].transAxes)
     plot_and_graph["plot_axes"]["actual_trace"].text(0.5, 1.0, "Genetic Algorithm", backgroundcolor="white",
@@ -145,7 +182,7 @@ def plot_image_and_fields_exp(plot_and_graph,
 
     # predicted streaking trace
     plot_and_graph["plot_axes"]["generated_trace"].cla()
-    plot_and_graph["plot_axes"]["generated_trace"].pcolormesh(plot_and_graph["streak_params"]["tau_values"], plot_and_graph["streak_params"]["k_values"], predicted_streaking_trace, cmap='jet')
+    plot_and_graph["plot_axes"]["generated_trace"].pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, predicted_streaking_trace, cmap='jet')
     plot_and_graph["plot_axes"]["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
                               transform=plot_and_graph["plot_axes"]["generated_trace"].transAxes)
     plot_and_graph["plot_axes"]["generated_trace"].text(0.0, 0.1, "RMSE: {}".format(str(round(rmse, 3))), backgroundcolor="white",
@@ -488,7 +525,7 @@ def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, meas
 if __name__ == "__main__":
 
     tensorboard_tools = create_tensorboard_tools()
-    tf_generator_graphs, streak_params = network3.initialize_xuv_ir_trace_graphs()
+    tf_generator_graphs = initialize_xuv_ir_trace_graphs()
 
 
 
@@ -526,7 +563,6 @@ if __name__ == "__main__":
     plot_axes = create_exp_plot_axes()
     plot_and_graph = {}
     plot_and_graph["plot_axes"] = plot_axes
-    plot_and_graph["streak_params"] = streak_params
     _, _, measured_trace = unsupervised_retrieval.get_measured_trace()
     measured_trace = measured_trace.reshape(1, -1)
 
