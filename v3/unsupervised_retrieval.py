@@ -118,6 +118,9 @@ def calc_fwhm(tmat, I_t):
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
                        run_name, true_fields=False):
 
+    trace_meas = traces_meas["measured_trace"]
+    trace_reconstructed = traces_reconstructed["reconstructed"]
+
     # ...........................
     # ........CLEAR AXES.........
     # ...........................
@@ -139,14 +142,18 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
 
     #==================================
     #==================================
-    print("hello")
     #==================================
     #==================================
 
-    for measured, reconstructed in zip(traces_meas, traces_reconstructed):
-        # calculate the rmse for each trace
-        trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
-                            (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
+    # for measured, reconstructed in zip(traces_meas, traces_reconstructed):
+    #     # calculate the rmse for each trace
+    #     trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
+    #                         (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
+
+
+    # calculate the rmse for each trace
+    trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
+        (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
     # ...........................
     # ........PLOTTING...........
     # ...........................
@@ -332,21 +339,20 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval, run_name):
     recons_traces["reconstructed_proof"] = reconstructed_proof
     recons_traces["reconstruced_auto"] = reconstruced_auto
 
-
     if retrieval == "normal":
-        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+        plot_images_fields(axes=axes, traces_meas=input_traces["measured_trace"], traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
                             xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "proof":
 
-        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+        plot_images_fields(axes=axes, traces_meas=input_traces["input_proof"], traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
                             xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
     elif retrieval == "autocorrelation":
 
-        plot_images_fields(axes=axes, traces_meas=input_traces, traces_reconstructed=recons_traces, xuv_f=xuv_f,
+        plot_images_fields(axes=axes, traces_meas=input_traces["input_auto"], traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
                             xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
         plt.pause(0.00001)
 
