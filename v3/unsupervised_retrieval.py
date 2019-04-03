@@ -118,8 +118,10 @@ def calc_fwhm(tmat, I_t):
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
                        run_name, true_fields=False):
 
-    trace_meas = traces_meas["measured_trace"]
-    trace_reconstructed = traces_reconstructed["reconstructed"]
+    # trace_meas = traces_meas["measured_trace"]
+    # trace_reconstructed = traces_reconstructed["reconstructed"]
+    trace_meas = traces_meas
+    trace_reconstructed = traces_reconstructed
 
     # ...........................
     # ........CLEAR AXES.........
@@ -381,7 +383,7 @@ def create_plot_axes():
 
 if __name__ == "__main__":
 
-    run_name = "known_trace_200ct"
+    run_name = "sample3"
     iterations = 2500
 
     #===================
@@ -394,7 +396,7 @@ if __name__ == "__main__":
     run_name = run_name + retrieval
 
     # copy the model to a new version to use for unsupervised learning
-    modelname = "test1a"
+    modelname = "test1_sample3"
     for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
         file_newname = file.replace(modelname, modelname+'_unsupervised')
         shutil.copy(file, file_newname)
