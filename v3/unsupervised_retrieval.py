@@ -37,11 +37,15 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     # construct streaking image
     image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                          ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    proof_trace = tf_functions.proof_trace(image)
+    autocorelation = tf_functions.autocorrelate(image)
 
     tf_graphs = {}
     tf_graphs["xuv_coefs_in"] = xuv_coefs_in
     tf_graphs["ir_values_in"] = ir_values_in
     tf_graphs["image"] = image
+    tf_graphs["proof_trace"] = proof_trace
+    tf_graphs["autocorelation"] = autocorelation
 
     xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
@@ -49,11 +53,33 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     with tf.Session() as sess:
         feed_dict = {tf_graphs["xuv_coefs_in"]: xuv_input, tf_graphs["ir_values_in"]: ir_input}
         trace = sess.run(tf_graphs["image"], feed_dict=feed_dict)
+        trace_proof = sess.run(tf_graphs["proof_trace"]["proof"], feed_dict=feed_dict)
+        trace_autocorrelation = sess.run(tf_graphs["autocorelation"], feed_dict=feed_dict)
         xuv_t = sess.run(xuv_E_prop["t"], feed_dict=feed_dict)[0]
         xuv_f = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)[0]
         ir_f = sess.run(ir_E_prop["f_cropped"], feed_dict=feed_dict)[0]
+        # construct proof and autocorrelate from non-noise trace
 
+    # generated from noise free trace
+    traces = {}
+    traces["trace"] = trace
+    traces["autocorrelation"] = trace_autocorrelation
+    traces["proof"] = trace_proof
+
+    # construct noisy trace and other traces from noisy trace
     noisy_trace = apply_noise(trace, counts)
+    # generate proof and autocorrelation from noisy trace
+    noisy_autocorrelation = tf_functions.autocorrelate(tf.constant(noisy_trace, dtype=tf.float32))
+    noisy_proof = tf_functions.proof_trace(tf.constant(noisy_trace, dtype=tf.float32))
+    with tf.Session() as sess:
+        noisy_autocorrelation_trace = sess.run(noisy_autocorrelation)
+        noisy_proof_trace = sess.run(noisy_proof["proof"])
+
+    # generated from noisy trace
+    noise_traces = {}
+    noise_traces["trace"] = noisy_trace
+    noise_traces["autocorrelation"] = noisy_autocorrelation_trace
+    noise_traces["proof"] = noisy_proof_trace
 
     tf.reset_default_graph()
 
@@ -304,7 +330,7 @@ def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval, run_name):
     recons_traces = dict()
     recons_traces["reconstructed"] = reconstructed
     recons_traces["reconstructed_proof"] = reconstructed_proof
-    recons_traces["reconstruced_auto"] =  reconstruced_auto 
+    recons_traces["reconstruced_auto"] = reconstruced_auto
 
 
     if retrieval == "normal":
