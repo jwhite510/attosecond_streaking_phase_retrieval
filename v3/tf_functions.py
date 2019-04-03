@@ -60,8 +60,8 @@ class TestGraphs:
         # plt.plot(f_cropped_fmat, np.imag(xuv_out["f_cropped"][0]), color="red")
         # axtwin = plt.gca().twinx()
         # axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
-        # plt.figure()
-        # plt.pcolormesh(trace, cmap="jet")
+        plt.figure()
+        plt.pcolormesh(trace, cmap="jet")
         # plt.savefig("trace1.png")
         # plt.figure()
         # plt.pcolormesh(proof, cmap="jet")
@@ -945,29 +945,41 @@ if __name__ == "__main__":
     # test the coefficients to scale them properly
     testgraphs = TestGraphs()
 
+
+
     feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, 1.0]])
     }
     testgraphs.plot_xuv_trace(feed_dict_in)
 
     feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 1.0, 0.0, 0.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, -1.0]])
     }
     testgraphs.plot_xuv_trace(feed_dict_in)
 
-    feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 1.0, 0.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
-    }
-    testgraphs.plot_xuv_trace(feed_dict_in)
 
-    feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
-    }
-    testgraphs.plot_xuv_trace(feed_dict_in)
+
+
+
+    # feed_dict_in = {
+    #     "xuv_coefs_in": np.array([[0.0, 0.0, 1.0, 0.0, 0.0]]),
+    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    # }
+    # testgraphs.plot_xuv_trace(feed_dict_in)
+
+    # feed_dict_in = {
+    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 1.0, 0.0]]),
+    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    # }
+    # testgraphs.plot_xuv_trace(feed_dict_in)
+
+    # feed_dict_in = {
+    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
+    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    # }
+    # testgraphs.plot_xuv_trace(feed_dict_in)
 
     plt.show()
     exit(0)

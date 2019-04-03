@@ -2,9 +2,61 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import csv
+import scipy.constants as sc
 
 
-def retrieve_trace3():
+def find_f0(x, y):
+
+    x = np.array(x)
+    y = np.array(y)
+
+    maxvals = []
+
+    for _ in range(3):
+        max_index = np.argmax(y)
+        maxvals.append(x[max_index])
+
+        x = np.delete(x, max_index)
+        y = np.delete(y, max_index)
+
+    maxvals = np.delete(maxvals, np.argmin(np.abs(maxvals)))
+
+    return maxvals[np.argmax(maxvals)]
+
+
+def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
+
+    # make sure delay is even
+    assert len(delay) % 2 == 0
+
+    N = len(delay)
+    # print('N: ', N)
+    dt = delay[-1] - delay[-2]
+    df = 1 / (dt * N)
+    freq_even = df * np.arange(-N / 2, N / 2)
+    # plot the streaking trace and ft
+
+    trace_f = np.fft.fftshift(np.fft.fft(np.fft.fftshift(trace, axes=1), axis=1), axes=1)
+
+    # summation along vertical axis
+    integrate = np.sum(np.abs(trace_f), axis=0)
+
+    # find the maximum values
+    f0 = find_f0(x=freq_even, y=integrate)  # seconds
+
+    lam0 = sc.c / f0
+
+    if plotting:
+        # find central frequency
+        _, ax = plt.subplots(3, 1)
+        ax[0].pcolormesh(delay, energy, trace, cmap='jet')
+        ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
+        ax[2].plot(freq_even, integrate)
+
+    return f0, lam0
+
+
+def retrieve_trace3(find_f0=False):
     trace = []
 
     for line in open(os.path.dirname(__file__)+"/sample3/53as_trace.dat", "r"):
@@ -32,10 +84,15 @@ def retrieve_trace3():
     # normalize trace
     trace = trace / np.max(trace)
 
+    if find_f0:
+        f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay, energy=energy, plotting=True)
+        print(f0)  # in seconds
+        print(lam0)
+
     return delay, energy, trace
 
 
-def retrieve_trace2():
+def retrieve_trace2(find_f0=False):
 
     filepath = './measured_trace/sample2/MSheet1_1.csv'
     with open(filepath) as csvfile:
@@ -50,27 +107,16 @@ def retrieve_trace2():
     # print('len(Energy): ', len(Energy))
     # print('Energy: ', Energy)
 
-
     # construct frequency axis with even number for fourier transform
     values_even = Values[:, :-1]
     Delay_even = Delay[:-1]
     Delay_even = Delay_even * 1e-15  # convert to seconds
-    # Dtau = Delay_even[-1] - Delay_even[-2]
-    # print('Delay: ', Delay)
-    # print('Delay_even: ', Delay_even)
-    # print('np.shape(values_even): ', np.shape(values_even))
-    # print('len(values_even.reshape(-1))', len(values_even.reshape(-1)))
-    # print('Dtau: ', Dtau)
-    # print('Delay max', Delay_even[-1])
-    # print('N: ', len(Delay_even))
-    # print('Energy: ', len(Energy))
-    # f0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy)
-    # print(f0)  # in seconds
-    # lam0 = sc.c / f0
-    # print('f0 a.u.: ', f0 * sc.physical_constants['atomic unit of time'][0])  # convert f0 to atomic unit
-    # print('lam0: ', lam0)
 
-    # normalize values
+    if find_f0:
+        f0, lam0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy, plotting=True)
+        print(f0)  # in seconds
+        print(lam0)
+
     return Delay_even, Energy, values_even
 
 
@@ -86,12 +132,11 @@ elif trace_num == 3:
     delay, energy, trace = retrieve_trace3()
 
 
-
 if __name__ == "__main__":
 
-    delay, energy, trace = retrieve_trace3()
+    delay, energy, trace = retrieve_trace3(find_f0=True)
 
-    plt.figure(1)
+    plt.figure()
     plt.pcolormesh(delay, energy, trace, cmap="jet")
 
     plt.show()
