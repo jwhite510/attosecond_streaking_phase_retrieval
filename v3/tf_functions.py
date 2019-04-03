@@ -13,33 +13,64 @@ import unsupervised_retrieval
 import imageio
 
 
+class TestGraphs:
+
+    def __init__(self):
+        self.sess = tf.Session()
+
+        # initialize graphs
+        # xuv creation
+        self.xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
+        self.xuv_E_prop = xuv_taylor_to_E(self.xuv_coefs_in)
+
+        self.ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+        self.ir_E_prop = ir_from_params(self.ir_values_in)
+        # image1, _ = streaking_trace_old(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
+        # construct streaking image
+        self.image2 = streaking_traceA(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
+        self.image2_2 = streaking_trace(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
+
+        # construct proof trace
+        self.proof2 = proof_trace(self.image2_2)
+
+        self.autocorrelateion2 = autocorrelate(self.image2)
 
 
-def plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2, proofnode):
-
-    f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
-    tmat_xuv = xuv_spectrum.spectrum.tmat
-    xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
-    trace = sess.run(image2_2, feed_dict=feed_dict)
-    proof = sess.run(proofnode, feed_dict=feed_dict)
-    plt.figure(1)
-    plt.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
-    plt.figure(2)
-    plt.plot(f_cropped_fmat, np.real(xuv_out["f_cropped"][0]), color="blue")
-    plt.plot(f_cropped_fmat, np.imag(xuv_out["f_cropped"][0]), color="red")
-    axtwin = plt.gca().twinx()
-    axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
-    plt.figure(3)
-    plt.pcolormesh(trace, cmap="jet")
-    plt.savefig("trace1.png")
-    plt.figure(4)
-    plt.pcolormesh(proof, cmap="jet")
-    plt.savefig("proof1.png")
-    with open("proof1.p", "wb") as file:
-        pickle.dump(proof, file)
-    plt.show()
+    def test_coef_scale(self):
+        pass
 
 
+    def plot_xuv_trace(self, feed_dict_in):
+
+        feed_dict = {
+            self.xuv_coefs_in: feed_dict_in["xuv_coefs_in"],
+            self.ir_values_in: feed_dict_in["ir_values_in"]
+        }
+
+        f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
+        tmat_xuv = xuv_spectrum.spectrum.tmat
+        xuv_out = self.sess.run(self.xuv_E_prop, feed_dict=feed_dict)
+        trace = self.sess.run(self.image2_2, feed_dict=feed_dict)
+        proof = self.sess.run(self.proof2["proof"], feed_dict=feed_dict)
+        plt.figure()
+        plt.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
+
+        # plt.figure()
+        # plt.plot(f_cropped_fmat, np.real(xuv_out["f_cropped"][0]), color="blue")
+        # plt.plot(f_cropped_fmat, np.imag(xuv_out["f_cropped"][0]), color="red")
+        # axtwin = plt.gca().twinx()
+        # axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
+        # plt.figure()
+        # plt.pcolormesh(trace, cmap="jet")
+        # plt.savefig("trace1.png")
+        # plt.figure()
+        # plt.pcolormesh(proof, cmap="jet")
+        # plt.savefig("proof1.png")
+        # with open("proof1.p", "wb") as file:
+        #     pickle.dump(proof, file)
+
+    def __del__(self):
+        self.sess.close()
 
 
 def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
@@ -139,10 +170,6 @@ def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
 
     print("making gif")
     imageio.mimsave('./A2_2.gif', gif_images, fps=10)
-
-
-
-
 
 
 def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2):
@@ -274,7 +301,6 @@ def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, i
     imageio.mimsave('./A2diff2.gif', gif_images, fps=10)
 
 
-
 def find_second_minima(sorted, index1):
     # function for finding the second minima in fwhm calculation
     for j, i in enumerate(sorted[1:]):
@@ -287,6 +313,7 @@ def autocorrelate(trace):
     correlate = tf.expand_dims(trace, axis=1) * tf.expand_dims(trace, axis=2)
     summation = tf.reduce_sum(correlate, axis=0)
     return summation
+
 
 def proof_trace(trace):
     freq = tf_fft(tensor=tf.complex(real=trace, imag=tf.zeros_like(trace)),
@@ -380,7 +407,15 @@ def xuv_taylor_to_E(coefficients_in):
 
     # additional scaler
     # these are arbitrary numbers that were found to keep the field in the time window
-    scaler_2 = tf.constant(np.array([1.0, 1.0, 0.2, 0.06, 0.04]).reshape(1,-1,1), dtype=tf.float32)
+
+
+    # for sample 2
+    # scaler_2 = tf.constant(np.array([1.0, 1.0, 0.2, 0.06, 0.04]).reshape(1,-1,1), dtype=tf.float32)
+
+    # for sample 3
+    scaler_2 = tf.constant(np.array([1.0, 1.3, 0.15, 0.03, 0.01]).reshape(1,-1,1), dtype=tf.float32)
+
+
 
     # reshape the coef values and scale them
     coef_values = tf.reshape(coefficients_in, [tf.shape(coefficients_in)[0], -1, 1]) * amplitude_scaler * scaler_2
@@ -414,7 +449,6 @@ def xuv_taylor_to_E(coefficients_in):
     #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
 
     return E_prop
-
 
 
 def ir_from_params(ir_param_values):
@@ -899,82 +933,54 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
 if __name__ == "__main__":
 
-    # xuv creation
-    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
-    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
 
-    # IR creation
-    # ir amplitudes
-    amplitudes = {}
-    amplitudes["phase_range"] = (0, 2 * np.pi)
-    # amplitudes["clambda_range"] = (1.6345, 1.6345)
-    amplitudes["clambda_range"] = (1.0, 1.6345)
-    amplitudes["pulseduration_range"] = (7.0, 12.0)
-    amplitudes["I_range"] = (0.4, 1.0)
-
-
-    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = ir_from_params(ir_values_in)
-
-
-    # image1, _ = streaking_trace_old(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # ==========================================
+    # ===========Animation Functions============
+    # ==========================================
+    # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
+    # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
 
 
 
-    # construct streaking image
-    image2 = streaking_traceA(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
-    image2_2 = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # test the coefficients to scale them properly
+    testgraphs = TestGraphs()
 
-    # construct proof trace
-    proof2 = proof_trace(image2_2)
+    feed_dict_in = {
+        "xuv_coefs_in": np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    }
+    testgraphs.plot_xuv_trace(feed_dict_in)
 
-    autocorrelateion2 = autocorrelate(image2)
+    feed_dict_in = {
+        "xuv_coefs_in": np.array([[0.0, 0.0, 1.0, 0.0, 0.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    }
+    testgraphs.plot_xuv_trace(feed_dict_in)
 
+    feed_dict_in = {
+        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 1.0, 0.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    }
+    testgraphs.plot_xuv_trace(feed_dict_in)
 
+    feed_dict_in = {
+        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
+        "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
+    }
+    testgraphs.plot_xuv_trace(feed_dict_in)
 
+    plt.show()
+    exit(0)
 
+    # ==========================================
+    # ===========View XUV and trace=============
+    # ==========================================
 
-    with tf.Session() as sess:
+    # # coefficient scalers
+    # plt.figure(999)
+    # plt.plot([1.0, 0.2, 0.06, 0.04])
+    # exit(0)
 
-
-
-        # ==========================================
-        # ===========Animation Functions============
-        # ==========================================
-        # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
-        # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
-
-
-        # ==========================================
-        # ===========View XUV and trace=============
-        # ==========================================
-        # feed_dict = {
-        #     xuv_coefs_in: np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
-        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        # }
-        # feed_dict = {
-        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.2, 0.0, 0.0]]),
-        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        # }
-        # feed_dict = {
-        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.06, 0.0]]),
-        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        # }
-        # feed_dict = {
-        #     xuv_coefs_in: np.array([[0.0, 0.0, 0.0, 0.0, 0.04]]),
-        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        # }
-        feed_dict = {
-            xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[1.0, 0.0, -1.0, 0.0]])
-        }
-
-        # coefficient scalers
-        plt.figure(999)
-        plt.plot([1.0, 0.2, 0.06, 0.04])
-
-        plot_xuv_trace(sess, feed_dict, xuv_E_prop, image2_2, proof2["proof"])
-        exit(0)
 
 
 
