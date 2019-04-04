@@ -9,7 +9,348 @@ import os
 import phase_parameters.params
 
 
+class PhaseNetTrain:
 
+    def __init__(self):
+
+        # build neural net graph
+        self.nn_nodes = setup_neural_net()
+
+        # test_generate_data(nn_nodes)
+
+        print("built neural net")
+
+        # init data object
+        self.get_data = GetData(batch_size=10)
+
+        # initialize mse tracking objects
+        self.tf_loggers = init_tf_loggers(self.nn_nodes)
+
+
+        # saver and set epoch number to run
+        self.saver = tf.train.Saver()
+        self.epochs = 900000
+
+        # set the name of the neural net test run and save the settigns
+        self.modelname = 'test1a'
+
+        print('starting ' + self.modelname)
+
+        shutil.copyfile('./network3.py', './models/network3_{}.py'.format(self.modelname))
+
+        # create figures for showing results
+        self.axes = {}
+
+        self.axes["testplot1"], self.axes["testfig1"]= create_sample_plot()
+        self.axes["testplot2"], self.axes["testfig2"]= create_sample_plot()
+
+        self.axes["trainplot1"], self.axes["trainfig1"]= create_sample_plot()
+        self.axes["trainplot2"], self.axes["trainfig2"]= create_sample_plot()
+
+        plt.ion()
+
+        self.init = tf.global_variables_initializer()
+        self.sess = tf.Session()
+        self.sess.run(self.init)
+
+        self.writer = tf.summary.FileWriter("./tensorboard_graph/" + self.modelname)
+        self.i = None
+        self.epoch = None
+        self.dots = None
+
+    def supervised_learn(self):
+
+        for self.i in range(self.epochs):
+            self.epoch = self.i + 1
+            print("Epoch : {}".format(self.epoch))
+
+            # iterate through every sample in the training set
+            self.dots = 0
+            alternate_training_counter = 0
+            while self.get_data.batch_index < self.get_data.samples:
+
+                self.show_loading_bar()
+
+                # retrieve data
+                batch_x, batch_y = self.get_data.next_batch()
+
+                if self.i < 15:
+                    # train with only coefficients first
+                    self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                             feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        self.nn_nodes["general"]["hold_prob"]: 0.8,
+                                        self.nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+                else:
+                    # train with fields
+                    self.sess.run(self.nn_nodes["supervised"]["phase_network_train_fields"],
+                             feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                        self.nn_nodes["general"]["hold_prob"]: 0.8,
+                                        self.nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+                    ## alternate between all three cost functions
+                    #if alternate_training_counter == 0:
+                    #    # train with coefficients
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter+=1
+
+                    #elif alternate_training_counter == 1:
+                    #    # train with fields
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter += 1
+
+                    #elif alternate_training_counter == 2:
+                    #    # train with phase curve
+                    #    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
+                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
+                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
+                    #    alternate_training_counter = 0
+            print("")
+            self.add_tensorboard_values()
+            # every x steps plot predictions
+            if self.epoch % 20 == 0 or self.epoch <= 15:
+                # update the plot
+
+                self.update_plots()
+
+                # save model
+                self.saver.save(self.sess, "models/" + self.modelname + ".ckpt")
+
+            # return the index to 0
+            self.get_data.batch_index = 0
+
+        self.saver.save(self.sess, "models/"+self.modelname+".ckpt")
+
+    def add_tensorboard_values(self):
+
+        #***********************************
+        # ..................................
+        # ..........test set...............
+        # ..................................
+        #***********************************
+        # view the mean squared error of the test data
+        batch_x_test, batch_y_test = self.get_data.evaluate_on_test_data()
+
+
+        #---------------------------------
+        # -------phase curve loss---------
+        #---------------------------------
+        print("Phasecurve test MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_phasecurve_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
+        summ = self.sess.run(self.tf_loggers["test_mse_tb_phasecurve"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+        # ---------------------------------
+        # ----------fields loss------------
+        # ---------------------------------
+        print("fields test MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_fields_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
+        summ = self.sess.run(self.tf_loggers["test_mse_tb_fields"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+        # ---------------------------------
+        # --------coef params loss---------
+        # ---------------------------------
+        print("coefs params test MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_coefs_params_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
+        summ = self.sess.run(self.tf_loggers["test_mse_tb_coefs_params"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+
+        #***********************************
+        # ..................................
+        # ..........train set................
+        # ..................................
+        #***********************************
+        # view the mean squared error of the train data
+        batch_x_train, batch_y_train = self.get_data.evaluate_on_train_data(samples=500)
+
+        # ----------------------------------------
+        # ----------phase curve loss--------------
+        # ----------------------------------------
+        print("Phasecurve train MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_phasecurve_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
+        summ = self.sess.run(self.tf_loggers["train_mse_tb_phasecurve"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+
+        #----------------------------------------
+        # ----------fields loss------------------
+        #----------------------------------------
+        print("fields train MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_fields_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
+        summ = self.sess.run(self.tf_loggers["train_mse_tb_fields"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+        #-----------------------------------------
+        # -----------coef params loss--------------
+        #-----------------------------------------
+        print("coefs params train MSE: ", self.sess.run(self.nn_nodes["supervised"]["phase_network_coefs_params_loss"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
+        summ = self.sess.run(self.tf_loggers["train_mse_tb_coefs_params"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+        self.writer.add_summary(summ, global_step=self.epoch)
+
+        # ..................................
+        # .....write to tensorboard.........
+        # ..................................
+        self.writer.flush()
+
+    def show_loading_bar(self):
+        # display loading bar
+        percent = 50 * self.get_data.batch_index / self.get_data.samples
+        if percent - self.dots > 1:
+            print(".", end="", flush=True)
+            self.dots += 1
+
+    def update_plots(self):
+
+        # def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes):
+        batch_x_train, batch_y_train = self.get_data.evaluate_on_train_data(samples=500)
+        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 1, 2], set='train_data_1',
+                              axes=self.axes["trainplot1"], figure=self.axes["trainfig1"])
+        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[3, 4, 5], set='train_data_2',
+                              axes=self.axes["trainplot2"], figure=self.axes["trainfig2"])
+
+        batch_x_test, batch_y_test = self.get_data.evaluate_on_test_data()
+        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2], set='test_data_1',
+                              axes=self.axes["trainplot3"], figure=self.axes["trainfig3"])
+        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5], set='test_data_2',
+                              axes=self.axes["trainplot4"], figure=self.axes["trainfig4"])
+
+        plt.show()
+        plt.pause(0.001)
+
+    def plot_predictions(self, x_in, y_in, indexes, set, axes, figure):
+        # def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess):
+        # get find where in the vector is the ir and xuv
+        print("plot predicitons")
+        K_values = phase_parameters.params.K
+        tau_values = phase_parameters.params.delay_values
+
+        for j, index in enumerate(indexes):
+
+            mse = self.sess.run(self.nn_nodes["supervised"]["phase_network_fields_loss"],
+                                    feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1),
+                                    self.nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
+
+            # get the actual fields
+            actual_xuv_field = self.sess.run(self.nn_nodes["supervised"]["supervised_label_fields"]["xuv_E_prop"]["f_cropped"],
+                                    feed_dict={self.nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
+
+            actual_ir_field = self.sess.run(self.nn_nodes["supervised"]["supervised_label_fields"]["ir_E_prop"]["f_cropped"],
+                                    feed_dict={self.nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
+
+            # get the predicted fields
+            predicted_xuv_field = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                                    feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
+
+            predicted_ir_field = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],
+                                    feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
+
+            actual_xuv_field = actual_xuv_field.reshape(-1)
+            actual_ir_field = actual_ir_field.reshape(-1)
+            predicted_xuv_field = predicted_xuv_field.reshape(-1)
+            predicted_ir_field = predicted_ir_field.reshape(-1)
+
+            # calculate generated streaking trace
+            generated_trace = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
+                                    feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
+
+            axes[j]['input_trace'].cla()
+            axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(K_values), len(tau_values)), cmap='jet')
+            axes[j]['input_trace'].text(0.0, 1.0, 'input_trace', transform=axes[j]['input_trace'].transAxes,backgroundcolor='white')
+            axes[j]['input_trace'].set_xticks([])
+            axes[j]['input_trace'].set_yticks([])
+
+            axes[j]['actual_xuv'].cla()
+            axes[j]['actual_xuv_twinx'].cla()
+            axes[j]['actual_xuv'].plot(np.real(actual_xuv_field), color='blue', alpha=0.3)
+            axes[j]['actual_xuv'].plot(np.imag(actual_xuv_field), color='red', alpha=0.3)
+            axes[j]['actual_xuv'].plot(np.abs(actual_xuv_field), color='black')
+            # plot the phase
+            axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(actual_xuv_field)), color='green')
+            axes[j]['actual_xuv_twinx'].tick_params(axis='y', colors='green')
+            axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
+            axes[j]['actual_xuv'].set_xticks([])
+            axes[j]['actual_xuv'].set_yticks([])
+
+            axes[j]['predict_xuv'].cla()
+            axes[j]['predict_xuv_twinx'].cla()
+            axes[j]['predict_xuv'].plot(np.real(predicted_xuv_field), color='blue', alpha=0.3)
+            axes[j]['predict_xuv'].plot(np.imag(predicted_xuv_field), color='red', alpha=0.3)
+            axes[j]['predict_xuv'].plot(np.abs(predicted_xuv_field), color='black')
+            #plot the phase
+            axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(predicted_xuv_field)), color='green')
+            axes[j]['predict_xuv_twinx'].tick_params(axis='y', colors='green')
+            axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+            axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
+                                        transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
+            axes[j]['predict_xuv'].set_xticks([])
+            axes[j]['predict_xuv'].set_yticks([])
+
+            axes[j]['actual_ir'].cla()
+            axes[j]['actual_ir'].plot(np.real(actual_ir_field), color='blue')
+            axes[j]['actual_ir'].plot(np.imag(actual_ir_field), color='red')
+            axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
+
+            if j == 0:
+
+                axes[j]['actual_ir'].text(0.5, 1.25, self.modelname, transform=axes[j]['actual_ir'].transAxes,
+                                          backgroundcolor='white')
+
+                axes[j]['actual_ir'].text(0.5, 1.1, set, transform=axes[j]['actual_ir'].transAxes,
+                                          backgroundcolor='white')
+
+            axes[j]['actual_ir'].set_xticks([])
+            axes[j]['actual_ir'].set_yticks([])
+
+            axes[j]['predict_ir'].cla()
+            axes[j]['predict_ir'].plot(np.real(predicted_ir_field), color='blue')
+            axes[j]['predict_ir'].plot(np.imag(predicted_ir_field), color='red')
+            axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
+            axes[j]['predict_ir'].set_xticks([])
+            axes[j]['predict_ir'].set_yticks([])
+
+            axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
+            axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
+            axes[j]['reconstruct'].set_xticks([])
+            axes[j]['reconstruct'].set_yticks([])
+
+            # save image
+            dir = "./nnpictures/" + self.modelname + "/" + set + "/"
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
+            figure.savefig(dir + str(self.epoch) + ".png")
 
 
 class GetData():
@@ -166,146 +507,6 @@ def separate_xuv_ir_vec(xuv_ir_vec):
     return xuv, ir
 
 
-def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess):
-
-    # get find where in the vector is the ir and xuv
-
-    print("plot predicitons")
-    K_values = phase_parameters.params.K
-    tau_values = phase_parameters.params.delay_values
-
-
-    for j, index in enumerate(indexes):
-
-        mse = sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
-                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1),
-                                  nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
-
-        # get the actual fields
-        actual_xuv_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["xuv_E_prop"]["f_cropped"],
-                       feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
-
-        actual_ir_field = sess.run(nn_nodes["supervised"]["supervised_label_fields"]["ir_E_prop"]["f_cropped"],
-                       feed_dict={nn_nodes["supervised"]["actual_coefs_params"]: y_in[index].reshape(1, -1)})
-
-        # get the predicted fields
-        predicted_xuv_field = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],
-                                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
-
-        predicted_ir_field = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],
-                                       feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
-
-        actual_xuv_field = actual_xuv_field.reshape(-1)
-        actual_ir_field = actual_ir_field.reshape(-1)
-        predicted_xuv_field = predicted_xuv_field.reshape(-1)
-        predicted_ir_field = predicted_ir_field.reshape(-1)
-
-        # calculate generated streaking trace
-        generated_trace = sess.run(nn_nodes["general"]["reconstructed_trace"],
-                                   feed_dict={nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
-
-
-        axes[j]['input_trace'].cla()
-        axes[j]['input_trace'].pcolormesh(x_in[index].reshape(len(K_values), len(tau_values)), cmap='jet')
-        axes[j]['input_trace'].text(0.0, 1.0, 'input_trace', transform=axes[j]['input_trace'].transAxes,backgroundcolor='white')
-        axes[j]['input_trace'].set_xticks([])
-        axes[j]['input_trace'].set_yticks([])
-
-        axes[j]['actual_xuv'].cla()
-        axes[j]['actual_xuv_twinx'].cla()
-        axes[j]['actual_xuv'].plot(np.real(actual_xuv_field), color='blue', alpha=0.3)
-        axes[j]['actual_xuv'].plot(np.imag(actual_xuv_field), color='red', alpha=0.3)
-        axes[j]['actual_xuv'].plot(np.abs(actual_xuv_field), color='black')
-        # plot the phase
-        axes[j]['actual_xuv_twinx'].plot(np.unwrap(np.angle(actual_xuv_field)), color='green')
-        axes[j]['actual_xuv_twinx'].tick_params(axis='y', colors='green')
-        axes[j]['actual_xuv'].text(0.0,1.0, 'actual_xuv', transform=axes[j]['actual_xuv'].transAxes, backgroundcolor='white')
-        axes[j]['actual_xuv'].set_xticks([])
-        axes[j]['actual_xuv'].set_yticks([])
-
-        axes[j]['predict_xuv'].cla()
-        axes[j]['predict_xuv_twinx'].cla()
-        axes[j]['predict_xuv'].plot(np.real(predicted_xuv_field), color='blue', alpha=0.3)
-        axes[j]['predict_xuv'].plot(np.imag(predicted_xuv_field), color='red', alpha=0.3)
-        axes[j]['predict_xuv'].plot(np.abs(predicted_xuv_field), color='black')
-        #plot the phase
-        axes[j]['predict_xuv_twinx'].plot(np.unwrap(np.angle(predicted_xuv_field)), color='green')
-        axes[j]['predict_xuv_twinx'].tick_params(axis='y', colors='green')
-        axes[j]['predict_xuv'].text(0.0, 1.0, 'predict_xuv', transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
-        axes[j]['predict_xuv'].text(-0.4, 0, 'MSE: {} '.format(str(mse)),
-                                   transform=axes[j]['predict_xuv'].transAxes, backgroundcolor='white')
-        axes[j]['predict_xuv'].set_xticks([])
-        axes[j]['predict_xuv'].set_yticks([])
-
-        axes[j]['actual_ir'].cla()
-        axes[j]['actual_ir'].plot(np.real(actual_ir_field), color='blue')
-        axes[j]['actual_ir'].plot(np.imag(actual_ir_field), color='red')
-        axes[j]['actual_ir'].text(0.0, 1.0, 'actual_ir', transform=axes[j]['actual_ir'].transAxes, backgroundcolor='white')
-
-        if j == 0:
-
-            axes[j]['actual_ir'].text(0.5, 1.25, net_name, transform=axes[j]['actual_ir'].transAxes,
-                                      backgroundcolor='white')
-
-            axes[j]['actual_ir'].text(0.5, 1.1, set, transform=axes[j]['actual_ir'].transAxes,
-                                      backgroundcolor='white')
-
-        axes[j]['actual_ir'].set_xticks([])
-        axes[j]['actual_ir'].set_yticks([])
-
-        axes[j]['predict_ir'].cla()
-        axes[j]['predict_ir'].plot(np.real(predicted_ir_field), color='blue')
-        axes[j]['predict_ir'].plot(np.imag(predicted_ir_field), color='red')
-        axes[j]['predict_ir'].text(0.0, 1.0, 'predict_ir', transform=axes[j]['predict_ir'].transAxes,backgroundcolor='white')
-        axes[j]['predict_ir'].set_xticks([])
-        axes[j]['predict_ir'].set_yticks([])
-
-
-
-        axes[j]['reconstruct'].pcolormesh(generated_trace,cmap='jet')
-        axes[j]['reconstruct'].text(0.0, 1.0, 'reconstructed_trace', transform=axes[j]['reconstruct'].transAxes,backgroundcolor='white')
-        axes[j]['reconstruct'].set_xticks([])
-        axes[j]['reconstruct'].set_yticks([])
-
-
-
-
-        # save image
-        dir = "./nnpictures/" + modelname + "/" + set + "/"
-        if not os.path.isdir(dir):
-            os.makedirs(dir)
-        figure.savefig(dir + str(epoch) + ".png")
-
-
-def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes):
-
-    batch_x_train, batch_y_train = data_obj.evaluate_on_train_data(samples=500)
-    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 1, 2],
-                      axes=axes["trainplot1"], figure=axes["trainfig1"], epoch=epoch, set='train_data_1',
-                      net_name=modelname, nn_nodes=nn_nodes, sess=sess)
-
-
-    plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[3, 4, 5],
-                     axes=axes["trainplot2"], figure=axes["trainfig2"], epoch=epoch, set='train_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
-
-
-
-    batch_x_test, batch_y_test = data_obj.evaluate_on_test_data()
-    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2],
-                     axes=axes["testplot1"], figure=axes["testfig1"], epoch=epoch, set='test_data_1',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
-
-
-    plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5],
-                     axes=axes["testplot2"], figure=axes["testfig2"], epoch=epoch, set='test_data_2',
-                     net_name=modelname, nn_nodes=nn_nodes, sess=sess)
-
-
-    plt.show()
-    plt.pause(0.001)
-
-
 def init_tf_loggers(nn_nodes):
 
     test_mse_tb_phasecurve = tf.summary.scalar("test_mse_phasecurve", nn_nodes["supervised"]["phase_network_phasecurve_loss"])
@@ -326,109 +527,6 @@ def init_tf_loggers(nn_nodes):
     tf_loggers["train_mse_tb_coefs_params"] = train_mse_tb_coefs_params
 
     return tf_loggers
-
-
-def add_tensorboard_values(nn_nodes, tf_loggers):
-
-
-    #***********************************
-    # ..................................
-    # ..........test set...............
-    # ..................................
-    #***********************************
-    # view the mean squared error of the test data
-    batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
-
-
-    #---------------------------------
-    # -------phase curve loss---------
-    #---------------------------------
-    print("Phasecurve test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_phasecurve_loss"],
-                                        feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                                                   nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
-    summ = sess.run(tf_loggers["test_mse_tb_phasecurve"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
-    writer.add_summary(summ, global_step=i + 1)
-
-    # ---------------------------------
-    # ----------fields loss------------
-    # ---------------------------------
-    print("fields test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
-                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
-    summ = sess.run(tf_loggers["test_mse_tb_fields"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
-    writer.add_summary(summ, global_step=i + 1)
-
-    # ---------------------------------
-    # --------coef params loss---------
-    # ---------------------------------
-    print("coefs params test MSE: ", sess.run(nn_nodes["supervised"]["phase_network_coefs_params_loss"],
-                                 feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                                            nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test}))
-    summ = sess.run(tf_loggers["test_mse_tb_coefs_params"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_test,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
-    writer.add_summary(summ, global_step=i + 1)
-
-
-    #***********************************
-    # ..................................
-    # ..........train set................
-    # ..................................
-    #***********************************
-    # view the mean squared error of the train data
-    batch_x_train, batch_y_train = get_data.evaluate_on_train_data(samples=500)
-
-    # ----------------------------------------
-    # ----------phase curve loss--------------
-    # ----------------------------------------
-    print("Phasecurve train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_phasecurve_loss"],
-                                         feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                                                    nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
-    summ = sess.run(tf_loggers["train_mse_tb_phasecurve"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
-    writer.add_summary(summ, global_step=i + 1)
-
-
-    #----------------------------------------
-    # ----------fields loss------------------
-    #----------------------------------------
-    print("fields train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_fields_loss"],
-                                        feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                                                   nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
-    summ = sess.run(tf_loggers["train_mse_tb_fields"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
-    writer.add_summary(summ, global_step=i + 1)
-
-    #-----------------------------------------
-    # -----------coef params loss--------------
-    #-----------------------------------------
-    print("coefs params train MSE: ", sess.run(nn_nodes["supervised"]["phase_network_coefs_params_loss"],
-                                              feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                                                         nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train}))
-    summ = sess.run(tf_loggers["train_mse_tb_coefs_params"],
-                    feed_dict={nn_nodes["supervised"]["x_in"]: batch_x_train,
-                               nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
-    writer.add_summary(summ, global_step=i + 1)
-
-    # ..................................
-    # .....write to tensorboard.........
-    # ..................................
-    writer.flush()
-
-
-def show_loading_bar(dots):
-    # display loading bar
-    percent = 50 * get_data.batch_index / get_data.samples
-    if percent - dots > 1:
-        print(".", end="", flush=True)
-        dots += 1
-    return dots
 
 
 def create_sample_plot(samples_per_plot=3):
@@ -506,7 +604,6 @@ def convolutional_layer(input_x, shape, activate, stride):
 
     elif activate == 'none':
         return conv2d(input_x, W, stride) + b
-
 
 
 def gan_network(input):
@@ -861,124 +958,9 @@ def setup_neural_net():
 
 if __name__ == "__main__":
 
-    # build neural net graph
-    nn_nodes = setup_neural_net()
+    phase_net_train = PhaseNetTrain()
+    phase_net_train.supervised_learn()
 
-    # test_generate_data(nn_nodes)
-
-    print("built neural net")
-
-    # init data object
-    get_data = GetData(batch_size=10)
-
-    # initialize mse tracking objects
-    tf_loggers = init_tf_loggers(nn_nodes)
-
-
-    # saver and set epoch number to run
-    saver = tf.train.Saver()
-    epochs = 900000
-
-    # set the name of the neural net test run and save the settigns
-    modelname = 'test1a'
-
-    print('starting ' + modelname)
-
-    shutil.copyfile('./network3.py', './models/network3_{}.py'.format(modelname))
-
-    # create figures for showing results
-    axes = {}
-
-    axes["testplot1"], axes["testfig1"]= create_sample_plot()
-    axes["testplot2"], axes["testfig2"]= create_sample_plot()
-
-    axes["trainplot1"], axes["trainfig1"]= create_sample_plot()
-    axes["trainplot2"], axes["trainfig2"]= create_sample_plot()
-
-    plt.ion()
-
-    init = tf.global_variables_initializer()
-    with tf.Session() as sess:
-        sess.run(init)
-
-        writer = tf.summary.FileWriter("./tensorboard_graph/" + modelname)
-
-        for i in range(epochs):
-            print("Epoch : {}".format(i + 1))
-
-            # iterate through every sample in the training set
-            dots = 0
-            alternate_training_counter = 0
-            while get_data.batch_index < get_data.samples:
-
-                dots = show_loading_bar(dots)
-
-                # retrieve data
-                batch_x, batch_y = get_data.next_batch()
-
-                if i < 15:
-                    # train with only coefficients first
-                    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
-                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                        nn_nodes["general"]["hold_prob"]: 0.8,
-                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-
-                else:
-                    # train with fields
-                    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
-                             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                        nn_nodes["general"]["hold_prob"]: 0.8,
-                                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-
-                    ## alternate between all three cost functions
-                    #if alternate_training_counter == 0:
-                    #    # train with coefficients
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter+=1
-
-                    #elif alternate_training_counter == 1:
-                    #    # train with fields
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter += 1
-
-                    #elif alternate_training_counter == 2:
-                    #    # train with phase curve
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter = 0
-
-            print("")
-
-            add_tensorboard_values(nn_nodes, tf_loggers)
-
-            # every x steps plot predictions
-            if (i + 1) % 20 == 0 or (i + 1) <= 15:
-                # update the plot
-
-                update_plots(data_obj=get_data, sess=sess, nn_nodes=nn_nodes, modelname=modelname,
-                             epoch=i+1, axes=axes)
-
-
-                # save model
-                saver.save(sess, "models/" + modelname + ".ckpt")
-
-            # return the index to 0
-            get_data.batch_index = 0
-
-        saver.save(sess, "models/" + modelname + ".ckpt")
 
 
 
