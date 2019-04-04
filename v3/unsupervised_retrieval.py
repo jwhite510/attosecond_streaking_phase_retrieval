@@ -441,6 +441,24 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
         if cost_function == "autocorrelation":
             red_text(axes["generated_auto_trace"], (1.0, 1.0), "C")
 
+    # xuv f
+    fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
+    axes["predicted_xuv"].plot(fmat_hz, np.abs(xuv_f) ** 2, color="black")
+    axes["predicted_xuv"].set_yticks([])
+    axes["predicted_xuv"].set_xlabel("Frequency [$10^{17}$Hz]")
+    # plotting photon spectrum
+    axes["predicted_xuv"].plot(fmat_hz, np.abs(spectrum.Ef_photon[spectrum.indexmin:spectrum.indexmax]) ** 2, color="blue")
+
+
+    if true_fields:
+        axes["predicted_xuv_phase"].text(0.0, 1.1, "actual XUV spectrum", backgroundcolor="white",
+                                         transform=axes["predicted_xuv_phase"].transAxes)
+    else:
+        axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted XUV spectrum", backgroundcolor="white",
+                                         transform=axes["predicted_xuv_phase"].transAxes)
+
+    axes["predicted_xuv_phase"].tick_params(axis='y', colors='green')
+    axes["predicted_xuv_phase"].plot(fmat_hz, np.unwrap(np.angle(xuv_f)), color="green")
 
 
     # xuv predicted
@@ -462,26 +480,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
                                      transform=axes["predicted_xuv_t"].transAxes)
     else:
         axes["predicted_xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
-                                         transform=axes["predicted_xuv_t"].transAxes)
-
-
-    # xuv f
-    fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
-    axes["predicted_xuv"].plot(fmat_hz, np.abs(xuv_f) ** 2, color="black")
-    axes["predicted_xuv"].set_yticks([])
-    axes["predicted_xuv"].set_xlabel("Frequency [$10^{17}$Hz]")
-
-    if true_fields:
-        axes["predicted_xuv_phase"].text(0.0, 1.1, "actual XUV spectrum", backgroundcolor="white",
-                                         transform=axes["predicted_xuv_phase"].transAxes)
-    else:
-        axes["predicted_xuv_phase"].text(0.0, 1.1, "predicted XUV spectrum", backgroundcolor="white",
-                                         transform=axes["predicted_xuv_phase"].transAxes)
-
-    axes["predicted_xuv_phase"].tick_params(axis='y', colors='green')
-    axes["predicted_xuv_phase"].plot(fmat_hz, np.unwrap(np.angle(xuv_f)), color="green")
-
-
+                                     transform=axes["predicted_xuv_t"].transAxes)
 
     # ir predicted
     fmat_ir_hz = ir_spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-14
