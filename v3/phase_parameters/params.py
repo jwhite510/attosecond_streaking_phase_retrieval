@@ -42,7 +42,8 @@ Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 # sample = 2
 delay_values = measured_trace.delay
-delay_values_fs = delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15
+# delay_values_fs = delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15
+delay_values_fs = delay_values * 1e15
 K = measured_trace.energy
 
 # define delay values
