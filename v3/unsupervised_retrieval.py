@@ -13,7 +13,216 @@ from ir_spectrum import ir_spectrum
 import glob
 import pickle
 import tf_functions
-import measured_trace.get_trace as measured_trace
+import measured_trace.get_trace as get_measured_trace
+
+
+class UnsupervisedRetrieval:
+
+    def __init__(self):
+
+        self.run_name = "sample3"
+        self.iterations = 2500
+
+        #===================
+        #==Retrieval Type===
+        #===================
+        self.retrieval = "normal"
+        #self.retrieval = "autocorrelation"
+        #self.retrieval = "proof"
+
+        self.run_name = self.run_name + self.retrieval
+
+        # copy the model to a new version to use for unsupervised learning
+        self.modelname = "test1_sample3"
+        for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
+            file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
+            shutil.copy(file, file_newname)
+
+        # get the measured trace
+        # _, _, measured_trace = get_measured_trace()
+        _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
+
+        # get "measured" trace
+        # self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
+        # plt.show()
+
+        # build neural net graph
+        self.nn_nodes = network3.setup_neural_net()
+
+        # create mse measurer
+        self.writer = tf.summary.FileWriter("./tensorboard_graph_u/" + self.run_name)
+        if self.retrieval == "normal":
+            self.unsupervised_mse_tb = tf.summary.scalar("trace_mse",
+                                self.nn_nodes["unsupervised"]["unsupervised_learning_loss"])
+
+        elif self.retrieval == "proof":
+            self.unsupervised_mse_tb = tf.summary.scalar("trace_mse",
+                                self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"])
+
+        elif self.retrieval == "autocorrelation":
+            self.unsupervised_mse_tb = tf.summary.scalar("trace_mse",
+                                self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"])
+
+        else:
+            self.unsupervised_mse_tb = None
+
+        # init data object
+        self.get_data = network3.GetData(batch_size=10)
+
+        self.axes = create_plot_axes()
+
+        self.sess = tf.Session()
+
+        self.c_iteration = 0
+
+        # =================================================
+        # check the measured and training data proof traces
+        # =================================================
+        # with tf.Session() as sess:
+        #
+        #     # get a sample trace
+        #     batch_x, batch_y = get_data.next_batch()
+        #     trace_sample = batch_x[0].reshape(len(streak_params["p_values"]), len(streak_params["tau_values"]))
+        #
+        #     show_proof_calculation(trace=trace_sample, sess=sess, nn_nodes=nn_nodes)
+        #     show_proof_calculation(trace=measured_trace, sess=sess, nn_nodes=nn_nodes)
+        #
+        #     plt.show()
+        #
+        #
+        # exit(0)
+
+    def retrieve(self):
+
+
+        saver = tf.train.Saver()
+        saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname+'_unsupervised'))
+
+        # get the initial output
+        reconstruced = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
+                                feed_dict={self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)})
+
+        plt.ion()
+        for i in range(self.iterations):
+            self.c_iteration = i + 1
+
+            if i % 10 == 0 or i == (self.iterations-1):
+
+                print(i)
+                # get MSE between traces
+                summ = self.sess.run(self.unsupervised_mse_tb,
+                                feed_dict={self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)})
+                self.writer.add_summary(summ, global_step=i + 1)
+                self.writer.flush()
+
+            if i % 500 == 0 or i == (self.iterations-1):
+                # update plots
+                self.update_plots()
+
+            # train neural network
+            if self.retrieval == "normal":
+                #========================
+                #=========regular========
+                #========================
+                self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_train"],
+                         feed_dict={
+                             self.nn_nodes["unsupervised"]["u_LR"]: 0.00001,
+                             self.nn_nodes["unsupervised"]["x_in"]: self.measured_trace.reshape(1, -1),
+                         })
+
+            elif self.retrieval == "proof":
+                # ========================
+                # =========proof==========
+                # ========================
+                self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"],
+                         feed_dict={
+                             self.nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
+                             self.nn_nodes["unsupervised"]["proof"]["x_in"]: self.measured_trace.reshape(1, -1),
+                         })
+
+            elif self.retrieval == "autocorrelation":
+                # ========================
+                # =========proof==========
+                # ========================
+                self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"],
+                         feed_dict={
+                             self.nn_nodes["unsupervised"]["autocorrelate"]["u_LR"]: 0.00001,
+                             self.nn_nodes["unsupervised"]["autocorrelate"]["x_in"]: self.measured_trace.reshape(1, -1),
+                         })
+
+            # ========================
+            # =========supervised=====
+            # ========================
+            # retrieve data
+            #if get_data.batch_index >= get_data.samples:
+            #    get_data.batch_index = 0
+            #batch_x, batch_y = get_data.next_batch()
+            #sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
+            #         feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
+            #                    nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+            #                    nn_nodes["general"]["hold_prob"]: 0.8,
+            #                    nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+    def update_plots(self):
+
+        feed_dict = {self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)}
+
+        ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
+        xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
+        xuv_t = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
+
+        #================================================
+        #==================INPUT TRACES==================
+        #================================================
+
+        # calculate INPUT Autocorrelation from input image
+        input_auto = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=feed_dict)
+
+        # calculate INPUT PROOF trace from input image
+        input_proof = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=feed_dict)
+
+        #================================================
+        #==================MEASURED TRACES===============
+        #================================================
+
+        # reconstructed regular trace from input image
+        reconstructed = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
+
+        # calculate reconstructed proof trace
+        reconstructed_proof = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=feed_dict)
+
+        # calculate reconstructed autocorrelation trace
+        reconstruced_auto = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=feed_dict)
+
+        # measured/calculated from input traces
+        input_traces = dict()
+        input_traces["measured_trace"] = self.measured_trace
+        input_traces["input_auto"] = input_auto
+        input_traces["input_proof"] = input_proof
+
+        # reconstruction traces
+        recons_traces = dict()
+        recons_traces["reconstructed"] = reconstructed
+        recons_traces["reconstructed_proof"] = reconstructed_proof
+        recons_traces["reconstruced_auto"] = reconstruced_auto
+
+        if self.retrieval == "normal":
+            plot_images_fields(axes=self.axes, traces_meas=input_traces["measured_trace"], traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
+                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
+            plt.pause(0.00001)
+
+        elif self.retrieval == "proof":
+
+            plot_images_fields(axes=self.axes, traces_meas=input_traces["input_proof"], traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
+                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
+            plt.pause(0.00001)
+
+        elif self.retrieval == "autocorrelation":
+
+            plot_images_fields(axes=self.axes, traces_meas=input_traces["input_auto"], traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
+                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
+            plt.pause(0.00001)
+
 
 def apply_noise(trace, counts):
 
@@ -298,67 +507,6 @@ def show_proof_calculation(trace, sess, nn_nodes):
     ax.pcolormesh(out["proof"])
 
 
-def update_plots(sess, nn_nodes, axes, measured_trace, i, retrieval, run_name):
-     
-    feed_dict = {nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)}
-     
-    ir_f = sess.run(nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
-    xuv_f = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
-    xuv_t = sess.run(nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
-
-    #================================================
-    #==================INPUT TRACES==================
-    #================================================
-
-    # calculate INPUT Autocorrelation from input image
-    input_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=feed_dict)
-
-    # calculate INPUT PROOF trace from input image
-    input_proof = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=feed_dict)
-
-    #================================================
-    #==================MEASURED TRACES===============
-    #================================================
-    
-    # reconstructed regular trace from input image
-    reconstructed = sess.run(nn_nodes["general"]["reconstructed_trace"],feed_dict=feed_dict)
-
-    # calculate reconstructed proof trace
-    reconstructed_proof = sess.run(nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=feed_dict)
-
-    # calculate reconstructed autocorrelation trace
-    reconstruced_auto = sess.run(nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=feed_dict)
-
-    # measured/calculated from input traces
-    input_traces = dict()
-    input_traces["measured_trace"] = measured_trace
-    input_traces["input_auto"] = input_auto
-    input_traces["input_proof"] = input_proof
-
-    # reconstruction traces
-    recons_traces = dict()
-    recons_traces["reconstructed"] = reconstructed
-    recons_traces["reconstructed_proof"] = reconstructed_proof
-    recons_traces["reconstruced_auto"] = reconstruced_auto
-
-    if retrieval == "normal":
-        plot_images_fields(axes=axes, traces_meas=input_traces["measured_trace"], traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
-                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
-        plt.pause(0.00001)
-
-    elif retrieval == "proof":
-
-        plot_images_fields(axes=axes, traces_meas=input_traces["input_proof"], traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
-                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
-        plt.pause(0.00001)
-
-    elif retrieval == "autocorrelation":
-
-        plot_images_fields(axes=axes, traces_meas=input_traces["input_auto"], traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
-                            xuv_t=xuv_t, ir_f=ir_f, i=i, trace_yaxis=params.K, run_name=run_name)
-        plt.pause(0.00001)
-
-
 def create_plot_axes():
 
     fig = plt.figure(figsize=(8,7))
@@ -383,143 +531,8 @@ def create_plot_axes():
 
 if __name__ == "__main__":
 
-    run_name = "sample3"
-    iterations = 2500
-
-    #===================
-    #==Retrieval Type===
-    #===================
-    retrieval = "normal"
-    #retrieval = "autocorrelation"
-    #retrieval = "proof"
-
-    run_name = run_name + retrieval
-
-    # copy the model to a new version to use for unsupervised learning
-    modelname = "test1_sample3"
-    for file in glob.glob(r'./models/{}.ckpt.*'.format(modelname)):
-        file_newname = file.replace(modelname, modelname+'_unsupervised')
-        shutil.copy(file, file_newname)
-
-    # get the measured trace
-    # _, _, measured_trace = get_measured_trace()
-    _, _, measured_trace = measured_trace.delay, measured_trace.energy, measured_trace.trace
-
-    # get "measured" trace
-    # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=run_name)
-    # plt.show()
-
-
-    # build neural net graph
-    nn_nodes = network3.setup_neural_net()
-
-    # create mse measurer
-    writer = tf.summary.FileWriter("./tensorboard_graph_u/" + run_name)
-    if retrieval == "normal":
-        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["unsupervised_learning_loss"])
-    elif retrieval == "proof":
-        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"])
-    elif retrieval == "autocorrelation":
-        unsupervised_mse_tb = tf.summary.scalar("trace_mse", nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"])
-    else:
-        unsupervised_mse_tb = None
-
-    # init data object
-    get_data = network3.GetData(batch_size=10)
-
-
-    axes = create_plot_axes()
-
-
-    # =================================================
-    # check the measured and training data proof traces
-    # =================================================
-    # with tf.Session() as sess:
-    #
-    #     # get a sample trace
-    #     batch_x, batch_y = get_data.next_batch()
-    #     trace_sample = batch_x[0].reshape(len(streak_params["p_values"]), len(streak_params["tau_values"]))
-    #
-    #     show_proof_calculation(trace=trace_sample, sess=sess, nn_nodes=nn_nodes)
-    #     show_proof_calculation(trace=measured_trace, sess=sess, nn_nodes=nn_nodes)
-    #
-    #     plt.show()
-    #
-    #
-    # exit(0)
-    with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, './models/{}.ckpt'.format(modelname+'_unsupervised'))
-
-        # get the initial output
-        reconstruced = sess.run(nn_nodes["general"]["reconstructed_trace"],
-                                feed_dict={nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)})
-
-        plt.ion()
-        for i in range(iterations):
-
-            if i % 10 == 0 or i == (iterations-1):
-
-                print(i)
-                # get MSE between traces
-                summ = sess.run(unsupervised_mse_tb,
-                                feed_dict={nn_nodes["general"]["x_in"]: measured_trace.reshape(1, -1)})
-                writer.add_summary(summ, global_step=i + 1)
-                writer.flush()
-
-            if i % 500 == 0 or i == (iterations-1):
-                # update plots
-                update_plots(sess=sess, nn_nodes=nn_nodes, axes=axes, measured_trace=measured_trace, i=i+1,
-                             retrieval=retrieval, run_name=run_name)
-
-            # train neural network
-            if retrieval == "normal":
-                #========================
-                #=========regular========
-                #========================
-                sess.run(nn_nodes["unsupervised"]["unsupervised_train"],
-                         feed_dict={
-                             nn_nodes["unsupervised"]["u_LR"]: 0.00001,
-                             nn_nodes["unsupervised"]["x_in"]: measured_trace.reshape(1, -1),
-                         })
-
-            elif retrieval == "proof":
-                # ========================
-                # =========proof==========
-                # ========================
-                sess.run(nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"],
-                         feed_dict={
-                             nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
-                             nn_nodes["unsupervised"]["proof"]["x_in"]: measured_trace.reshape(1, -1),
-                         })
-
-            elif retrieval == "autocorrelation":
-                # ========================
-                # =========proof==========
-                # ========================
-                sess.run(nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"],
-                         feed_dict={
-                             nn_nodes["unsupervised"]["autocorrelate"]["u_LR"]: 0.00001,
-                             nn_nodes["unsupervised"]["autocorrelate"]["x_in"]: measured_trace.reshape(1, -1),
-                         })
-
-
-
-
-            # ========================
-            # =========supervised=====
-            # ========================
-            # retrieve data
-            #if get_data.batch_index >= get_data.samples:
-            #    get_data.batch_index = 0
-            #batch_x, batch_y = get_data.next_batch()
-            #sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
-            #         feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-            #                    nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-            #                    nn_nodes["general"]["hold_prob"]: 0.8,
-            #                    nn_nodes["supervised"]["s_LR"]: 0.0001})
-
-
+    unsupervised_retrieval = UnsupervisedRetrieval()
+    unsupervised_retrieval.retrieve()
 
 
 
