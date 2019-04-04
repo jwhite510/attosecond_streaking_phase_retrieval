@@ -34,16 +34,17 @@ class UnsupervisedRetrieval:
 
         # copy the model to a new version to use for unsupervised learning
         self.modelname = "test1_sample3"
-        for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
-            file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
-            shutil.copy(file, file_newname)
+        # for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
+        #     file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
+        #     shutil.copy(file, file_newname)
 
         # get the measured trace
         # _, _, measured_trace = get_measured_trace()
-        _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
+        # _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
 
         # get "measured" trace
-        # self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
+        self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
+        exit(0)
         # plt.show()
 
         # build neural net graph
@@ -206,22 +207,25 @@ class UnsupervisedRetrieval:
         recons_traces["reconstructed_proof"] = reconstructed_proof
         recons_traces["reconstruced_auto"] = reconstruced_auto
 
-        if self.retrieval == "normal":
-            plot_images_fields(axes=self.axes, traces_meas=input_traces["measured_trace"], traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
-                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
-            plt.pause(0.00001)
+        # if self.retrieval == "normal":
+        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["measured_trace"],
+        #                        traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
+        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
+        #     plt.pause(0.00001)
 
-        elif self.retrieval == "proof":
+        # elif self.retrieval == "proof":
 
-            plot_images_fields(axes=self.axes, traces_meas=input_traces["input_proof"], traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
-                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
-            plt.pause(0.00001)
+        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["input_proof"],
+        #                        traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
+        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
+        #     plt.pause(0.00001)
 
-        elif self.retrieval == "autocorrelation":
+        # elif self.retrieval == "autocorrelation":
 
-            plot_images_fields(axes=self.axes, traces_meas=input_traces["input_auto"], traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
-                               xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
-            plt.pause(0.00001)
+        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["input_auto"],
+        #                        traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
+        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.delay_values_fs, run_name=self.run_name)
+        #     plt.pause(0.00001)
 
 
 def apply_noise(trace, counts):
@@ -294,9 +298,9 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
 
     if plotting:
         axes = create_plot_axes()
-        plot_images_fields(axes=axes, trace_meas=noisy_trace, trace_reconstructed=trace,
-                           xuv_f=xuv_f, xuv_t=xuv_t, ir_f=ir_f, i=None, trace_yaxis=params.K,
-                           run_name=None, true_fields=True)
+        plot_images_fields(axes=axes, traces_meas=noise_traces, traces_reconstructed=traces,
+                           xuv_f=xuv_f, xuv_t=xuv_t, ir_f=ir_f, i=None,
+                           run_name=None, true_fields=True, cost_function="trace")
 
         # save files
         dir = "./unsupervised_retrieval/" + run_name + "/"
@@ -324,66 +328,88 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 
-def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i, trace_yaxis,
-                       run_name, true_fields=False):
-
-    # trace_meas = traces_meas["measured_trace"]
-    # trace_reconstructed = traces_reconstructed["reconstructed"]
-    trace_meas = traces_meas
-    trace_reconstructed = traces_reconstructed
+def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i,
+                       run_name, true_fields=False, cost_function=None):
 
     # ...........................
     # ........CLEAR AXES.........
     # ...........................
     # input trace
-    axes["input_trace"].cla()
-    # xuv predicted
-    axes["predicted_xuv_t"].cla()
-    axes["predicted_xuv"].cla()
-    axes["predicted_xuv_phase"].cla()
-    # predicted ir
-    axes["predicted_ir"].cla()
-    axes["predicted_ir_phase"].cla()
-    # generated trace
-    axes["generated_trace"].cla()
+    axes["input_normal_trace"].cla()
+    axes["input_proof_trace"].cla()
+    axes["input_auto_trace"].cla()
+    # # xuv predicted
+    # axes["predicted_xuv_t"].cla()
+    # axes["predicted_xuv"].cla()
+    # axes["predicted_xuv_phase"].cla()
+    # # predicted ir
+    # axes["predicted_ir"].cla()
+    # axes["predicted_ir_phase"].cla()
+    # # generated trace
+    # axes["generated_trace"].cla()
     # ...........................
     # .....CALCULATE RMSE........
     # ...........................
-    # calculate rmse for each trace
-
-    #==================================
-    #==================================
-    #==================================
-    #==================================
-
-    # for measured, reconstructed in zip(traces_meas, traces_reconstructed):
-    #     # calculate the rmse for each trace
-    #     trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
-    #                         (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
-
-
     # calculate the rmse for each trace
-    trace_rmse = np.sqrt((1 / len(trace_meas.reshape(-1))) * np.sum(
-        (trace_meas.reshape(-1) - trace_reconstructed.reshape(-1)) ** 2))
-    # ...........................
-    # ........PLOTTING...........
-    # ...........................
+    rmses = dict()
+    for trace_type in ["trace", "autocorrelation", "proof"]:
+        rmse = np.sqrt((1 / len(traces_meas[trace_type].reshape(-1))) * np.sum(
+            (traces_meas[trace_type].reshape(-1) - traces_reconstructed[trace_type].reshape(-1)) ** 2))
+        rmses[trace_type] = rmse
+
+    # .......................................
+    # .......................................
+    # .......................................
+    # ...............PLOTTING................
+    # .......................................
+    # .......................................
+    # .......................................
 
 
-    # input trace
-    axes["input_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_meas, cmap='jet')
-    axes["input_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    # just for testing
+    # cost_function = "autocorrelation"
+    # true_fields = False
 
+    # ..........................................
+    # ...............input traces...............
+    # ..........................................
+    # axes["input_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_meas, cmap='jet')
+    axes["input_normal_trace"].pcolormesh(params.delay_values_fs, params.K, traces_meas["trace"], cmap='jet')
+    axes["input_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["input_normal_trace"].set_ylabel("Energy [eV]")
     if true_fields:
-        axes["input_trace"].text(0.0, 1.0, "noisy_trace", backgroundcolor="white",
-                                 transform=axes["input_trace"].transAxes)
-        axes["input_trace"].text(0.5, 1.1, "Actual Fields", backgroundcolor="yellow", ha="center",
-                                 transform=axes["input_trace"].transAxes)
+        normal_text(axes["input_normal_trace"], (0.0, 1.0), "noisy trace")
     else:
-        axes["input_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
-                                 transform=axes["input_trace"].transAxes)
-        axes["input_trace"].text(0.5, 1.1, "Unsupervised Learning", backgroundcolor="white", ha="center",
-                                 transform=axes["input_trace"].transAxes)
+        normal_text(axes["input_normal_trace"], (0.0, 1.0), "input trace")
+        if cost_function == "trace":
+            red_text(axes["input_normal_trace"], (1.0, 1.0), "C")
+
+    axes["input_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_meas["proof"], cmap='jet')
+    axes["input_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["input_proof_trace"].set_ylabel("Energy [eV]")
+    if true_fields:
+        normal_text(axes["input_proof_trace"], (0.0, 1.0), "noisy proof trace")
+        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields")
+    else:
+        normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
+        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning")
+        if cost_function == "proof":
+            red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
+
+    axes["input_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_meas["autocorrelation"], cmap='jet')
+    axes["input_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["input_auto_trace"].set_ylabel(r"$\tau$ Delay [fs]")
+    if true_fields:
+        normal_text(axes["input_auto_trace"], (0.0, 1.0), "noisy autocorrelation")
+    else:
+        normal_text(axes["input_auto_trace"], (0.0, 1.0), "input autocorrelation")
+        if cost_function == "autocorrelation":
+            red_text(axes["input_auto_trace"], (1.0, 1.0), "C")
+
+
+    plt.ioff()
+    plt.show()
+    exit(0)
 
 
     # generated trace
@@ -513,8 +539,10 @@ def create_plot_axes():
     fig.subplots_adjust(hspace=0.6, left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
     gs = fig.add_gridspec(3, 3)
 
-    axes_dict = {}
-    axes_dict["input_trace"] = fig.add_subplot(gs[0,:])
+    axes_dict = dict()
+    axes_dict["input_normal_trace"] = fig.add_subplot(gs[0,0])
+    axes_dict["input_proof_trace"] = fig.add_subplot(gs[0,1])
+    axes_dict["input_auto_trace"] = fig.add_subplot(gs[0,2])
 
     axes_dict["predicted_xuv_t"] = fig.add_subplot(gs[1, 2])
 
@@ -524,9 +552,21 @@ def create_plot_axes():
     axes_dict["predicted_ir"] = fig.add_subplot(gs[1,0])
     axes_dict["predicted_ir_phase"] = axes_dict["predicted_ir"].twinx()
 
-    axes_dict["generated_trace"] = fig.add_subplot(gs[2,:])
+    axes_dict["generated_normal_trace"] = fig.add_subplot(gs[2,0])
+    axes_dict["generated_proof_trace"] = fig.add_subplot(gs[2,1])
+    axes_dict["generated_auto_trace"] = fig.add_subplot(gs[2,2])
 
     return axes_dict
+
+
+
+def normal_text(ax, pos, text):
+    ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
+
+
+def red_text(ax, pos, text):
+    ax.text(pos[0], pos[1], text, backgroundcolor="yellow", transform=ax.transAxes, color="red")
+
 
 
 if __name__ == "__main__":
