@@ -373,7 +373,6 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
     # ..........................................
     # ...............input traces...............
     # ..........................................
-    # axes["input_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_meas, cmap='jet')
     axes["input_normal_trace"].pcolormesh(params.delay_values_fs, params.K, traces_meas["trace"], cmap='jet')
     axes["input_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["input_normal_trace"].set_ylabel("Energy [eV]")
@@ -389,7 +388,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
     axes["input_proof_trace"].set_ylabel("Energy [eV]")
     if true_fields:
         normal_text(axes["input_proof_trace"], (0.0, 1.0), "noisy proof trace")
-        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields")
+        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields", ha="center")
     else:
         normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
         normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning")
@@ -406,24 +405,43 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
         if cost_function == "autocorrelation":
             red_text(axes["input_auto_trace"], (1.0, 1.0), "C")
 
-
-    plt.ioff()
-    plt.show()
-    exit(0)
-
-
-    # generated trace
-    axes["generated_trace"].pcolormesh(params.delay_values_fs, trace_yaxis, trace_reconstructed, cmap='jet')
-    axes["generated_trace"].text(0.1, 0.1, "RMSE: {}".format(str(np.round(trace_rmse, 3))),
-                                 transform=axes["generated_trace"].transAxes,
-                                 backgroundcolor="white")
-    axes["generated_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    # ..........................................
+    # ...............generated..................
+    # ..........................................
+    axes["generated_normal_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["trace"], cmap='jet')
+    axes["generated_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["generated_normal_trace"].set_ylabel("Energy [eV]")
+    normal_text(axes["generated_normal_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["trace"])
     if true_fields:
-        axes["generated_trace"].text(0.0, 1.0, "actual_trace", backgroundcolor="white",
-                                     transform=axes["generated_trace"].transAxes)
+        normal_text(axes["generated_normal_trace"], (0.0, 1.0), "actual trace")
     else:
-        axes["generated_trace"].text(0.0, 1.0, "generated_trace", backgroundcolor="white",
-                                     transform=axes["generated_trace"].transAxes)
+        normal_text(axes["generated_normal_trace"], (0.0, 1.0), "generated trace")
+        if cost_function == "trace":
+            red_text(axes["generated_normal_trace"], (1.0, 1.0), "C")
+
+    axes["generated_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["proof"], cmap='jet')
+    axes["generated_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["generated_proof_trace"].set_ylabel("Energy [eV]")
+    normal_text(axes["generated_proof_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["proof"])
+    if true_fields:
+        normal_text(axes["generated_proof_trace"], (0.0, 1.0), "proof trace")
+    else:
+        normal_text(axes["generated_proof_trace"], (0.0, 1.0), "generated proof trace")
+        if cost_function == "proof":
+            red_text(axes["generated_proof_trace"], (1.0, 1.0), "C")
+
+    axes["generated_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_reconstructed["autocorrelation"], cmap='jet')
+    axes["generated_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
+    axes["generated_auto_trace"].set_ylabel(r"$\tau$ Delay [fs]")
+    normal_text(axes["generated_auto_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["autocorrelation"])
+    if true_fields:
+        normal_text(axes["generated_auto_trace"], (0.0, 1.0), "autocorrelation")
+    else:
+        normal_text(axes["generated_auto_trace"], (0.0, 1.0), "generated autocorrelation")
+        if cost_function == "autocorrelation":
+            red_text(axes["generated_auto_trace"], (1.0, 1.0), "C")
+
+
 
     # xuv predicted
     # xuv t
@@ -445,7 +463,6 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
     else:
         axes["predicted_xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
                                          transform=axes["predicted_xuv_t"].transAxes)
-
 
 
     # xuv f
@@ -480,6 +497,9 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
         axes["predicted_ir_phase"].text(0.0, 1.1, "predicted IR spectrum", backgroundcolor="white",
                                         transform=axes["predicted_ir_phase"].transAxes)
 
+    plt.show()
+    exit(0)
+
     # if true fields arent passed as an input
     # retrieval is running, so save images and fields
     if not true_fields:
@@ -496,8 +516,8 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
 
             save_files = {}
             save_files["predicted_fields"] = predicted_fields
-            save_files["trace_meas"] = trace_meas
-            save_files["trace_reconstructed"] = trace_reconstructed
+            save_files["traces_meas"] = traces_meas
+            save_files["traces_reconstructed"] = traces_reconstructed
             save_files["i"] = i
             pickle.dump(save_files, file)
 
@@ -559,9 +579,12 @@ def create_plot_axes():
     return axes_dict
 
 
+def normal_text(ax, pos, text, ha=None):
 
-def normal_text(ax, pos, text):
-    ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
+    if ha is not None:
+        ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes, ha=ha)
+    else:
+        ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
 
 def red_text(ax, pos, text):
