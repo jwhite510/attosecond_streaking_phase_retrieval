@@ -32,7 +32,7 @@ class PhaseNetTrain:
         self.epochs = 900000
 
         # set the name of the neural net test run and save the settigns
-        self.modelname = 'test1a'
+        self.modelname = 'test1awithclasses'
 
         print('starting ' + self.modelname)
 
@@ -243,9 +243,9 @@ class PhaseNetTrain:
 
         batch_x_test, batch_y_test = self.get_data.evaluate_on_test_data()
         self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2], set='test_data_1',
-                              axes=self.axes["trainplot3"], figure=self.axes["trainfig3"])
+                              axes=self.axes["testplot1"], figure=self.axes["testfig1"])
         self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5], set='test_data_2',
-                              axes=self.axes["trainplot4"], figure=self.axes["trainfig4"])
+                              axes=self.axes["testplot2"], figure=self.axes["testfig2"])
 
         plt.show()
         plt.pause(0.001)
