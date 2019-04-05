@@ -254,7 +254,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     tf_graphs["proof_trace"] = proof_trace
     tf_graphs["autocorelation"] = autocorelation
 
-    xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
+    xuv_input = np.array([[0.0, 0.5, 0.0, 0.0, 0.0]])
     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
     with tf.Session() as sess:
@@ -391,6 +391,9 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
         normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning", ha="center")
         if cost_function == "proof":
             red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
+
+    if i is not None:
+        normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
 
     axes["input_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_meas["autocorrelation"], cmap='jet')
     axes["input_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
@@ -605,32 +608,32 @@ if __name__ == "__main__":
     # get "measured" trace
     # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
 
-    run_name = "photon_multi_1"
+    # run_name = "photon_multi_1"
 
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="autocorrelation",
-                                                   modelname="test1_sample3", measured_trace=measured_trace)
-    unsupervised_retrieval.retrieve()
-    del unsupervised_retrieval
-    tf.reset_default_graph()
-
-
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
-                                                   modelname="test1_sample3", measured_trace=measured_trace)
-    unsupervised_retrieval.retrieve()
-    del unsupervised_retrieval
-    tf.reset_default_graph()
+    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="autocorrelation",
+    #                                                modelname="test1_sample3", measured_trace=measured_trace)
+    # unsupervised_retrieval.retrieve()
+    # del unsupervised_retrieval
+    # tf.reset_default_graph()
 
 
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="proof",
-                                                   modelname="test1_sample3", measured_trace=measured_trace)
-    unsupervised_retrieval.retrieve()
-    del unsupervised_retrieval
-    tf.reset_default_graph()
+    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
+    #                                                modelname="test1_sample3", measured_trace=measured_trace)
+    # unsupervised_retrieval.retrieve()
+    # del unsupervised_retrieval
+    # tf.reset_default_graph()
+
+
+    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="proof",
+    #                                                modelname="test1_sample3", measured_trace=measured_trace)
+    # unsupervised_retrieval.retrieve()
+    # del unsupervised_retrieval
+    # tf.reset_default_graph()
 
     # get "measured" trace
-    for counts in [200, 250, 300, 350, 400]:
-        measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name)
-        run_name = "photon_multi_1_"+str(counts)
+    for counts in [200, 300, 400, 500, 600, 700]:
+        run_name = "noise_test"+str(counts)
+        measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"normal")
         unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
                                                        modelname="test1_sample3", measured_trace=measured_trace)
         unsupervised_retrieval.retrieve()
