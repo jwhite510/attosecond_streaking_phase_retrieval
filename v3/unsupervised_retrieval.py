@@ -40,12 +40,11 @@ class UnsupervisedRetrieval:
 
         # get the measured trace
         # _, _, measured_trace = get_measured_trace()
-        # _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
+        _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
 
         # get "measured" trace
-        self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
-        exit(0)
-        # plt.show()
+        # self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
+
 
         # build neural net graph
         self.nn_nodes = network3.setup_neural_net()
@@ -73,6 +72,8 @@ class UnsupervisedRetrieval:
         self.axes = create_plot_axes()
 
         self.sess = tf.Session()
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname+'_unsupervised'))
 
         self.c_iteration = 0
 
@@ -96,8 +97,6 @@ class UnsupervisedRetrieval:
     def retrieve(self):
 
 
-        saver = tf.train.Saver()
-        saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname+'_unsupervised'))
 
         # get the initial output
         reconstruced = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
@@ -170,6 +169,7 @@ class UnsupervisedRetrieval:
 
         ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
         xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
+        xuv_f_full = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],feed_dict=feed_dict)[0]
         xuv_t = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=feed_dict)[0]
 
         #================================================
@@ -197,35 +197,33 @@ class UnsupervisedRetrieval:
 
         # measured/calculated from input traces
         input_traces = dict()
-        input_traces["measured_trace"] = self.measured_trace
-        input_traces["input_auto"] = input_auto
-        input_traces["input_proof"] = input_proof
+        input_traces["trace"] = self.measured_trace
+        input_traces["proof"] = input_proof
+        input_traces["autocorrelation"] = input_auto
 
         # reconstruction traces
         recons_traces = dict()
-        recons_traces["reconstructed"] = reconstructed
-        recons_traces["reconstructed_proof"] = reconstructed_proof
-        recons_traces["reconstruced_auto"] = reconstruced_auto
+        recons_traces["trace"] = reconstructed
+        recons_traces["proof"] = reconstructed_proof
+        recons_traces["autocorrelation"] = reconstruced_auto
 
-        # if self.retrieval == "normal":
-        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["measured_trace"],
-        #                        traces_reconstructed=recons_traces["reconstructed"], xuv_f=xuv_f,
-        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
-        #     plt.pause(0.00001)
+        if self.retrieval == "normal":
+            plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               run_name=self.run_name, true_fields=False, cost_function="trace")
+            plt.pause(0.00001)
 
-        # elif self.retrieval == "proof":
+        elif self.retrieval == "proof":
+            plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               run_name=self.run_name, true_fields=False, cost_function="proof")
+            plt.pause(0.00001)
 
-        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["input_proof"],
-        #                        traces_reconstructed=recons_traces["reconstructed_proof"], xuv_f=xuv_f,
-        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.K, run_name=self.run_name)
-        #     plt.pause(0.00001)
-
-        # elif self.retrieval == "autocorrelation":
-
-        #     plot_images_fields(axes=self.axes, traces_meas=input_traces["input_auto"],
-        #                        traces_reconstructed=recons_traces["reconstruced_auto"], xuv_f=xuv_f,
-        #                        xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration, trace_yaxis=params.delay_values_fs, run_name=self.run_name)
-        #     plt.pause(0.00001)
+        elif self.retrieval == "autocorrelation":
+            plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
+            plt.pause(0.00001)
 
 
 def apply_noise(trace, counts):
@@ -339,15 +337,17 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     axes["input_normal_trace"].cla()
     axes["input_proof_trace"].cla()
     axes["input_auto_trace"].cla()
-    # # xuv predicted
-    # axes["predicted_xuv_t"].cla()
-    # axes["predicted_xuv"].cla()
-    # axes["predicted_xuv_phase"].cla()
-    # # predicted ir
-    # axes["predicted_ir"].cla()
-    # axes["predicted_ir_phase"].cla()
-    # # generated trace
-    # axes["generated_trace"].cla()
+    # generated trace
+    axes["generated_normal_trace"].cla()
+    axes["generated_proof_trace"].cla()
+    axes["generated_auto_trace"].cla()
+    # xuv predicted
+    axes["predicted_xuv_t"].cla()
+    axes["predicted_xuv"].cla()
+    axes["predicted_xuv_phase"].cla()
+    # predicted ir
+    axes["predicted_ir"].cla()
+    axes["predicted_ir_phase"].cla()
     # ...........................
     # .....CALCULATE RMSE........
     # ...........................
