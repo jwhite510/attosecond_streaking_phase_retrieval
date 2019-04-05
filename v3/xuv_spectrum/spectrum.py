@@ -21,12 +21,20 @@ def interpolate(electronvolts_in, intensity_in, plotting=False):
     tmat = dt * np.arange(-N / 2, N / 2, 1)
     df = 1 / (N * dt)
     fmat = df * np.arange(-N / 2, N / 2, 1)
+
+    # pad the vectors with zeros
+    hertz = np.insert(hertz, 0, hertz[0])
+    Intensity = np.insert(Intensity, 0, 0)
+    hertz = np.append(hertz, hertz[-1])
+    Intensity = np.append(Intensity, 0)
+
     # pad the retrieved values with zeros to interpolate later
     hertz = np.insert(hertz, 0, -6e18)
     Intensity = np.insert(Intensity, 0, 0)
-    hertz = np.insert(hertz, -1, 6e18)
-    Intensity = np.insert(Intensity, -1, 0)
+    hertz = np.append(hertz, 6e18)
+    Intensity = np.append(Intensity, 0)
     Intensity[Intensity < 0] = 0
+
     # get the carrier frequency
     f0 = hertz[np.argmax(Intensity)]
     # square root the intensity to get electric field amplitude
