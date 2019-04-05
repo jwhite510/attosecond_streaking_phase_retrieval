@@ -20,7 +20,7 @@ class UnsupervisedRetrieval:
 
     def __init__(self):
 
-        self.run_name = "sample3"
+        self.run_name = "sample3a_photon_1"
         self.iterations = 2500
 
         #===================
@@ -392,7 +392,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
         normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields", ha="center")
     else:
         normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
-        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning")
+        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning", ha="center")
         if cost_function == "proof":
             red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
 
@@ -484,6 +484,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     axes["predicted_xuv_t"].plot([t1, t2], [half_max, half_max], color="red", linewidth=2.0)
     axes["predicted_xuv_t"].set_yticks([])
     axes["predicted_xuv_t"].set_xlabel("time [as]")
+    # axes["predicted_xuv_t"].set_xlim(-200, 300)
 
     if true_fields:
         axes["predicted_xuv_t"].text(0.0, 1.1, "actual XUV $I(t)$", backgroundcolor="white",
