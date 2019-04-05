@@ -7,9 +7,9 @@ from scipy.special import factorial
 import scipy.constants as sc
 import math
 import phase_parameters.params
-import generate_data3
+# import generate_data3
 import pickle
-import unsupervised_retrieval
+# import unsupervised_retrieval
 import imageio
 
 
@@ -47,30 +47,65 @@ class TestGraphs:
             self.ir_values_in: feed_dict_in["ir_values_in"]
         }
 
+
         f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
-        tmat_xuv = xuv_spectrum.spectrum.tmat
+        tmat_xuv = xuv_spectrum.spectrum.tmat_as
         xuv_out = self.sess.run(self.xuv_E_prop, feed_dict=feed_dict)
         trace = self.sess.run(self.image2_2, feed_dict=feed_dict)
         proof = self.sess.run(self.proof2["proof"], feed_dict=feed_dict)
-        plt.figure()
-        plt.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
+        fig = plt.figure(figsize=(10,10))
+        gs = fig.add_gridspec(2,2)
 
-        # plt.figure()
-        # plt.plot(f_cropped_fmat, np.real(xuv_out["f_cropped"][0]), color="blue")
-        # plt.plot(f_cropped_fmat, np.imag(xuv_out["f_cropped"][0]), color="red")
-        # axtwin = plt.gca().twinx()
-        # axtwin.plot(f_cropped_fmat, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
-        plt.figure()
-        plt.pcolormesh(trace, cmap="jet")
-        # plt.savefig("trace1.png")
-        # plt.figure()
-        # plt.pcolormesh(proof, cmap="jet")
-        # plt.savefig("proof1.png")
-        # with open("proof1.p", "wb") as file:
-        #     pickle.dump(proof, file)
+        # xuv (t)
+        ax_xuv = fig.add_subplot(gs[0,0])
+        ax_xuv.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
+        ax_xuv.set_xlabel("attoseconds")
+        ax_xuv.set_title("Real $E(t)$")
+        ax_xuv.set_yticks([])
+
+        # xuv I(t)
+        ax_ir = fig.add_subplot(gs[0,1])
+        ax_ir.plot(tmat_xuv, np.abs(xuv_out["t"][0])**2, color="black")
+        ax_ir.set_xlabel("attoseconds")
+        ax_ir.set_title("$I(t)$")
+        ax_ir.set_yticks([])
+
+        # show xuv coef values
+        for ax in [ax_ir, ax_xuv]:
+            vpos = 0.9
+            for value, type in zip(feed_dict_in["xuv_coefs_in"].reshape(-1), ["1st", "2nd", "3rd", "4th", "5th"]):
+                normal_text(ax, (0.75, vpos), type, ha="center")
+                normal_text(ax, (0.9, vpos), "%.2f" % value, ha="center")
+                vpos -= 0.05
+
+        # spectrum
+        ax_xuvf = fig.add_subplot(gs[1,0])
+        ax_xuvf.plot(xuv_spectrum.spectrum.fmat_hz_cropped, np.abs(xuv_out["f_cropped"][0])**2, color="black")
+        ax_xuvf.set_yticks([])
+        ax_xuvf.set_xlabel("Hz")
+        ax_xuv_phase = ax_xuvf.twinx()
+        ax_xuv_phase.plot(xuv_spectrum.spectrum.fmat_hz_cropped, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
+        ax_xuv_phase.tick_params(axis="y", colors="green")
+
+        # trace
+        ax = fig.add_subplot(gs[1,1])
+        ax.pcolormesh(phase_parameters.params.delay_values_fs,phase_parameters.params.K, trace, cmap="jet")
+        ax.yaxis.tick_right()
+        ax.set_xlabel(r"$\tau$")
+        ax.set_ylabel("eV")
+        fig.savefig("./5.png")
+        exit(0)
 
     def __del__(self):
         self.sess.close()
+
+
+def normal_text(ax, pos, text, ha=None):
+
+    if ha is not None:
+        ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes, ha=ha)
+    else:
+        ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
 
 def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
@@ -948,16 +983,16 @@ if __name__ == "__main__":
 
 
     feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
         "ir_values_in": np.array([[1.0, 0.0, 0.0, 1.0]])
     }
     testgraphs.plot_xuv_trace(feed_dict_in)
 
-    feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, -1.0]])
-    }
-    testgraphs.plot_xuv_trace(feed_dict_in)
+    # feed_dict_in = {
+    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, -1.0]])
+    # }
+    # testgraphs.plot_xuv_trace(feed_dict_in)
 
 
 
