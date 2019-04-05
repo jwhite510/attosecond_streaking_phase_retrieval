@@ -605,26 +605,45 @@ if __name__ == "__main__":
     # get "measured" trace
     # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
 
-    run_name = "photon_multi"
+    run_name = "photon_multi_1"
 
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="autocorrelation",
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="autocorrelation",
                                                    modelname="test1_sample3", measured_trace=measured_trace)
     unsupervised_retrieval.retrieve()
     del unsupervised_retrieval
-
     tf.reset_default_graph()
 
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="normal",
+
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
                                                    modelname="test1_sample3", measured_trace=measured_trace)
     unsupervised_retrieval.retrieve()
     del unsupervised_retrieval
-
     tf.reset_default_graph()
 
-    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="proof",
+
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="proof",
                                                    modelname="test1_sample3", measured_trace=measured_trace)
     unsupervised_retrieval.retrieve()
     del unsupervised_retrieval
+    tf.reset_default_graph()
+
+    # get "measured" trace
+    for counts in [200, 250, 300, 350, 400]:
+        measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name)
+        run_name = "photon_multi_1_"+str(counts)
+        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
+                                                       modelname="test1_sample3", measured_trace=measured_trace)
+        unsupervised_retrieval.retrieve()
+        del unsupervised_retrieval
+        tf.reset_default_graph()
+
+
+
+
+
+
+
+
 
 
 
