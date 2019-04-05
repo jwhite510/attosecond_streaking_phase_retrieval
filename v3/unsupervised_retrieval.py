@@ -270,6 +270,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
         trace_autocorrelation = sess.run(tf_graphs["autocorelation"], feed_dict=feed_dict)
         xuv_t = sess.run(xuv_E_prop["t"], feed_dict=feed_dict)[0]
         xuv_f = sess.run(xuv_E_prop["f_cropped"], feed_dict=feed_dict)[0]
+        xuv_f_full = sess.run(xuv_E_prop["f"], feed_dict=feed_dict)[0]
         ir_f = sess.run(ir_E_prop["f_cropped"], feed_dict=feed_dict)[0]
         # construct proof and autocorrelate from non-noise trace
 
@@ -299,7 +300,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     if plotting:
         axes = create_plot_axes()
         plot_images_fields(axes=axes, traces_meas=noise_traces, traces_reconstructed=traces,
-                           xuv_f=xuv_f, xuv_t=xuv_t, ir_f=ir_f, i=None,
+                           xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=None,
                            run_name=None, true_fields=True, cost_function="trace")
 
         # save files
@@ -328,7 +329,7 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 
-def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir_f, i,
+def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_full, xuv_t, ir_f, i,
                        run_name, true_fields=False, cost_function=None):
 
     # ...........................
@@ -464,7 +465,16 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_t, ir
     # xuv predicted
     # xuv t
     tmat_as = spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
-    I_t = np.abs(xuv_t) ** 2
+
+    # from the electron spectrum
+    # I_t = np.abs(xuv_t) ** 2
+
+    # from photon spectrum
+    angle = np.angle(xuv_f_full)
+    Ef_photon_phase = spectrum.Ef_photon * np.exp(1j * angle)
+    Et_photon_phase = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_photon_phase)))
+    I_t = np.abs(Et_photon_phase) ** 2
+
     axes["predicted_xuv_t"].plot(tmat_as, I_t, color="black")
     #calculate FWHM
     fwhm, t1, t2, half_max = calc_fwhm(tmat=tmat_as, I_t=I_t)
