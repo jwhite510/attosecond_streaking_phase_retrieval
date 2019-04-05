@@ -18,33 +18,27 @@ import measured_trace.get_trace as get_measured_trace
 
 class UnsupervisedRetrieval:
 
-    def __init__(self):
+    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace):
 
-        self.run_name = "sample3a_photon_1"
-        self.iterations = 2500
-
+        self.run_name = run_name
+        self.iterations = iterations
         #===================
         #==Retrieval Type===
         #===================
-        self.retrieval = "normal"
-        #self.retrieval = "autocorrelation"
-        #self.retrieval = "proof"
+        self.retrieval = retrieval
+        # self.retrieval = "normal"
+        # self.retrieval = "autocorrelation"
+        # self.retrieval = "proof"
 
         self.run_name = self.run_name + self.retrieval
 
         # copy the model to a new version to use for unsupervised learning
-        self.modelname = "test1_sample3"
+        self.modelname = modelname
         for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
             file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
             shutil.copy(file, file_newname)
 
-        # get the measured trace
-        # _, _, measured_trace = get_measured_trace()
-        _, _, self.measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
-
-        # get "measured" trace
-        # self.measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
-
+        self.measured_trace = measured_trace
 
         # build neural net graph
         self.nn_nodes = network3.setup_neural_net()
@@ -65,6 +59,7 @@ class UnsupervisedRetrieval:
 
         else:
             self.unsupervised_mse_tb = None
+            raise ValueError("retrieval type must be either 'normal', 'proof', or 'autocorrelation'")
 
         # init data object
         self.get_data = network3.GetData(batch_size=10)
@@ -95,8 +90,6 @@ class UnsupervisedRetrieval:
         # exit(0)
 
     def retrieve(self):
-
-
 
         # get the initial output
         reconstruced = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
@@ -224,6 +217,9 @@ class UnsupervisedRetrieval:
                                xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
             plt.pause(0.00001)
+
+    def __del__(self):
+        self.sess.close()
 
 
 def apply_noise(trace, counts):
@@ -602,8 +598,36 @@ def red_text(ax, pos, text):
 
 if __name__ == "__main__":
 
-    unsupervised_retrieval = UnsupervisedRetrieval()
+    # get the measured trace
+    # _, _, measured_trace = get_measured_trace()
+    _, _, measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
+
+    # get "measured" trace
+    # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
+
+    run_name = "photon_multi"
+
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="autocorrelation",
+                                                   modelname="test1_sample3", measured_trace=measured_trace)
     unsupervised_retrieval.retrieve()
+    del unsupervised_retrieval
+
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="normal",
+                                                   modelname="test1_sample3", measured_trace=measured_trace)
+    tf.reset_default_graph()
+    exit(0)
+
+
+    unsupervised_retrieval.retrieve()
+    del unsupervised_retrieval
+
+    unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="proof",
+                                                   modelname="test1_sample3", measured_trace=measured_trace)
+    unsupervised_retrieval.retrieve()
+    del unsupervised_retrieval
+
+
+
 
 
 
