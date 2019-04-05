@@ -612,14 +612,14 @@ if __name__ == "__main__":
     unsupervised_retrieval.retrieve()
     del unsupervised_retrieval
 
+    tf.reset_default_graph()
+
     unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="normal",
                                                    modelname="test1_sample3", measured_trace=measured_trace)
-    tf.reset_default_graph()
-    exit(0)
-
-
     unsupervised_retrieval.retrieve()
     del unsupervised_retrieval
+
+    tf.reset_default_graph()
 
     unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=500, retrieval="proof",
                                                    modelname="test1_sample3", measured_trace=measured_trace)
