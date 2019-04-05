@@ -334,7 +334,7 @@ def proof_trace(trace):
     filtered_f = tf.complex(real=tf.reshape(w1_indexes_tens_1, [1, -1]),
                             imag=tf.zeros_like(tf.reshape(w1_indexes_tens_1, [1, -1]))) * freq
 
-    proof = tf.abs(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values) / 2),
+    proof = tf.real(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values) / 2),
                            axis=1))
 
     nodes = {}
