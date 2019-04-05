@@ -34,9 +34,9 @@ class UnsupervisedRetrieval:
 
         # copy the model to a new version to use for unsupervised learning
         self.modelname = "test1_sample3"
-        # for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
-        #     file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
-        #     shutil.copy(file, file_newname)
+        for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
+            file_newname = file.replace(self.modelname, self.modelname+'_unsupervised')
+            shutil.copy(file, file_newname)
 
         # get the measured trace
         # _, _, measured_trace = get_measured_trace()
@@ -506,8 +506,6 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
         axes["predicted_ir_phase"].text(0.0, 1.1, "predicted IR spectrum", backgroundcolor="white",
                                         transform=axes["predicted_ir_phase"].transAxes)
 
-    plt.show()
-    exit(0)
 
     # if true fields arent passed as an input
     # retrieval is running, so save images and fields
