@@ -11,7 +11,7 @@ import phase_parameters.params
 
 class PhaseNetTrain:
 
-    def __init__(self):
+    def __init__(self, modelname):
 
         # build neural net graph
         self.nn_nodes = setup_neural_net()
@@ -32,7 +32,7 @@ class PhaseNetTrain:
         self.epochs = 900000
 
         # set the name of the neural net test run and save the settigns
-        self.modelname = 'test1awithclasses'
+        self.modelname = modelname
 
         print('starting ' + self.modelname)
 
@@ -962,7 +962,7 @@ def setup_neural_net():
 
 if __name__ == "__main__":
 
-    phase_net_train = PhaseNetTrain()
+    phase_net_train = PhaseNetTrain(modelname='xuv_ph')
     phase_net_train.supervised_learn()
 
 
