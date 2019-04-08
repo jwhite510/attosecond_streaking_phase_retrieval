@@ -768,10 +768,13 @@ def setup_neural_net():
     actual_coefs_params = tf.placeholder(tf.float32, shape=[None, total_coefs_params_length])
     supervised_label_fields = create_fields_label_from_coefs_params(actual_coefs_params)
 
-
+    # create a placeholder to allow for network training for optimization
+    # with a fixed XUV output and a adjustable IR
+    shape = phase_net_output["xuv_E_prop"]["f_cropped"][0].shape
+    xuv_recons_in = tf.placeholder_with_default(phase_net_output["xuv_E_prop"]["f_cropped"][0], shape=shape)
     # generate the reconstructed trace
-    reconstructed_trace = tf_functions.streaking_trace(xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
-                                                          ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
+    reconstructed_trace = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_recons_in,
+                                                       ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
 
     # generate proof trace
     reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
@@ -922,6 +925,7 @@ def setup_neural_net():
 
 
     nn_nodes["unsupervised"]["x_in"] = x_in
+    nn_nodes["unsupervised"]["xuv_recons_in"] = xuv_recons_in
     nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
     # nn_nodes["unsupervised"]["unsupervised_train_log"] = unsupervised_train_log
     nn_nodes["unsupervised"]["u_LR"] = u_LR
