@@ -274,8 +274,14 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     traces["autocorrelation"] = trace_autocorrelation
     traces["proof"] = trace_proof
 
-    # construct noisy trace and other traces from noisy trace
-    noisy_trace = apply_noise(trace, counts)
+    if counts == 0:
+        # no noise
+        noisy_trace = trace
+    else:
+        # construct noisy trace and other traces from noisy trace
+        noisy_trace = apply_noise(trace, counts)
+
+
     # generate proof and autocorrelation from noisy trace
     noisy_autocorrelation = tf_functions.autocorrelate(tf.constant(noisy_trace, dtype=tf.float32))
     noisy_proof = tf_functions.proof_trace(tf.constant(noisy_trace, dtype=tf.float32))
@@ -631,7 +637,9 @@ if __name__ == "__main__":
     # tf.reset_default_graph()
 
     # get "measured" trace
-    for counts in [200, 300, 400, 500, 600, 700]:
+    # for counts in [200, 300, 400, 500, 600, 700]:
+    # for counts in [1000, 2000, 3000, 10000]:
+    for counts in [0, 100, 300]:
         run_name = "noise_test"+str(counts)
         measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"normal")
         unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
