@@ -18,7 +18,7 @@ import measured_trace.get_trace as get_measured_trace
 
 class UnsupervisedRetrieval:
 
-    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output):
+    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output=False):
 
         self.run_name = run_name
         self.use_xuv_initial_output = use_xuv_initial_output
