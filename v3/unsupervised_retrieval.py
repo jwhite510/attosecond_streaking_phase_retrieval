@@ -18,9 +18,10 @@ import measured_trace.get_trace as get_measured_trace
 
 class UnsupervisedRetrieval:
 
-    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace):
+    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output):
 
         self.run_name = run_name
+        self.use_xuv_initial_output = use_xuv_initial_output
         self.iterations = iterations
         #===================
         #==Retrieval Type===
@@ -71,6 +72,7 @@ class UnsupervisedRetrieval:
         self.saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname+'_unsupervised'))
 
         self.c_iteration = 0
+        self.xuv_init_out = None
 
         # =================================================
         # check the measured and training data proof traces
@@ -92,8 +94,13 @@ class UnsupervisedRetrieval:
     def retrieve(self):
 
         # get the initial output
-        reconstruced = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
-                                feed_dict={self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)})
+        # reconstruced = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
+        #                         feed_dict={self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)})
+
+        # initial xuv output
+        if self.use_xuv_initial_output:
+            self.xuv_init_out = self.sess.run(self.nn_nodes["general"]["xuv_coefs_pred"],
+                                              feed_dict={self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)})
 
         plt.ion()
         for i in range(self.iterations):
@@ -112,36 +119,43 @@ class UnsupervisedRetrieval:
                 # update plots
                 self.update_plots()
 
+
+            # ==============================
+            # ==============================
+            # ===define feed dictionary=====
+            # ==============================
+            # ==============================
+            if self.use_xuv_initial_output:
+                feed_dict = {
+                    self.nn_nodes["unsupervised"]["u_LR"]: 0.00001,
+                    self.nn_nodes["unsupervised"]["x_in"]: self.measured_trace.reshape(1, -1),
+                    self.nn_nodes["general"]["xuv_coefs_pred"]: self.xuv_init_out
+                }
+            else:
+                feed_dict = {
+                    self.nn_nodes["unsupervised"]["u_LR"]: 0.00001,
+                    self.nn_nodes["unsupervised"]["x_in"]: self.measured_trace.reshape(1, -1),
+                }
+
+
             # train neural network
             if self.retrieval == "normal":
                 #========================
                 #=========regular========
                 #========================
-                self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_train"],
-                         feed_dict={
-                             self.nn_nodes["unsupervised"]["u_LR"]: 0.00001,
-                             self.nn_nodes["unsupervised"]["x_in"]: self.measured_trace.reshape(1, -1),
-                         })
+                self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_train"], feed_dict=feed_dict)
 
             elif self.retrieval == "proof":
                 # ========================
                 # =========proof==========
                 # ========================
-                self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"],
-                         feed_dict={
-                             self.nn_nodes["unsupervised"]["proof"]["u_LR"]: 0.00001,
-                             self.nn_nodes["unsupervised"]["proof"]["x_in"]: self.measured_trace.reshape(1, -1),
-                         })
+                self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"], feed_dict=feed_dict)
 
             elif self.retrieval == "autocorrelation":
                 # ========================
                 # =========proof==========
                 # ========================
-                self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"],
-                         feed_dict={
-                             self.nn_nodes["unsupervised"]["autocorrelate"]["u_LR"]: 0.00001,
-                             self.nn_nodes["unsupervised"]["autocorrelate"]["x_in"]: self.measured_trace.reshape(1, -1),
-                         })
+                self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"], feed_dict=feed_dict)
 
             # ========================
             # =========supervised=====
@@ -158,7 +172,14 @@ class UnsupervisedRetrieval:
 
     def update_plots(self):
 
-        feed_dict = {self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)}
+        if self.use_xuv_initial_output:
+            # if use initial XUV output
+            feed_dict = {self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1),
+                         self.nn_nodes["general"]["xuv_coefs_pred"]: self.xuv_init_out}
+
+        else:
+            # if generate new XUV
+            feed_dict = {self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)}
 
         ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
         xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=feed_dict)[0]
@@ -643,7 +664,8 @@ if __name__ == "__main__":
         run_name = "noise_test"+str(counts)
         measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"normal")
         unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
-                                                       modelname="test1_sample3", measured_trace=measured_trace)
+                                                       modelname="test1_sample3", measured_trace=measured_trace,
+                                                       use_xuv_initial_output=True)
         unsupervised_retrieval.retrieve()
         del unsupervised_retrieval
         tf.reset_default_graph()
