@@ -33,7 +33,8 @@ class GeneticAlgorithm():
         self.measured_trace = measured_trace
         self.plot_axes = create_exp_plot_axes()
         self.tensorboard_tools = create_tensorboard_tools()
-        self.tf_generator_graphs = initialize_xuv_ir_trace_graphs() self.sess = tf.Session()
+        self.tf_generator_graphs = initialize_xuv_ir_trace_graphs() 
+        self.sess = tf.Session()
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
 
