@@ -6,8 +6,6 @@ from deap import creator
 from deap import tools
 import os
 import tensorflow as tf
-# import unsupervised
-# import crab_tf2
 from scipy.interpolate import BSpline
 import pickle
 import datetime
@@ -32,7 +30,7 @@ class GeneticAlgorithm():
         self.run_name = run_name
         self.measured_trace = measured_trace
         # self.plot_axes = create_exp_plot_axes()
-        self.tensorboard_tools = create_tensorboard_tools()
+        # self.tensorboard_tools = create_tensorboard_tools()
         self.tf_generator_graphs = self.initialize_xuv_ir_trace_graphs() 
         self.sess = tf.Session()
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
@@ -45,7 +43,7 @@ class GeneticAlgorithm():
         self.toolbox = base.Toolbox()
         # individual creator
         self.toolbox.register("create_individual", self.create_individual)
-        self.toolbox.register("create_population", self,create_population, self.toolbox.create_individual)
+        self.toolbox.register("create_population", self.create_population, self.toolbox.create_individual)
         self.toolbox.register("evaluate", self.evaluate)
         self.toolbox.register("select", tools.selTournament, tournsize=4)
         self.toolbox.register("mate", tools.cxTwoPoint)
@@ -57,7 +55,7 @@ class GeneticAlgorithm():
         for ind, fit in zip(self.pop, fitnesses):
             ind.fitness.values = fit,
 
-        print("  Evaluated %i individuals" % len(pop))
+        print("  Evaluated %i individuals" % len(self.pop))
 
         # fits = [ind.fitness.values[0] for ind in pop]
 
@@ -148,15 +146,19 @@ class GeneticAlgorithm():
         return trace_rmse
 
     def add_tensorboard_values(self, rmse):
-        summ = self.sess.run(self.tensorboard_tools["unsupervised_mse_tb"],
-                        feed_dict={self.tensorboard_tools["rmse_tb"]: rmse})
-        self.writer.add_summary(summ, global_step=generation)
-        self.writer.flush()
+        #and fold this
+        foldthis
+        and fold this
+        # summ = self.sess.run(self.tensorboard_tools["unsupervised_mse_tb"],
+        #                 feed_dict={self.tensorboard_tools["rmse_tb"]: rmse})
+        # self.writer.add_summary(summ, global_step=generation)
+        # self.writer.flush()
+        pass
 
     def run(self):
         print("run")
         while self.g <= self.generations:
-            g = g + 1
+            self.g = self.g + 1
             print("-- Generation %i --" % self.g)
 
             offspring = self.toolbox.select(self.pop, len(self.pop))
@@ -425,7 +427,7 @@ if __name__ == "__main__":
     measured_trace = get_measured_trace.trace
     measured_trace = measured_trace.reshape(1, -1)
 
-    genetic_algorithm = GeneticAlgorithm(generations=500, pop_size=5000, 
+    genetic_algorithm = GeneticAlgorithm(generations=5, pop_size=5, 
                         run_name="experimental_retrieval1", measured_trace=measured_trace)
     
     genetic_algorithm.run()
