@@ -19,8 +19,6 @@ import phase_parameters.params
 import measured_trace.get_trace as get_measured_trace
 
 
-
-
 class GeneticAlgorithm():
 
     def __init__(self, generations, pop_size, run_name, measured_trace):
@@ -31,10 +29,11 @@ class GeneticAlgorithm():
         self.measured_trace = measured_trace
         # self.plot_axes = create_exp_plot_axes()
         # self.tensorboard_tools = create_tensorboard_tools()
-        self.tf_generator_graphs = self.initialize_xuv_ir_trace_graphs() 
+        # create tensorboard rmse measurer
+
+        self.tf_generator_graphs = self.initialize_xuv_ir_trace_graphs()
         self.sess = tf.Session()
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
-
 
         # minimize the fitness function (-1.0)
         creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -90,9 +89,9 @@ class GeneticAlgorithm():
 
         ir_values = individual["ir"]
 
-        generated_trace = self.sess.run(self.tf_generator_graphs["image"], 
-                            feed_dict={self.tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
-                            self.tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+        generated_trace = self.sess.run(self.tf_generator_graphs["image"],
+                                        feed_dict={self.tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
+                                                   self.tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
 
         # calculate rmse
         trace_rmse = np.sqrt(
@@ -146,9 +145,6 @@ class GeneticAlgorithm():
         return trace_rmse
 
     def add_tensorboard_values(self, rmse):
-        #and fold this
-        foldthis
-        and fold this
         # summ = self.sess.run(self.tensorboard_tools["unsupervised_mse_tb"],
         #                 feed_dict={self.tensorboard_tools["rmse_tb"]: rmse})
         # self.writer.add_summary(summ, global_step=generation)
@@ -229,7 +225,7 @@ class GeneticAlgorithm():
 
             best_ind = tools.selBest(self.pop, 1)[0]
 
-            # plot the best individual 
+            # plot the best individual
             self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
 
         # return the rmse of final result
@@ -253,8 +249,8 @@ class GeneticAlgorithm():
 
         # construct streaking image
         image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                                            ir_cropped_f_in=ir_E_prop["f_cropped"][0],
-                                                            )
+                                             ir_cropped_f_in=ir_E_prop["f_cropped"][0],
+                                             )
 
         tf_graphs = {}
         tf_graphs["xuv_coefs_in"] = xuv_coefs_in
