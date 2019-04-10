@@ -24,9 +24,8 @@ import measured_trace.get_trace as measured_trace
 
 
 class GeneticAlgorithm():
-    
+
     def __init__(self, generations, pop_size, run_name, measured_trace):
-        
         print("initialize")
         self.generations = generations
         self.pop_size = pop_size
@@ -34,8 +33,7 @@ class GeneticAlgorithm():
         self.measured_trace = measured_trace
         self.plot_axes = create_exp_plot_axes()
         self.tensorboard_tools = create_tensorboard_tools()
-        self.tf_generator_graphs = initialize_xuv_ir_trace_graphs()
-        self.sess = tf.Session()
+        self.tf_generator_graphs = initialize_xuv_ir_trace_graphs() self.sess = tf.Session()
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
 
@@ -45,21 +43,19 @@ class GeneticAlgorithm():
         creator.create("Individual", dict, fitness=creator.FitnessMax)
         self.toolbox = base.Toolbox()
         # individual creator
-        self.toolbox.register("create_individual", create_individual)
+        self.toolbox.register("create_individual", self.create_individual)
         self.toolbox.register("create_population", create_population, self.toolbox.create_individual)
         self.toolbox.register("evaluate", self.evaluate)
         self.toolbox.register("select", tools.selTournament, tournsize=4)
         self.toolbox.register("mate", tools.cxTwoPoint)
         self.toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
-
         # create the initial population
         self.pop = self.toolbox.create_population(n=pop_size)
-        # print(pop[0].fitness.values)
-
         # evaluate and assign fitness numbers
         fitnesses = [self.toolbox.evaluate(p) for p in self.pop]
         for ind, fit in zip(self.pop, fitnesses):
             ind.fitness.values = fit,
+        exit(0)
 
         print("  Evaluated %i individuals" % len(pop))
 
@@ -72,15 +68,90 @@ class GeneticAlgorithm():
         # Variable keeping track of the number of generations
         g = 0
 
+    def create_individual(self):
+        individual = creator.Individual()
+
+        # random numbers betwwen -1 and 1
+        xuv_values = (2 * np.random.rand(4) - 1.0)
+        individual["xuv"] = xuv_values
+
+        # random numbers betwwen -1 and 1
+        ir_values = (2 * np.random.rand(4) - 1.0)
+        individual["ir"] = ir_values
+
+        return individual
+
+    def evaluate(self, individual):
+
+        rmse = self.calc_vecs_and_rmse(individual)
+
+        return rmse
+
+    def calc_vecs_and_rmse(self, individual, plot_and_graph=None):
+        xuv_values = np.append([0], individual["xuv"])
+        # append 0 for linear phase
+
+        ir_values = individual["ir"]
+
+        generated_trace = self.sess.run(self.tf_generator_graphs["image"], 
+                            feed_dict={self.tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
+                            self.tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+
+        # calculate rmse
+        trace_rmse = np.sqrt(
+            (1 / len(self.measured_trace.reshape(-1))) * np.sum(
+                (self.measured_trace - generated_trace.reshape(-1)) ** 2))
+
+        if plot_and_graph is not None:
+
+            # add tensorboard value
+            self.add_tensorboard_values(trace_rmse)
+
+
+            # if "actual_fields" in plot_and_graph:
+            #     # simulated trace
+            #     predicted_fields = {}
+            #     predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
+            #                                         feed_dict={tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+            #     predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
+            #                                          feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+            #     # plot
+            #     plot_image_and_fields(plot_and_graph=plot_and_graph,
+            #                           predicted_fields=predicted_fields,
+            #                           predicted_streaking_trace=generated_trace,
+            #                           actual_streaking_trace=measured_trace,
+            #                           rmse=trace_rmse)
+            # else:
+            #     # experimental trace
+            #     predicted_fields = {}
+            #     predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
+            #                                         feed_dict={
+            #                                             tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+            #     predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
+            #                                          feed_dict={
+            #                                              tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+            #     predicted_fields["xuv_t"] = sess.run(tf_generator_graphs["xuv_E_prop"]["t"],
+            #                                          feed_dict={
+            #                                              tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
+
+            #     plot_image_and_fields_exp(plot_and_graph=plot_and_graph,
+            #                           predicted_fields=predicted_fields,
+            #                           predicted_streaking_trace=generated_trace,
+            #                           actual_streaking_trace=measured_trace,
+            #                           rmse=trace_rmse)
 
 
 
 
 
 
-        
+        return trace_rmse
 
-
+    def add_tensorboard_values(self, rmse):
+        summ = self.sess.run(self.tensorboard_tools["unsupervised_mse_tb"],
+                        feed_dict={self.tensorboard_tools["rmse_tb"]: rmse})
+        self.writer.add_summary(summ, global_step=generation)
+        self.writer.flush()
 
 
 def initialize_xuv_ir_trace_graphs():
@@ -317,12 +388,6 @@ def create_exp_plot_axes():
 
     return axes_dict
 
-def add_tensorboard_values(rmse, generation, sess, writer, tensorboard_tools):
-
-    summ = sess.run(tensorboard_tools["unsupervised_mse_tb"],
-                    feed_dict={tensorboard_tools["rmse_tb"]: rmse})
-    writer.add_summary(summ, global_step=generation)
-    writer.flush()
 
 def create_tensorboard_tools():
     # create object for measurement of error
@@ -352,69 +417,6 @@ def get_trace(index, filename):
 
     return trace, actual_params
 
-def calc_vecs_and_rmse(individual, measured_trace, tf_generator_graphs, sess, plot_and_graph=None):
-
-    # append 0 for linear phase
-    xuv_values = np.append([0], individual["xuv"])
-    # print(xuv_values)
-
-    ir_values = individual["ir"]
-    # print(ir_values)
-
-    generated_trace = sess.run(tf_generator_graphs["image"], feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
-                                                            tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-
-    # calculate rmse
-    trace_rmse = np.sqrt(
-        (1 / len(measured_trace.reshape(-1))) * np.sum(
-            (measured_trace - generated_trace.reshape(-1)) ** 2))
-
-    if plot_and_graph is not None:
-
-        # add tensorboard value
-        add_tensorboard_values(trace_rmse, generation=plot_and_graph["generation"],
-                               sess=sess, writer=plot_and_graph["writer"],
-                               tensorboard_tools=plot_and_graph["tensorboard_tools"])
-
-
-        if "actual_fields" in plot_and_graph:
-            # simulated trace
-            predicted_fields = {}
-            predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-                                                feed_dict={tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-            predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-                                                 feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-            # plot
-            plot_image_and_fields(plot_and_graph=plot_and_graph,
-                                  predicted_fields=predicted_fields,
-                                  predicted_streaking_trace=generated_trace,
-                                  actual_streaking_trace=measured_trace,
-                                  rmse=trace_rmse)
-        else:
-            # experimental trace
-            predicted_fields = {}
-            predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-                                                feed_dict={
-                                                    tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-            predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-                                                 feed_dict={
-                                                     tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-            predicted_fields["xuv_t"] = sess.run(tf_generator_graphs["xuv_E_prop"]["t"],
-                                                 feed_dict={
-                                                     tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-
-            plot_image_and_fields_exp(plot_and_graph=plot_and_graph,
-                                  predicted_fields=predicted_fields,
-                                  predicted_streaking_trace=generated_trace,
-                                  actual_streaking_trace=measured_trace,
-                                  rmse=trace_rmse)
-
-
-
-
-
-
-    return trace_rmse
 
 def create_population(create_individual, n):
 
@@ -425,25 +427,7 @@ def create_population(create_individual, n):
 
     return population
 
-def evaluate(individual, measured_trace, tf_generator_graphs, sess):
 
-    rmse = calc_vecs_and_rmse(individual, measured_trace, tf_generator_graphs, sess)
-
-    return rmse
-
-def create_individual():
-
-    individual = creator.Individual()
-
-    # random numbers betwwen -1 and 1
-    xuv_values = (2 * np.random.rand(4) - 1.0)
-    individual["xuv"] = xuv_values
-
-    # random numbers betwwen -1 and 1
-    ir_values = (2 * np.random.rand(4) - 1.0)
-    individual["ir"] = ir_values
-
-    return individual
 
 def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, measured_trace,
                       tensorboard_tools, plot_and_graph):
@@ -629,7 +613,8 @@ if __name__ == "__main__":
     measured_trace = measured_trace.trace
     measured_trace = measured_trace.reshape(1, -1)
 
-    genetic_algorithm = GeneticAlgorithm(generations=500, pop_size=5000, run_name="experimental_retrieval1")
+    genetic_algorithm = GeneticAlgorithm(generations=500, pop_size=5000, 
+                        run_name="experimental_retrieval1", measured_trace=measured_trace)
 
 
 
