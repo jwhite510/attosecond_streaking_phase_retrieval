@@ -21,6 +21,68 @@ import phase_parameters.params
 import measured_trace.get_trace as measured_trace
 
 
+
+
+class GeneticAlgorithm():
+    
+    def __init__(self, generations, pop_size, run_name, measured_trace):
+        
+        print("initialize")
+        self.generations = generations
+        self.pop_size = pop_size
+        self.run_name = run_name
+        self.measured_trace = measured_trace
+        self.plot_axes = create_exp_plot_axes()
+        self.tensorboard_tools = create_tensorboard_tools()
+        self.tf_generator_graphs = initialize_xuv_ir_trace_graphs()
+        self.sess = tf.Session()
+        self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
+
+
+        # minimize the fitness function (-1.0)
+        creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
+        # create individual
+        creator.create("Individual", dict, fitness=creator.FitnessMax)
+        self.toolbox = base.Toolbox()
+        # individual creator
+        self.toolbox.register("create_individual", create_individual)
+        self.toolbox.register("create_population", create_population, self.toolbox.create_individual)
+        self.toolbox.register("evaluate", self.evaluate)
+        self.toolbox.register("select", tools.selTournament, tournsize=4)
+        self.toolbox.register("mate", tools.cxTwoPoint)
+        self.toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
+
+        # create the initial population
+        self.pop = self.toolbox.create_population(n=pop_size)
+        # print(pop[0].fitness.values)
+
+        # evaluate and assign fitness numbers
+        fitnesses = [self.toolbox.evaluate(p) for p in self.pop]
+        for ind, fit in zip(self.pop, fitnesses):
+            ind.fitness.values = fit,
+
+        print("  Evaluated %i individuals" % len(pop))
+
+        # fits = [ind.fitness.values[0] for ind in pop]
+
+        # MUTPB is the probability for mutating an individual
+        CXPB, MUTPB, MUTPB2 = 0.05, 0.05, 0.1
+        # CXPB, MUTPB, MUTPB2 = 1.0, 1.0, 1.0
+
+        # Variable keeping track of the number of generations
+        g = 0
+
+
+
+
+
+
+
+        
+
+
+
+
 def initialize_xuv_ir_trace_graphs():
 
     # initialize XUV generator
@@ -524,8 +586,8 @@ def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, meas
 
 if __name__ == "__main__":
 
-    tensorboard_tools = create_tensorboard_tools()
-    tf_generator_graphs = initialize_xuv_ir_trace_graphs()
+    # tensorboard_tools = create_tensorboard_tools()
+    # tf_generator_graphs = initialize_xuv_ir_trace_graphs()
 
 
 
@@ -560,14 +622,16 @@ if __name__ == "__main__":
     #..................................
     # .....retrieve measured trace.....
     #..................................
-    plot_axes = create_exp_plot_axes()
-    plot_and_graph = {}
-    plot_and_graph["plot_axes"] = plot_axes
+    # plot_axes = create_exp_plot_axes()
+    # plot_and_graph = {}
+    # plot_and_graph["plot_axes"] = plot_axes
     # _, _, measured_trace = unsupervised_retrieval.get_measured_trace()
     measured_trace = measured_trace.trace
     measured_trace = measured_trace.reshape(1, -1)
 
+    genetic_algorithm = GeneticAlgorithm(generations=500, pop_size=5000, run_name="experimental_retrieval1")
 
 
-    genetic_algorithm(generations=500, pop_size=5000, run_name="experimental_retrieval1", tf_generator_graphs=tf_generator_graphs,
-                      measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
+
+    # genetic_algorithm(generations=500, pop_size=5000, run_name="experimental_retrieval1", tf_generator_graphs=tf_generator_graphs,
+    #                   measured_trace=measured_trace, tensorboard_tools=tensorboard_tools, plot_and_graph=plot_and_graph)
