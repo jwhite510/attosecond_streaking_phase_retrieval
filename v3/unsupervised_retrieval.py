@@ -330,7 +330,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
                            run_name=None, true_fields=True, cost_function="trace")
 
         # save files
-        dir = "./unsupervised_retrieval/" + run_name + "/"
+        dir = "./retrieval/" + run_name + "/"
         if not os.path.isdir(dir):
             os.makedirs(dir)
         plt.savefig(dir+"actual_fields" + str(counts) + ".png")
@@ -426,7 +426,14 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
             red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
 
     if i is not None:
-        normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
+        if method == "Genetic Algorithm":
+            normal_text(axes["input_proof_trace"], (1.3, 1.2), "Generation: " + str(i), ha="center")
+        elif method == "Unsupervised Learning":
+            normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
+        else:
+            raise ValueError("method should be unsupervised learning or genetic algorithm")
+
+
 
     axes["input_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_meas["autocorrelation"], cmap='jet')
     axes["input_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
@@ -544,11 +551,11 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     # retrieval is running, so save images and fields
     if not true_fields:
         # save files
-        dir = "./unsupervised_retrieval/" + run_name + "/"
+        dir = "./retrieval/" + run_name + "/"
         if not os.path.isdir(dir):
             os.makedirs(dir)
         plt.savefig(dir + str(i) + ".png")
-        with open("./unsupervised_retrieval/" + run_name + "/u_fields.p", "wb") as file:
+        with open("./retrieval/" + run_name + "/u_fields.p", "wb") as file:
             predicted_fields = {}
             predicted_fields["ir_f"] = ir_f
             predicted_fields["xuv_f"] = xuv_f
