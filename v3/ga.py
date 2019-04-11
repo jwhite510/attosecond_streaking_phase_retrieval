@@ -21,9 +21,10 @@ import measured_trace.get_trace as get_measured_trace
 
 class GeneticAlgorithm():
 
-    def __init__(self, generations, pop_size, run_name, measured_trace):
+    def __init__(self, generations, pop_size, run_name, measured_trace, retrieval):
 
         print("initialize")
+        self.retrieval = retrieval
         self.generations = generations
         self.pop_size = pop_size
         self.run_name = run_name
@@ -32,8 +33,19 @@ class GeneticAlgorithm():
         self.tf_graphs = self.initialize_xuv_ir_trace_graphs()
         # create tensorboard rmse measurer
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
-        self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["trace_mse"])
+
+        if self.retrieval == "normal":
+            self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["trace_mse"])
+
+        elif self.retrieval == "proof":
+            self.trace_mse_tb = tf.summary.scalar("proof_mse", self.tf_graphs["trace_mse"])
+        elif self.retrieval == "autocorrelation":
+            self.trace_mse_tb = tf.summary.scalar("autocorr_mse", self.tf_graphs["trace_mse"])
+
         self.sess = tf.Session()
+
+        # create plot axes, share from unsupervised learning plotting
+        self.axes = unsupervised_retrieval.create_plot_axes()
 
         # minimize the fitness function (-1.0)
         creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -97,7 +109,34 @@ class GeneticAlgorithm():
 
         if plot_and_graph:
             print("plot the trace")
-            generated_trace = self.sess.run(self.tf_graphs["image"], feed_dict=feed_dict)
+
+            input_traces = dict()
+            input_traces["trace"] = self.measured_trace
+            input_traces["proof"] =
+            input_traces["autocorrelation"] =
+
+            recons_traces = dict()
+            recons_traces["trace"] = self.sess.run(self.tf_graphs["image"], feed_dict=feed_dict)
+            recons_traces["proof"] = self.sess.run(self.tf_graphs[""], feed_dict=feed_dict)
+            recons_traces["autocorrelation"] = self.sess.run(self.tf_graphs[""], feed_dict=feed_dict)
+
+            if self.retrieval == "normal":
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   run_name=self.run_name, true_fields=False, cost_function="trace")
+                plt.pause(0.00001)
+
+            elif self.retrieval == "proof":
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   run_name=self.run_name, true_fields=False, cost_function="proof")
+                plt.pause(0.00001)
+
+            elif self.retrieval == "autocorrelation":
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
+                plt.pause(0.00001)
 
             # add tensorboard value
             summ = self.sess.run(self.trace_mse_tb, feed_dict=feed_dict)
@@ -187,27 +226,66 @@ class GeneticAlgorithm():
 
     def initialize_xuv_ir_trace_graphs(self):
 
+        # calcualte autocorrelate and proof trace from measured trace
+        trace_reshaped = self.measured_trace.reshape(len(get_measured_trace.energy), len(get_measured_trace.delay))
+        tf_measured_trace = tf.constant(trace_reshaped, dtype=tf.float32)
+        measured_auto_trace = tf_functions.autocorrelate(tf_measured_trace)
+        measured_proof_trace = tf_functions.proof_trace(tf_measured_trace)["proof"]
+
         # initialize XUV generator
         xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
         xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+
         # IR creation
         ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
         ir_E_prop = tf_functions.ir_from_params(ir_values_in)
+
         # construct streaking image
         image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                              ir_cropped_f_in=ir_E_prop["f_cropped"][0])
-        measured_trace_tens = tf.constant(self.measured_trace.reshape(1, -1), dtype=tf.float32)
-        generated_trace_tens = tf.reshape(image, [1, -1])
-        trace_mse = tf.losses.mean_squared_error(labels=measured_trace_tens, predictions=generated_trace_tens)
+        # construct proof trace
+        proof_recons = tf_functions.proof_trace(image)["proof"]
+        auto_trace_recons = tf_functions.autocorrelate(image)
 
+        # ++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++define loss functions+++++++++
+        # ++++++++++++++++++++++++++++++++++++++++
+
+        # define measured trace as constant to calculate MSE between regular trace
+        measured_trace_flat_tens = tf.constant(self.measured_trace.reshape(1, -1), dtype=tf.float32)
+
+        # normal trace cost function
+        trace_mse = tf.losses.mean_squared_error(labels=measured_trace_flat_tens, predictions=tf.reshape(image, [1, -1]))
+
+        # mean squared error for Autocorrelation
+        autocorr_mse = tf.losses.mean_squared_error(labels=tf.reshape(measured_auto_trace, [1, -1]),
+                                                    predictions=tf.reshape(auto_trace_recons, [1, -1]))
+
+        # mean squared error for PROOF
+        proof_mse = tf.losses.mean_squared_error(labels=tf.reshape(measured_proof_trace, [1, -1]),
+                                                    predictions=tf.reshape(proof_recons, [1, -1]))
         tf_graphs = dict()
-        tf_graphs["trace_mse"] = trace_mse
+        tf_graphs["measured"] = dict()
+        tf_graphs["reconstructed"] = dict()
+        tf_graphs["error"] = dict()
+
+        tf_graphs["measured"]["trace"] = tf_measured_trace
+        tf_graphs["measured"]["proof"] = measured_proof_trace
+        tf_graphs["measured"]["autocorrelation"] = measured_auto_trace
+
+        tf_graphs["reconstructed"]["trace"] = image
+        tf_graphs["reconstructed"]["autocorrelation"] = auto_trace_recons
+        tf_graphs["reconstructed"]["proof"] = proof_recons
+
+        tf_graphs["error"]["trace_mse"] = trace_mse
+        tf_graphs["error"]["autocorr_mse"] = autocorr_mse
+        tf_graphs["error"]["proof_mse"] = proof_mse
+
         tf_graphs["xuv_coefs_in"] = xuv_coefs_in
         tf_graphs["ir_values_in"] = ir_values_in
         tf_graphs["xuv_E_prop"] = xuv_E_prop
         tf_graphs["ir_E_prop"] = ir_E_prop
-        tf_graphs["image"] = image
 
         return tf_graphs
 
@@ -374,7 +452,7 @@ if __name__ == "__main__":
     measured_trace = measured_trace.reshape(1, -1)
 
     genetic_algorithm = GeneticAlgorithm(generations=5, pop_size=5, 
-                        run_name="gatest1", measured_trace=measured_trace)
+                        run_name="gatest1", measured_trace=measured_trace, retrieval="normal")
     
     genetic_algorithm.run()
 
