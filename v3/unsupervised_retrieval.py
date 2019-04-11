@@ -695,6 +695,7 @@ if __name__ == "__main__":
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
             unsupervised_retrieval.retrieve()
+            unsupervised_retrieval.axes["fig"].close()
             del unsupervised_retrieval
             tf.reset_default_graph()
 
@@ -705,6 +706,7 @@ if __name__ == "__main__":
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
             genetic_algorithm.run()
+            genetic_algorithm.axes["fig"].close()
             del genetic_algorithm
             tf.reset_default_graph()
 
