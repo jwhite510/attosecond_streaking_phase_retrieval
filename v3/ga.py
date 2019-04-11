@@ -102,6 +102,7 @@ class GeneticAlgorithm():
             # add tensorboard value
             summ = self.sess.run(self.trace_mse_tb, feed_dict=feed_dict)
             self.writer.add_summary(summ, global_step=self.g)
+            self.writer.flush()
 
         return trace_rmse
 
@@ -218,7 +219,6 @@ class GeneticAlgorithm():
             population.append(create_individual())
 
         return population
-
 
 
 def genetic_algorithm(generations, pop_size, run_name, tf_generator_graphs, measured_trace,
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     measured_trace = measured_trace.reshape(1, -1)
 
     genetic_algorithm = GeneticAlgorithm(generations=5, pop_size=5, 
-                        run_name="experimental_retrieval1", measured_trace=measured_trace)
+                        run_name="gatest1", measured_trace=measured_trace)
     
     genetic_algorithm.run()
 
