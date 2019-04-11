@@ -14,6 +14,7 @@ import glob
 import pickle
 import tf_functions
 import measured_trace.get_trace as get_measured_trace
+import ga
 
 
 class UnsupervisedRetrieval:
@@ -552,7 +553,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
         dir = "./retrieval/" + run_name + "/"
         if not os.path.isdir(dir):
             os.makedirs(dir)
-        plt.savefig(dir + str(i) + ".png")
+        axes["fig"].savefig(dir + str(i) + ".png")
         with open("./retrieval/" + run_name + "/u_fields.p", "wb") as file:
             predicted_fields = {}
             predicted_fields["ir_f"] = ir_f
@@ -620,6 +621,7 @@ def create_plot_axes():
     axes_dict["generated_normal_trace"] = fig.add_subplot(gs[2,0])
     axes_dict["generated_proof_trace"] = fig.add_subplot(gs[2,1])
     axes_dict["generated_auto_trace"] = fig.add_subplot(gs[2,2])
+    axes_dict["fig"] = fig
 
     return axes_dict
 
@@ -672,16 +674,23 @@ if __name__ == "__main__":
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
     for counts in [0, 100, 300]:
-        run_name = "noise_test"+str(counts)
+        run_name = "noise_test_"+str(counts)
+        measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
 
-        measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"normal")
-        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"normal", iterations=5000, retrieval="normal",
+        # run unsupervised learning retrieval
+        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_normal", iterations=10, retrieval="normal",
                                                        modelname="xuv_ph3", measured_trace=measured_trace,
-                                                       use_xuv_initial_output=True)
+                                                       use_xuv_initial_output=False)
         unsupervised_retrieval.retrieve()
         del unsupervised_retrieval
         tf.reset_default_graph()
 
+        # run genetic algorithm
+        genetic_algorithm = ga.GeneticAlgorithm(generations=5, pop_size=5,
+                        run_name=run_name+"_ga_proof", measured_trace=measured_trace, retrieval="proof")
+        genetic_algorithm.run()
+        del genetic_algorithm
+        tf.reset_default_graph()
 
 
 
