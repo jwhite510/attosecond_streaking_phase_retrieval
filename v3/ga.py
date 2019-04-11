@@ -138,10 +138,10 @@ class GeneticAlgorithm():
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             # ++++++++++++++++++++calculate fields++++++++++++++++++++++
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            xuv_f = self.sess.run(self.tf_graphs["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)
-            xuv_f_full = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)
-            xuv_t = self.sess.run(self.tf_graphs["xuv_E_prop"]["t"], feed_dict=feed_dict)
-            ir_f = self.sess.run(self.tf_graphs["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)
+            xuv_f = self.sess.run(self.tf_graphs["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
+            xuv_f_full = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)[0]
+            xuv_t = self.sess.run(self.tf_graphs["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
+            ir_f = self.sess.run(self.tf_graphs["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
 
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             # ++++++++++++++++++plot fields and traces++++++++++++++++++++
