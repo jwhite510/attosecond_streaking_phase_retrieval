@@ -673,7 +673,7 @@ if __name__ == "__main__":
     # get "measured" trace
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
-    for counts in [0, 100, 300]:
+    for counts in [0, 100, 300, 50000]:
 
         # +++++++++++++++++++++++++++++++++++
         # ++++++++++Define run name++++++++++
@@ -690,23 +690,23 @@ if __name__ == "__main__":
             # ++++++++++++++++++++++++++++++++++++++++++++++
             # +++++ run unsupervised learning retrieval+++++
             # ++++++++++++++++++++++++++++++++++++++++++++++
-            unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_"+retrieval_type, iterations=10,
+            unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
             unsupervised_retrieval.retrieve()
-            unsupervised_retrieval.axes["fig"].close()
+            plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
             tf.reset_default_graph()
 
             # +++++++++++++++++++++++++++++++++++++++++
             # ++++++++++run genetic algorithm++++++++++
             # +++++++++++++++++++++++++++++++++++++++++
-            genetic_algorithm = ga.GeneticAlgorithm(generations=5, pop_size=5,
+            genetic_algorithm = ga.GeneticAlgorithm(generations=15, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
             genetic_algorithm.run()
-            genetic_algorithm.axes["fig"].close()
+            plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
