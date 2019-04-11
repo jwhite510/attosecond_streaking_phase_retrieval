@@ -450,7 +450,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     axes["generated_normal_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["trace"], cmap='jet')
     axes["generated_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_normal_trace"].set_ylabel("Energy [eV]")
-    normal_text(axes["generated_normal_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["trace"])
+    normal_text(axes["generated_normal_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["trace"])
     if true_fields:
         normal_text(axes["generated_normal_trace"], (0.0, 1.0), "actual trace")
     else:
@@ -461,7 +461,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     axes["generated_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["proof"], cmap='jet')
     axes["generated_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_proof_trace"].set_ylabel("Energy [eV]")
-    normal_text(axes["generated_proof_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["proof"])
+    normal_text(axes["generated_proof_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["proof"])
     if true_fields:
         normal_text(axes["generated_proof_trace"], (0.0, 1.0), "proof trace")
     else:
@@ -472,7 +472,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
     axes["generated_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_reconstructed["autocorrelation"], cmap='jet')
     axes["generated_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_auto_trace"].set_ylabel(r"$\tau$ Delay [fs]")
-    normal_text(axes["generated_auto_trace"], (0.05, 0.05), "RMSE: "+"%.2f" % rmses["autocorrelation"])
+    normal_text(axes["generated_auto_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["autocorrelation"])
     if true_fields:
         normal_text(axes["generated_auto_trace"], (0.0, 1.0), "autocorrelation")
     else:
@@ -674,23 +674,39 @@ if __name__ == "__main__":
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
     for counts in [0, 100, 300]:
+
+        # +++++++++++++++++++++++++++++++++++
+        # ++++++++++Define run name++++++++++
+        # +++++++++++++++++++++++++++++++++++
         run_name = "noise_test_"+str(counts)
+
+        # +++++++++++++++++++++++++++++++++++
+        # ++++Get the Measured Trace+++++++++
+        # +++++++++++++++++++++++++++++++++++
         measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
 
-        # run unsupervised learning retrieval
-        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_normal", iterations=10, retrieval="normal",
-                                                       modelname="xuv_ph3", measured_trace=measured_trace,
-                                                       use_xuv_initial_output=False)
-        unsupervised_retrieval.retrieve()
-        del unsupervised_retrieval
-        tf.reset_default_graph()
+        for retrieval_type in ["proof", "autocorrelation", "normal"]:
 
-        # run genetic algorithm
-        genetic_algorithm = ga.GeneticAlgorithm(generations=5, pop_size=5,
-                        run_name=run_name+"_ga_proof", measured_trace=measured_trace, retrieval="proof")
-        genetic_algorithm.run()
-        del genetic_algorithm
-        tf.reset_default_graph()
+            # ++++++++++++++++++++++++++++++++++++++++++++++
+            # +++++ run unsupervised learning retrieval+++++
+            # ++++++++++++++++++++++++++++++++++++++++++++++
+            unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_"+retrieval_type, iterations=10,
+                                                           retrieval=retrieval_type,
+                                                           modelname="xuv_ph3", measured_trace=measured_trace,
+                                                           use_xuv_initial_output=False)
+            unsupervised_retrieval.retrieve()
+            del unsupervised_retrieval
+            tf.reset_default_graph()
+
+            # +++++++++++++++++++++++++++++++++++++++++
+            # ++++++++++run genetic algorithm++++++++++
+            # +++++++++++++++++++++++++++++++++++++++++
+            genetic_algorithm = ga.GeneticAlgorithm(generations=5, pop_size=5,
+                                                    run_name=run_name+"_ga_"+retrieval_type,
+                                                    measured_trace=measured_trace, retrieval=retrieval_type)
+            genetic_algorithm.run()
+            del genetic_algorithm
+            tf.reset_default_graph()
 
 
 
