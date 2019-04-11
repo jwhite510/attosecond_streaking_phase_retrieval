@@ -21,6 +21,7 @@ class UnsupervisedRetrieval:
     def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output=False):
 
         self.run_name = run_name
+        self.method = "Unsupervised Learning"
         self.use_xuv_initial_output = use_xuv_initial_output
         self.iterations = iterations
         #===================
@@ -224,19 +225,23 @@ class UnsupervisedRetrieval:
         if self.retrieval == "normal":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
-                               run_name=self.run_name, true_fields=False, cost_function="trace")
+                               run_name=self.run_name, true_fields=False, cost_function="trace",
+                               method=self.method)
+
             plt.pause(0.00001)
 
         elif self.retrieval == "proof":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
-                               run_name=self.run_name, true_fields=False, cost_function="proof")
+                               run_name=self.run_name, true_fields=False, cost_function="proof",
+                               method=self.method)
             plt.pause(0.00001)
 
         elif self.retrieval == "autocorrelation":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
-                               run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
+                               run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
+                               method=self.method)
             plt.pause(0.00001)
 
     def __del__(self):
@@ -351,7 +356,7 @@ def calc_fwhm(tmat, I_t):
 
 
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_full, xuv_t, ir_f, i,
-                       run_name, true_fields=False, cost_function=None):
+                       run_name, true_fields=False, cost_function=None, method=None):
 
     # ...........................
     # ........CLEAR AXES.........
@@ -415,7 +420,8 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
         normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields", ha="center")
     else:
         normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
-        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Unsupervised Learning", ha="center")
+        if method is not None:
+            normal_text(axes["input_proof_trace"], (0.5, 1.2), method, ha="center")
         if cost_function == "proof":
             red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
 

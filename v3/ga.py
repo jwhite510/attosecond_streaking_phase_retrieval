@@ -24,6 +24,7 @@ class GeneticAlgorithm():
     def __init__(self, generations, pop_size, run_name, measured_trace, retrieval):
 
         print("initialize")
+        self.method = "Genetic Algorithm"
         self.retrieval = retrieval
         self.generations = generations
         self.pop_size = pop_size
@@ -150,21 +151,24 @@ class GeneticAlgorithm():
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
-                                   run_name=self.run_name, true_fields=False, cost_function="trace")
+                                   run_name=self.run_name, true_fields=False, cost_function="trace",
+                                   method=self.method)
                 plt.pause(0.00001)
 
             elif self.retrieval == "proof":
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
-                                   run_name=self.run_name, true_fields=False, cost_function="proof")
+                                   run_name=self.run_name, true_fields=False, cost_function="proof",
+                                   method=self.method)
                 plt.pause(0.00001)
 
             elif self.retrieval == "autocorrelation":
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
-                                   run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
+                                   run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
+                                   method=self.method)
                 plt.pause(0.00001)
 
             # add tensorboard value
