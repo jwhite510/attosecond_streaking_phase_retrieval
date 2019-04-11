@@ -950,7 +950,7 @@ def setup_neural_net():
     nn_nodes["general"]["reconstructed_trace"] = reconstructed_trace
     nn_nodes["general"]["hold_prob"] = hold_prob
     nn_nodes["general"]["x_in"] = x_in
-    nn_nodes["general"]["xuv_coefs_pred "] = xuv_coefs_pred
+    nn_nodes["general"]["xuv_coefs_pred"] = xuv_coefs_pred
 
     return nn_nodes
 

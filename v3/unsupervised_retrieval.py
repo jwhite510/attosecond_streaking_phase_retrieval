@@ -32,8 +32,6 @@ class UnsupervisedRetrieval:
         # self.retrieval = "autocorrelation"
         # self.retrieval = "proof"
 
-        self.run_name = self.run_name + self.retrieval
-
         # copy the model to a new version to use for unsupervised learning
         self.modelname = modelname
         for file in glob.glob(r'./models/{}.ckpt.*'.format(self.modelname)):
@@ -675,9 +673,10 @@ if __name__ == "__main__":
     # for counts in [1000, 2000, 3000, 10000]:
     for counts in [0, 100, 300]:
         run_name = "noise_test"+str(counts)
+
         measured_trace = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"normal")
-        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
-                                                       modelname="test1_sample3", measured_trace=measured_trace,
+        unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"normal", iterations=5000, retrieval="normal",
+                                                       modelname="xuv_ph3", measured_trace=measured_trace,
                                                        use_xuv_initial_output=True)
         unsupervised_retrieval.retrieve()
         del unsupervised_retrieval
