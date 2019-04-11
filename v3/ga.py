@@ -22,17 +22,18 @@ import measured_trace.get_trace as get_measured_trace
 class GeneticAlgorithm():
 
     def __init__(self, generations, pop_size, run_name, measured_trace):
+
         print("initialize")
         self.generations = generations
         self.pop_size = pop_size
         self.run_name = run_name
         self.measured_trace = measured_trace
         # self.plot_axes = create_exp_plot_axes()
-        # self.tensorboard_tools = create_tensorboard_tools()
+        self.tf_graphs = self.initialize_xuv_ir_trace_graphs()
         # create tensorboard rmse measurer
-        self.tf_generator_graphs = self.initialize_xuv_ir_trace_graphs()
-        self.sess = tf.Session()
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
+        self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["trace_mse"])
+        self.sess = tf.Session()
 
         # minimize the fitness function (-1.0)
         creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -55,8 +56,6 @@ class GeneticAlgorithm():
 
         print("  Evaluated %i individuals" % len(self.pop))
 
-        # fits = [ind.fitness.values[0] for ind in pop]
-
         # MUTPB is the probability for mutating an individual
         self.CXPB, self.MUTPB, self.MUTPB2 = 0.05, 0.05, 0.1
         # self.CXPB, self.MUTPB, self.MUTPB2 = 1.0, 1.0, 1.0
@@ -65,6 +64,7 @@ class GeneticAlgorithm():
         self.g = 0
 
     def create_individual(self):
+
         individual = creator.Individual()
 
         # random numbers betwwen -1 and 1
@@ -78,74 +78,35 @@ class GeneticAlgorithm():
         return individual
 
     def evaluate(self, individual):
+
         rmse = self.calc_vecs_and_rmse(individual)
 
         return rmse
 
     def calc_vecs_and_rmse(self, individual, plot_and_graph=None):
+
         xuv_values = np.append([0], individual["xuv"])
         # append 0 for linear phase
-
         ir_values = individual["ir"]
 
-        generated_trace = self.sess.run(self.tf_generator_graphs["image"],
-                                        feed_dict={self.tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
-                                                   self.tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
+        feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
+                     self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
         # calculate rmse
-        trace_rmse = np.sqrt(
-            (1 / len(self.measured_trace.reshape(-1))) * np.sum(
-                (self.measured_trace - generated_trace.reshape(-1)) ** 2))
+        trace_rmse = self.sess.run(self.tf_graphs["trace_mse"], feed_dict=feed_dict)
 
         if plot_and_graph:
             print("plot the trace")
+            generated_trace = self.sess.run(self.tf_graphs["image"], feed_dict=feed_dict)
 
             # add tensorboard value
-            self.add_tensorboard_values(trace_rmse)
-
-
-            # if "actual_fields" in plot_and_graph:
-            #     # simulated trace
-            #     predicted_fields = {}
-            #     predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-            #                                         feed_dict={tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-            #     predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-            #                                          feed_dict={tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-            #     # plot
-            #     plot_image_and_fields(plot_and_graph=plot_and_graph,
-            #                           predicted_fields=predicted_fields,
-            #                           predicted_streaking_trace=generated_trace,
-            #                           actual_streaking_trace=measured_trace,
-            #                           rmse=trace_rmse)
-            # else:
-            #     # experimental trace
-            #     predicted_fields = {}
-            #     predicted_fields["ir_f"] = sess.run(tf_generator_graphs["ir_E_prop"]["f_cropped"],
-            #                                         feed_dict={
-            #                                             tf_generator_graphs["ir_values_in"]: ir_values.reshape(1, -1)})
-            #     predicted_fields["xuv_f"] = sess.run(tf_generator_graphs["xuv_E_prop"]["f_cropped"],
-            #                                          feed_dict={
-            #                                              tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-            #     predicted_fields["xuv_t"] = sess.run(tf_generator_graphs["xuv_E_prop"]["t"],
-            #                                          feed_dict={
-            #                                              tf_generator_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1)})
-
-            #     plot_image_and_fields_exp(plot_and_graph=plot_and_graph,
-            #                           predicted_fields=predicted_fields,
-            #                           predicted_streaking_trace=generated_trace,
-            #                           actual_streaking_trace=measured_trace,
-            #                           rmse=trace_rmse)
+            summ = self.sess.run(self.trace_mse_tb, feed_dict=feed_dict)
+            self.writer.add_summary(summ, global_step=self.g)
 
         return trace_rmse
 
-    def add_tensorboard_values(self, rmse):
-        # summ = self.sess.run(self.tensorboard_tools["unsupervised_mse_tb"],
-        #                 feed_dict={self.tensorboard_tools["rmse_tb"]: rmse})
-        # self.writer.add_summary(summ, global_step=generation)
-        # self.writer.flush()
-        pass
-
     def run(self):
+
         print("run")
         while self.g <= self.generations:
             self.g = self.g + 1
@@ -191,7 +152,6 @@ class GeneticAlgorithm():
                 if re_evaluate:
                     del mutant.fitness.values
 
-
             # Evaluate the individuals with an invalid fitness
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
             fitnesses = [self.toolbox.evaluate(inv) for inv in invalid_ind]
@@ -199,10 +159,8 @@ class GeneticAlgorithm():
                 ind.fitness.values = fit,
 
             print("  Evaluated %i individuals" % len(invalid_ind))
-
             # The population is entirely replaced by the offspring
             self.pop[:] = offspring
-
             # Gather all the fitnesses in one list and print the stats
             fits = [ind.fitness.values[0] for ind in self.pop]
 
@@ -227,26 +185,23 @@ class GeneticAlgorithm():
         return self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
 
     def initialize_xuv_ir_trace_graphs(self):
+
         # initialize XUV generator
         xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
         xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, xuv_phase_coeffs])
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
-
-
         # IR creation
         ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
         ir_E_prop = tf_functions.ir_from_params(ir_values_in)
-
-        # initialize streaking trace generator
-        # Neon
-
-
         # construct streaking image
         image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                             ir_cropped_f_in=ir_E_prop["f_cropped"][0],
-                                             )
+                                             ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+        measured_trace_tens = tf.constant(self.measured_trace.reshape(1, -1), dtype=tf.float32)
+        generated_trace_tens = tf.reshape(image, [1, -1])
+        trace_mse = tf.losses.mean_squared_error(labels=measured_trace_tens, predictions=generated_trace_tens)
 
-        tf_graphs = {}
+        tf_graphs = dict()
+        tf_graphs["trace_mse"] = trace_mse
         tf_graphs["xuv_coefs_in"] = xuv_coefs_in
         tf_graphs["ir_values_in"] = ir_values_in
         tf_graphs["xuv_E_prop"] = xuv_E_prop
@@ -256,6 +211,7 @@ class GeneticAlgorithm():
         return tf_graphs
 
     def create_population(self, create_individual, n):
+
         # return a list as the population
         population = []
         for i in range(n):
