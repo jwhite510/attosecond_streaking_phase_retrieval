@@ -256,8 +256,7 @@ class GeneticAlgorithm():
     def initialize_xuv_ir_trace_graphs(self):
 
         # calcualte autocorrelate and proof trace from measured trace
-        trace_reshaped = self.measured_trace.reshape(len(get_measured_trace.energy), len(get_measured_trace.delay))
-        tf_measured_trace = tf.constant(trace_reshaped, dtype=tf.float32)
+        tf_measured_trace = tf.constant(self.measured_trace, dtype=tf.float32)
         measured_auto_trace = tf_functions.autocorrelate(tf_measured_trace)
         measured_proof_trace = tf_functions.proof_trace(tf_measured_trace)["proof"]
 
@@ -478,9 +477,8 @@ if __name__ == "__main__":
     # plot_and_graph = {}
     # plot_and_graph["plot_axes"] = plot_axes
     measured_trace = get_measured_trace.trace
-    measured_trace = measured_trace.reshape(1, -1)
 
-    genetic_algorithm = GeneticAlgorithm(generations=5, pop_size=5, 
+    genetic_algorithm = GeneticAlgorithm(generations=300, pop_size=5000,
                         run_name="gatest1", measured_trace=measured_trace, retrieval="normal")
     
     genetic_algorithm.run()
