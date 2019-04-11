@@ -35,12 +35,11 @@ class GeneticAlgorithm():
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
         if self.retrieval == "normal":
-            self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["trace_mse"])
-
+            self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["error"]["trace_mse"])
         elif self.retrieval == "proof":
-            self.trace_mse_tb = tf.summary.scalar("proof_mse", self.tf_graphs["trace_mse"])
+            self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["error"]["proof_mse"])
         elif self.retrieval == "autocorrelation":
-            self.trace_mse_tb = tf.summary.scalar("autocorr_mse", self.tf_graphs["trace_mse"])
+            self.trace_mse_tb = tf.summary.scalar("trace_mse", self.tf_graphs["error"]["autocorr_mse"])
 
         self.sess = tf.Session()
 
@@ -104,36 +103,66 @@ class GeneticAlgorithm():
         feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
-        # calculate rmse
-        trace_rmse = self.sess.run(self.tf_graphs["trace_mse"], feed_dict=feed_dict)
+        if self.retrieval == "normal":
+            # calculate rmse for normal trace
+            trace_rmse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
+
+        elif self.retrieval == "proof":
+            # calculate rmse for proof trace
+            trace_rmse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
+
+        elif self.retrieval == "autocorrelation":
+            # calculate rmse for autocorrelation trace
+            trace_rmse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
+        else:
+            raise ValueError("retrieval must be either 'normal', 'proof', or 'autocorrelation'")
 
         if plot_and_graph:
-            print("plot the trace")
-
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # ++++++++++calculate input and reconstructed traces++++++++++
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             input_traces = dict()
-            input_traces["trace"] = self.measured_trace
-            input_traces["proof"] =
-            input_traces["autocorrelation"] =
-
+            input_traces["trace"] = self.sess.run(self.tf_graphs["measured"]["trace"])
+            input_traces["proof"] = self.sess.run(self.tf_graphs["measured"]["proof"],
+                                                   feed_dict=feed_dict)
+            input_traces["autocorrelation"] = self.sess.run(self.tf_graphs["measured"]["autocorrelation"],
+                                                   feed_dict=feed_dict)
             recons_traces = dict()
-            recons_traces["trace"] = self.sess.run(self.tf_graphs["image"], feed_dict=feed_dict)
-            recons_traces["proof"] = self.sess.run(self.tf_graphs[""], feed_dict=feed_dict)
-            recons_traces["autocorrelation"] = self.sess.run(self.tf_graphs[""], feed_dict=feed_dict)
+            recons_traces["trace"] = self.sess.run(self.tf_graphs["reconstructed"]["trace"],
+                                                   feed_dict=feed_dict)
+            recons_traces["proof"] = self.sess.run(self.tf_graphs["reconstructed"]["proof"],
+                                                   feed_dict=feed_dict)
+            recons_traces["autocorrelation"] = self.sess.run(self.tf_graphs["reconstructed"]["autocorrelation"],
+                                                   feed_dict=feed_dict)
 
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # ++++++++++++++++++++calculate fields++++++++++++++++++++++
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            xuv_f = self.sess.run(self.tf_graphs["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)
+            xuv_f_full = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)
+            xuv_t = self.sess.run(self.tf_graphs["xuv_E_prop"]["t"], feed_dict=feed_dict)
+            ir_f = self.sess.run(self.tf_graphs["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)
+
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # ++++++++++++++++++plot fields and traces++++++++++++++++++++
+            # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if self.retrieval == "normal":
-                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
+                                   traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="trace")
                 plt.pause(0.00001)
 
             elif self.retrieval == "proof":
-                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
+                                   traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="proof")
                 plt.pause(0.00001)
 
             elif self.retrieval == "autocorrelation":
-                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
+                                   traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="autocorrelation")
                 plt.pause(0.00001)
