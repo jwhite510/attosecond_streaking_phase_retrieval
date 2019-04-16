@@ -693,7 +693,7 @@ if __name__ == "__main__":
 
     test_run = "noise_test1"
     data_saver = DataSaver(test_run)
-    for counts in [0, 100, 300, 50000]:
+    for counts in [0, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
 
         # ++++++++++Define run name++++++++++
         run_name = test_run+str(counts)
@@ -729,7 +729,7 @@ if __name__ == "__main__":
 
 
             # ++++++++++run genetic algorithm++++++++++
-            genetic_algorithm = ga.GeneticAlgorithm(generations=15, pop_size=5000,
+            genetic_algorithm = ga.GeneticAlgorithm(generations=30, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
             ga_retrieved_phase = genetic_algorithm.run()
