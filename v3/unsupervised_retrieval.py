@@ -230,6 +230,29 @@ class UnsupervisedRetrieval:
         self.sess.close()
 
 
+class DataSaver():
+
+    def __init__(self, name):
+        self.data_dict = dict()
+        self.name = name
+
+    def collect(self, counts, retrieval_type, nn_phase_rmse, nn_init_phase_rmse, ga_phase_rmse):
+
+        if not str(counts) in self.data_dict.keys():
+            self.data_dict[str(counts)] = dict()
+
+        if not str(retrieval_type) in self.data_dict[str(counts)].keys():
+            self.data_dict[str(counts)][str(retrieval_type)] = dict()
+
+        self.data_dict[str(counts)][str(retrieval_type)]["nn_unsupervised"] = nn_phase_rmse
+        self.data_dict[str(counts)][str(retrieval_type)]["nn_unsupervised_init"] = nn_init_phase_rmse
+        self.data_dict[str(counts)][str(retrieval_type)]["ga"] = ga_phase_rmse
+
+        with open(self.name+".p", "wb") as file:
+            pickle.dump(self.data_dict, file)
+
+
+
 def apply_noise(trace, counts):
 
     discrete_trace = np.round(trace * counts)
@@ -667,15 +690,19 @@ if __name__ == "__main__":
     # get "measured" trace
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
+
+    test_run = "noise_test1"
+    data_saver = DataSaver(test_run)
     for counts in [0, 100, 300, 50000]:
 
         # ++++++++++Define run name++++++++++
-        run_name = "noise_test_"+str(counts)
+        run_name = test_run+str(counts)
 
         # ++++Get the Measured Trace+++++++++
         measured_trace, measured_trace_phase = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
 
         for retrieval_type in ["proof", "autocorrelation", "normal"]:
+
 
             # +++++ run unsupervised learning retrieval+++++
             unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
@@ -687,6 +714,20 @@ if __name__ == "__main__":
             del unsupervised_retrieval
             tf.reset_default_graph()
 
+
+
+            # +++++ run unsupervised learning retrieval INITIAL OUTPUT ONLY+++++
+            unsupervised_retrieval_initial = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
+                                                           retrieval=retrieval_type,
+                                                           modelname="xuv_ph3", measured_trace=measured_trace,
+                                                           use_xuv_initial_output=False)
+            nn_retrieved_phase_init = unsupervised_retrieval_initial.retrieve()
+            plt.close(unsupervised_retrieval_initial.axes["fig"])
+            del unsupervised_retrieval_initial
+            tf.reset_default_graph()
+
+
+
             # ++++++++++run genetic algorithm++++++++++
             genetic_algorithm = ga.GeneticAlgorithm(generations=15, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
@@ -696,20 +737,13 @@ if __name__ == "__main__":
             del genetic_algorithm
             tf.reset_default_graph()
 
+            # get RMSE of retrieved phase curve
             nn_phase_rmse = calculate_rmse(nn_retrieved_phase, measured_trace_phase)
+            nn_init_phase_rmse = calculate_rmse(nn_retrieved_phase_init, measured_trace_phase)
             ga_phase_rmse = calculate_rmse(ga_retrieved_phase, measured_trace_phase)
 
-            exit(0)
-
-
-
-
-
-
-
-
-
-
-
-
+            # add data to collection
+            data_saver.collect(counts=counts, retrieval_type=retrieval_type,
+                               nn_phase_rmse=nn_phase_rmse, nn_init_phase_rmse=nn_init_phase_rmse,
+                               ga_phase_rmse=ga_phase_rmse)
 
