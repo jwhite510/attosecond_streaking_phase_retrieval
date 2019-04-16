@@ -140,6 +140,7 @@ class GeneticAlgorithm():
             # ++++++++++++++++++++calculate fields++++++++++++++++++++++
             # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             xuv_f = self.sess.run(self.tf_graphs["xuv_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
+            xuv_f_phase = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
             xuv_f_full = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)[0]
             xuv_t = self.sess.run(self.tf_graphs["xuv_E_prop"]["t"], feed_dict=feed_dict)[0]
             ir_f = self.sess.run(self.tf_graphs["ir_E_prop"]["f_cropped"], feed_dict=feed_dict)[0]
@@ -150,7 +151,7 @@ class GeneticAlgorithm():
             if self.retrieval == "normal":
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
-                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="trace",
                                    method=self.method)
                 plt.pause(0.00001)
@@ -158,7 +159,7 @@ class GeneticAlgorithm():
             elif self.retrieval == "proof":
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
-                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="proof",
                                    method=self.method)
                 plt.pause(0.00001)
@@ -166,7 +167,7 @@ class GeneticAlgorithm():
             elif self.retrieval == "autocorrelation":
                 unsupervised_retrieval.plot_images_fields(axes=self.axes, traces_meas=input_traces,
                                    traces_reconstructed=recons_traces,
-                                   xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
+                                   xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
                                    method=self.method)
                 plt.pause(0.00001)
@@ -330,7 +331,7 @@ class GeneticAlgorithm():
         feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
-        phase_curve = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)
+        phase_curve = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
         return phase_curve
 
 

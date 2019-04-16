@@ -160,6 +160,7 @@ class UnsupervisedRetrieval:
 
         ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=self.feed_dict)[0]
         xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=self.feed_dict)[0]
+        xuv_f_phase = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],feed_dict=self.feed_dict)[0]
         xuv_f_full = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],feed_dict=self.feed_dict)[0]
         xuv_t = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=self.feed_dict)[0]
 
@@ -200,7 +201,7 @@ class UnsupervisedRetrieval:
 
         if self.retrieval == "normal":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
-                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="trace",
                                method=self.method)
 
@@ -208,14 +209,14 @@ class UnsupervisedRetrieval:
 
         elif self.retrieval == "proof":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
-                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="proof",
                                method=self.method)
             plt.pause(0.00001)
 
         elif self.retrieval == "autocorrelation":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
-                               xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
+                               xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
                                method=self.method)
             plt.pause(0.00001)
@@ -223,7 +224,7 @@ class UnsupervisedRetrieval:
     def retrieve_final_result(self):
 
         return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
-                             feed_dict=self.feed_dict)
+                             feed_dict=self.feed_dict)[0]
 
     def __del__(self):
         self.sess.close()
@@ -308,7 +309,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     if plotting:
         axes = create_plot_axes()
         plot_images_fields(axes=axes, traces_meas=noise_traces, traces_reconstructed=traces,
-                           xuv_f=xuv_f, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=None,
+                           xuv_f=xuv_f, xuv_f_phase=phase_curve, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=None,
                            run_name=None, true_fields=True, cost_function="trace")
 
         # save files
@@ -337,7 +338,7 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 
-def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_full, xuv_t, ir_f, i,
+def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_phase,  xuv_f_full, xuv_t, ir_f, i,
                        run_name, true_fields=False, cost_function=None, method=None):
 
     # ...........................
@@ -480,7 +481,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_ful
                                          transform=axes["predicted_xuv_phase"].transAxes)
 
     axes["predicted_xuv_phase"].tick_params(axis='y', colors='green')
-    axes["predicted_xuv_phase"].plot(fmat_hz, np.unwrap(np.angle(xuv_f)), color="green")
+    axes["predicted_xuv_phase"].plot(fmat_hz, xuv_f_phase, color="green")
 
 
     # xuv predicted
@@ -621,6 +622,16 @@ def red_text(ax, pos, text):
     ax.text(pos[0], pos[1], text, backgroundcolor="yellow", transform=ax.transAxes, color="red")
 
 
+def calculate_rmse(vec1, vec2):
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+    assert np.shape(vec1) == np.shape(vec2)
+    # calculate rmse
+    length = np.shape(vec1)[0]
+    mse = (1/length) * np.sum((vec1 - vec2)**2)
+    rmse = np.sqrt(mse)
+    return rmse
+
 
 if __name__ == "__main__":
 
@@ -671,7 +682,7 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            retrieved_phase1 = unsupervised_retrieval.retrieve()
+            nn_retrieved_phase = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
             tf.reset_default_graph()
@@ -680,15 +691,14 @@ if __name__ == "__main__":
             genetic_algorithm = ga.GeneticAlgorithm(generations=15, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
-            retrieved_phase2 = genetic_algorithm.run()
+            ga_retrieved_phase = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
-            print("these are the phase curves")
-            print(np.shape(retrieved_phase1))
-            print(np.shape(retrieved_phase2))
-            print(np.shape(measured_trace_phase))
+            nn_phase_rmse = calculate_rmse(nn_retrieved_phase, measured_trace_phase)
+            ga_phase_rmse = calculate_rmse(ga_retrieved_phase, measured_trace_phase)
+
             exit(0)
 
 
