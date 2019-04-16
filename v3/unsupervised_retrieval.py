@@ -671,7 +671,7 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            retrieved_phase = unsupervised_retrieval.retrieve()
+            retrieved_phase1 = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
             tf.reset_default_graph()
@@ -680,10 +680,16 @@ if __name__ == "__main__":
             genetic_algorithm = ga.GeneticAlgorithm(generations=15, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
-            retrieved_phase = genetic_algorithm.run()
+            retrieved_phase2 = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
+
+            print("these are the phase curves")
+            print(np.shape(retrieved_phase1))
+            print(np.shape(retrieved_phase2))
+            print(np.shape(measured_trace_phase))
+            exit(0)
 
 
 

@@ -255,7 +255,8 @@ class GeneticAlgorithm():
 
         # return the rmse of final result
         best_ind = tools.selBest(self.pop, 1)[0]
-        return self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
+        # return self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
+        return self.get_phase_curve(best_ind)
 
     def initialize_xuv_ir_trace_graphs(self):
 
@@ -320,6 +321,20 @@ class GeneticAlgorithm():
         tf_graphs["ir_E_prop"] = ir_E_prop
 
         return tf_graphs
+
+    def get_phase_curve(self, individual):
+
+        xuv_values = np.append([0], individual["xuv"])
+        # append 0 for linear phase
+        ir_values = individual["ir"]
+        feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
+                     self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
+
+        phase_curve = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)
+        return phase_curve
+
+
+
 
     def create_population(self, create_individual, n):
 
