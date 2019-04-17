@@ -1,0 +1,6 @@
+*.pyc
+*.hdf5
+*.png
+v3/models/*
+.idea/
+*.zom
