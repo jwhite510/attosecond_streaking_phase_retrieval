@@ -32,7 +32,7 @@ class GeneticAlgorithm():
         self.measured_trace = measured_trace
         # self.plot_axes = create_exp_plot_axes()
         self.tf_graphs = self.initialize_xuv_ir_trace_graphs()
-        # create tensorboard rmse measurer
+        # create tensorboard mse measurer
         self.writer = tf.summary.FileWriter("./tensorboard_graph_ga/" + run_name)
 
         if self.retrieval == "normal":
@@ -91,11 +91,11 @@ class GeneticAlgorithm():
 
     def evaluate(self, individual):
 
-        rmse = self.calc_vecs_and_rmse(individual)
+        mse = self.calc_vecs_and_mse(individual)
 
-        return rmse
+        return mse
 
-    def calc_vecs_and_rmse(self, individual, plot_and_graph=None):
+    def calc_vecs_and_mse(self, individual, plot_and_graph=None):
 
         xuv_values = np.append([0], individual["xuv"])
         # append 0 for linear phase
@@ -105,16 +105,16 @@ class GeneticAlgorithm():
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
         if self.retrieval == "normal":
-            # calculate rmse for normal trace
-            trace_rmse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
+            # calculate mse for normal trace
+            trace_mse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
 
         elif self.retrieval == "proof":
-            # calculate rmse for proof trace
-            trace_rmse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
+            # calculate mse for proof trace
+            trace_mse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
 
         elif self.retrieval == "autocorrelation":
-            # calculate rmse for autocorrelation trace
-            trace_rmse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
+            # calculate mse for autocorrelation trace
+            trace_mse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
         else:
             raise ValueError("retrieval must be either 'normal', 'proof', or 'autocorrelation'")
 
@@ -177,7 +177,7 @@ class GeneticAlgorithm():
             self.writer.add_summary(summ, global_step=self.g)
             self.writer.flush()
 
-        return trace_rmse
+        return trace_mse
 
     def run(self):
 
@@ -252,12 +252,14 @@ class GeneticAlgorithm():
             best_ind = tools.selBest(self.pop, 1)[0]
 
             # plot the best individual
-            self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
+            self.calc_vecs_and_mse(best_ind, plot_and_graph=True)
 
-        # return the rmse of final result
+        # return the mse of final result
         best_ind = tools.selBest(self.pop, 1)[0]
-        # return self.calc_vecs_and_rmse(best_ind, plot_and_graph=True)
-        return self.get_phase_curve(best_ind)
+        # return self.calc_vecs_and_mse(best_ind, plot_and_graph=True)
+        phase_curve = self.get_phase_curve(best_ind)
+        trace_mse = self.evaluate(best_ind)
+        return trace_mse, phase_curve
 
     def initialize_xuv_ir_trace_graphs(self):
 
@@ -333,9 +335,6 @@ class GeneticAlgorithm():
 
         phase_curve = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
         return phase_curve
-
-
-
 
     def create_population(self, create_individual, n):
 

@@ -14,7 +14,7 @@ import glob
 import pickle
 import tf_functions
 import measured_trace.get_trace as get_measured_trace
-import ga
+import ga as genetic_alg
 
 
 class UnsupervisedRetrieval:
@@ -223,8 +223,26 @@ class UnsupervisedRetrieval:
 
     def retrieve_final_result(self):
 
-        return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
+        # get trace rmse
+        if self.retrieval == "normal":
+            final_mse = self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+
+        elif self.retrieval == "proof":
+            final_mse = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+
+        elif self.retrieval == "autocorrelation":
+            final_mse = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+        else:
+            raise ValueError("final mse not defined")
+
+        # get the retrieved phase
+        phase_retrieved = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
                              feed_dict=self.feed_dict)[0]
+
+        return final_mse, phase_retrieved
 
     def __del__(self):
         self.sess.close()
@@ -236,7 +254,7 @@ class DataSaver():
         self.data_dict = dict()
         self.name = name
 
-    def collect(self, counts, retrieval_type, nn_phase_rmse, nn_init_phase_rmse, ga_phase_rmse):
+    def collect(self, counts, retrieval_type, nn, nn_init, ga):
 
         if not str(counts) in self.data_dict.keys():
             self.data_dict[str(counts)] = dict()
@@ -244,9 +262,9 @@ class DataSaver():
         if not str(retrieval_type) in self.data_dict[str(counts)].keys():
             self.data_dict[str(counts)][str(retrieval_type)] = dict()
 
-        self.data_dict[str(counts)][str(retrieval_type)]["nn_unsupervised"] = nn_phase_rmse
-        self.data_dict[str(counts)][str(retrieval_type)]["nn_unsupervised_init"] = nn_init_phase_rmse
-        self.data_dict[str(counts)][str(retrieval_type)]["ga"] = ga_phase_rmse
+        self.data_dict[str(counts)][str(retrieval_type)]["nn"] = nn
+        self.data_dict[str(counts)][str(retrieval_type)]["nn_init"] = nn_init
+        self.data_dict[str(counts)][str(retrieval_type)]["ga"] = ga
 
         with open(self.name+".p", "wb") as file:
             pickle.dump(self.data_dict, file)
@@ -691,7 +709,7 @@ if __name__ == "__main__":
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
 
-    test_run = "noise_test1"
+    test_run = "noise_test2__"
     data_saver = DataSaver(test_run)
     for counts in [0, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
 
@@ -709,7 +727,8 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            nn_retrieved_phase = unsupervised_retrieval.retrieve()
+            nn_result = dict()
+            nn_result["nn_trace_mse"], nn_result["nn_retrieved_phase"] = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
             tf.reset_default_graph()
@@ -721,7 +740,8 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            nn_retrieved_phase_init = unsupervised_retrieval_initial.retrieve()
+            nn_init_result = dict()
+            nn_init_result["nn_trace_mse_init"], nn_init_result["nn_retrieved_phase_init"] = unsupervised_retrieval_initial.retrieve()
             plt.close(unsupervised_retrieval_initial.axes["fig"])
             del unsupervised_retrieval_initial
             tf.reset_default_graph()
@@ -729,21 +749,22 @@ if __name__ == "__main__":
 
 
             # ++++++++++run genetic algorithm++++++++++
-            genetic_algorithm = ga.GeneticAlgorithm(generations=30, pop_size=5000,
+            genetic_algorithm = genetic_alg.GeneticAlgorithm(generations=30, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
-            ga_retrieved_phase = genetic_algorithm.run()
+            ga_result = dict()
+            ga_result["ga_trace_mse"], ga_result["ga_retrieved_phase "] = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
             # get RMSE of retrieved phase curve
-            nn_phase_rmse = calculate_rmse(nn_retrieved_phase, measured_trace_phase)
-            nn_init_phase_rmse = calculate_rmse(nn_retrieved_phase_init, measured_trace_phase)
-            ga_phase_rmse = calculate_rmse(ga_retrieved_phase, measured_trace_phase)
+            nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"], measured_trace_phase)
+            nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"], measured_trace_phase)
+            ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"], measured_trace_phase)
 
             # add data to collection
             data_saver.collect(counts=counts, retrieval_type=retrieval_type,
-                               nn_phase_rmse=nn_phase_rmse, nn_init_phase_rmse=nn_init_phase_rmse,
-                               ga_phase_rmse=ga_phase_rmse)
+                               nn=nn_result, nn_init=nn_init_result,
+                               ga=ga_result)
 
