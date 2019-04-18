@@ -347,6 +347,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
 
     tf.reset_default_graph()
 
+    axes = None
     if plotting:
         axes = create_plot_axes()
         plot_images_fields(axes=axes, traces_meas=noise_traces, traces_reconstructed=traces,
@@ -359,7 +360,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
             os.makedirs(dir)
         plt.savefig(dir+"actual_fields" + str(counts) + ".png")
 
-    return noisy_trace, phase_curve
+    return noisy_trace, phase_curve, axes
 
 
 def calc_fwhm(tmat, I_t):
@@ -728,7 +729,7 @@ if __name__ == "__main__":
         run_name = test_run+str(counts)
 
         # ++++Get the Measured Trace+++++++++
-        measured_trace, measured_trace_phase = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
+        measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
 
         for retrieval_type in ["proof", "autocorrelation", "normal"]:
 
@@ -779,3 +780,5 @@ if __name__ == "__main__":
                                nn=nn_result, nn_init=nn_init_result,
                                ga=ga_result)
 
+        # close the fake measured trace figure
+        plt.close(fake_axes["fig"])
