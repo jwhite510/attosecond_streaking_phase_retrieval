@@ -711,7 +711,18 @@ if __name__ == "__main__":
 
     test_run = "noise_test2__"
     data_saver = DataSaver(test_run)
-    for counts in [0, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
+
+    # calcualte counts for SNR
+    # SNR = sqrt(N)
+    snr_min = np.sqrt(20)  # minimum count level
+    snr_max = np.sqrt(5000)  # maximum count level
+    snr_levels = np.linspace(snr_min, snr_max, 20)
+    counts_list = [int(count) for count in snr_levels**2]
+    with open("counts_list.p", "wb") as file:
+        pickle.dump(counts_list, file)
+
+    # for counts in [0, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
+    for counts in counts_list:
 
         # ++++++++++Define run name++++++++++
         run_name = test_run+str(counts)
