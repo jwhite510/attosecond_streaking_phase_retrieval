@@ -239,8 +239,13 @@ class UnsupervisedRetrieval:
             raise ValueError("final mse not defined")
 
         # get the retrieved phase
-        phase_retrieved = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
+        phase_retrieved = dict()
+        phase_retrieved["cropped"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
                              feed_dict=self.feed_dict)[0]
+
+        # get the retrieved full spectral phase
+        phase_retrieved["full"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],
+                                                   feed_dict=self.feed_dict)[0]
 
         return final_mse, phase_retrieved
 
@@ -765,15 +770,15 @@ if __name__ == "__main__":
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
             ga_result = dict()
-            ga_result["ga_trace_mse"], ga_result["ga_retrieved_phase "] = genetic_algorithm.run()
+            ga_result["ga_trace_mse"], ga_result["ga_retrieved_phase"] = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
             # get RMSE of retrieved phase curve
-            nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"], measured_trace_phase)
-            nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"], measured_trace_phase)
-            ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"], measured_trace_phase)
+            nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
+            nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"]["cropped"], measured_trace_phase)
+            ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
 
             # add data to collection
             data_saver.collect(counts=counts, retrieval_type=retrieval_type,

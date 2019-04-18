@@ -333,7 +333,9 @@ class GeneticAlgorithm():
         feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
-        phase_curve = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
+        phase_curve = dict()
+        phase_curve["cropped"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
+        phase_curve["full"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)[0]
         return phase_curve
 
     def create_population(self, create_individual, n):
