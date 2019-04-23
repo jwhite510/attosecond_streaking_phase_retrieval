@@ -276,6 +276,11 @@ class DataSaver():
         self.data_dict = dict()
         self.name = name
 
+    def collect_actual_phase_trace(self, measured_trace, measured_trace_phase):
+        self.data_dict["actual_values"] = dict()
+        self.data_dict["actual_values"]["measured_trace"]  = measured_trace
+        self.data_dict["actual_values"]["measured_trace_phase"]  = measured_trace_phase
+
     def collect(self, counts, retrieval_type, nn, nn_init, ga):
 
         if not str(counts) in self.data_dict.keys():
@@ -752,6 +757,8 @@ if __name__ == "__main__":
 
         # ++++Get the Measured Trace+++++++++
         measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
+
+        data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase)
 
         for retrieval_type in ["proof", "autocorrelation", "normal"]:
 
