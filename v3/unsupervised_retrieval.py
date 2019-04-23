@@ -715,7 +715,7 @@ if __name__ == "__main__":
     # for counts in [200, 300, 400, 500, 600, 700]:
     # for counts in [1000, 2000, 3000, 10000]:
 
-    test_run = "noise_test2__"
+    test_run = "noise_test4__"
     data_saver = DataSaver(test_run)
 
     # calcualte counts for SNR
