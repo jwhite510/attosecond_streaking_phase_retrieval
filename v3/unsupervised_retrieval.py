@@ -691,55 +691,9 @@ def red_text(ax, pos, text):
     ax.text(pos[0], pos[1], text, backgroundcolor="yellow", transform=ax.transAxes, color="red")
 
 
-def calculate_rmse(vec1, vec2):
-    vec1 = np.array(vec1)
-    vec2 = np.array(vec2)
-    assert np.shape(vec1) == np.shape(vec2)
-    # calculate rmse
-    length = np.shape(vec1)[0]
-    mse = (1/length) * np.sum((vec1 - vec2)**2)
-    rmse = np.sqrt(mse)
-    return rmse
-
-
-if __name__ == "__main__":
-
-    # get the measured trace
-    # _, _, measured_trace = get_measured_trace()
-    # _, _, measured_trace = get_measured_trace.delay, get_measured_trace.energy, get_measured_trace.trace
-
-    # get "measured" trace
-    # measured_trace = get_fake_measured_trace(counts=200, plotting=True, run_name=self.run_name)
-
-    # run_name = "photon_multi_1"
-
-    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="autocorrelation",
-    #                                                modelname="test1_sample3", measured_trace=measured_trace)
-    # unsupervised_retrieval.retrieve()
-    # del unsupervised_retrieval
-    # tf.reset_default_graph()
-
-
-    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="normal",
-    #                                                modelname="test1_sample3", measured_trace=measured_trace)
-    # unsupervised_retrieval.retrieve()
-    # del unsupervised_retrieval
-    # tf.reset_default_graph()
-
-
-    # unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name, iterations=5000, retrieval="proof",
-    #                                                modelname="test1_sample3", measured_trace=measured_trace)
-    # unsupervised_retrieval.retrieve()
-    # del unsupervised_retrieval
-    # tf.reset_default_graph()
-
-    # get "measured" trace
-    # for counts in [200, 300, 400, 500, 600, 700]:
-    # for counts in [1000, 2000, 3000, 10000]:
-
-    test_run = "noise_test4__"
+def noise_test(test_run):
+    
     data_saver = DataSaver(test_run)
-
     # calcualte counts for SNR
     # SNR = sqrt(N)
     snr_min = np.sqrt(20)  # minimum count level
@@ -796,7 +750,6 @@ if __name__ == "__main__":
             del genetic_algorithm
             tf.reset_default_graph()
 
-            exit(0)
             # get RMSE of retrieved phase curve
             # nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
             # nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"]["cropped"], measured_trace_phase)
@@ -809,3 +762,20 @@ if __name__ == "__main__":
 
         # close the fake measured trace figure
         plt.close(fake_axes["fig"])
+
+
+def calculate_rmse(vec1, vec2):
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+    assert np.shape(vec1) == np.shape(vec2)
+    # calculate rmse
+    length = np.shape(vec1)[0]
+    mse = (1/length) * np.sum((vec1 - vec2)**2)
+    rmse = np.sqrt(mse)
+    return rmse
+
+
+if __name__ == "__main__":
+    
+    # run a noise test
+    noise_test("noise_test4__")
