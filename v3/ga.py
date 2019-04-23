@@ -95,6 +95,33 @@ class GeneticAlgorithm():
 
         return mse
 
+    def get_trace_and_rmse(self, individual):
+        
+        mse = self.calc_vecs_and_mse(individual)
+        
+        xuv_values = np.append([0], individual["xuv"])
+        # append 0 for linear phase
+        ir_values = individual["ir"]
+
+        feed_dict = {self.tf_graphs["xuv_coefs_in"]: xuv_values.reshape(1, -1),
+                     self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
+        
+        if self.retrieval == "normal":
+            trace = self.sess.run(self.tf_graphs["reconstructed"]["trace"],
+                                                   feed_dict=feed_dict)
+
+        elif self.retrieval == "proof":
+            trace = self.sess.run(self.tf_graphs["reconstructed"]["proof"],
+                                                   feed_dict=feed_dict)
+
+        elif self.retrieval == "autocorrelation":
+            trace = self.sess.run(self.tf_graphs["reconstructed"]["autocorrelation"],
+                                                   feed_dict=feed_dict)
+
+        return trace, mse
+
+
+
     def calc_vecs_and_mse(self, individual, plot_and_graph=None):
 
         xuv_values = np.append([0], individual["xuv"])
@@ -257,9 +284,17 @@ class GeneticAlgorithm():
         # return the mse of final result
         best_ind = tools.selBest(self.pop, 1)[0]
         # return self.calc_vecs_and_mse(best_ind, plot_and_graph=True)
-        phase_curve = self.get_phase_curve(best_ind)
-        trace_mse = self.evaluate(best_ind)
-        return trace_mse, phase_curve
+        phase_retrieved = self.get_phase_curve(best_ind)
+        # trace and trace mse
+        recons_trace, trace_mse = self.get_trace_and_rmse(best_ind)
+        
+        result = dict()
+        result["field"] = phase_retrieved
+        result["trace"] = dict()
+        result["trace"]["reconstructed"] = recons_trace
+        result["trace"]["mse"] = trace_mse
+        return result
+
 
     def initialize_xuv_ir_trace_graphs(self):
 
@@ -334,8 +369,8 @@ class GeneticAlgorithm():
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
         phase_curve = dict()
-        phase_curve["cropped"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
-        phase_curve["full"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)[0]
+        phase_curve["cropped_phase"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["phasecurve_cropped"], feed_dict=feed_dict)[0]
+        phase_curve["f_full"] = self.sess.run(self.tf_graphs["xuv_E_prop"]["f"], feed_dict=feed_dict)[0]
         return phase_curve
 
     def create_population(self, create_individual, n):

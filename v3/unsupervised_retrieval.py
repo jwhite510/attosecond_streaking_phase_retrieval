@@ -223,31 +223,48 @@ class UnsupervisedRetrieval:
 
     def retrieve_final_result(self):
 
-        # get trace rmse
+        # get trace rmse and trace
         if self.retrieval == "normal":
+            # trace mse
             final_mse = self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+            # reconstructed trace
+            recons_trace = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],
                                       feed_dict=self.feed_dict)
 
         elif self.retrieval == "proof":
+            # trace mse
             final_mse = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+            # reconstructed trace
+            recons_trace = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["reconstructed_proof"],
                                       feed_dict=self.feed_dict)
 
         elif self.retrieval == "autocorrelation":
+            # trace mse
             final_mse = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"],
+                                      feed_dict=self.feed_dict)
+            # reconstructed trace
+            recons_trace = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"],
                                       feed_dict=self.feed_dict)
         else:
             raise ValueError("final mse not defined")
 
         # get the retrieved phase
         phase_retrieved = dict()
-        phase_retrieved["cropped"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
+        phase_retrieved["cropped_phase"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
                              feed_dict=self.feed_dict)[0]
 
-        # get the retrieved full spectral phase
-        phase_retrieved["full"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],
+        # get the retrieved complex spectrum
+        phase_retrieved["f_full"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],
                                                    feed_dict=self.feed_dict)[0]
 
-        return final_mse, phase_retrieved
+        result = dict()
+        result["field"] = phase_retrieved 
+        result["trace"] = dict()
+        result["trace"]["reconstructed"] = recons_trace
+        result["trace"]["mse"] = final_mse
+        return result
 
     def __del__(self):
         self.sess.close()
@@ -744,8 +761,7 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            nn_result = dict()
-            nn_result["nn_trace_mse"], nn_result["nn_retrieved_phase"] = unsupervised_retrieval.retrieve()
+            nn_result = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
             tf.reset_default_graph()
@@ -757,8 +773,7 @@ if __name__ == "__main__":
                                                            retrieval=retrieval_type,
                                                            modelname="xuv_ph3", measured_trace=measured_trace,
                                                            use_xuv_initial_output=False)
-            nn_init_result = dict()
-            nn_init_result["nn_trace_mse_init"], nn_init_result["nn_retrieved_phase_init"] = unsupervised_retrieval_initial.retrieve()
+            nn_init_result = unsupervised_retrieval_initial.retrieve()
             plt.close(unsupervised_retrieval_initial.axes["fig"])
             del unsupervised_retrieval_initial
             tf.reset_default_graph()
@@ -769,16 +784,16 @@ if __name__ == "__main__":
             genetic_algorithm = genetic_alg.GeneticAlgorithm(generations=30, pop_size=5000,
                                                     run_name=run_name+"_ga_"+retrieval_type,
                                                     measured_trace=measured_trace, retrieval=retrieval_type)
-            ga_result = dict()
-            ga_result["ga_trace_mse"], ga_result["ga_retrieved_phase"] = genetic_algorithm.run()
+            ga_result = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
+            exit(0)
             # get RMSE of retrieved phase curve
-            nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
-            nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"]["cropped"], measured_trace_phase)
-            ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
+            # nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
+            # nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"]["cropped"], measured_trace_phase)
+            # ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
 
             # add data to collection
             data_saver.collect(counts=counts, retrieval_type=retrieval_type,
