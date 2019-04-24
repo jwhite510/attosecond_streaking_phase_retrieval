@@ -22,7 +22,6 @@ import measured_trace.get_trace as get_measured_trace
 class GeneticAlgorithm():
 
     def __init__(self, generations, pop_size, run_name, measured_trace, retrieval):
-
         print("initialize")
         self.method = "Genetic Algorithm"
         self.retrieval = retrieval
@@ -76,7 +75,6 @@ class GeneticAlgorithm():
         self.g = 0
 
     def create_individual(self):
-
         individual = creator.Individual()
 
         # random numbers betwwen -1 and 1
@@ -90,13 +88,11 @@ class GeneticAlgorithm():
         return individual
 
     def evaluate(self, individual):
-
         mse = self.calc_vecs_and_mse(individual)
 
         return mse
 
     def get_trace_and_rmse(self, individual):
-        
         mse = self.calc_vecs_and_mse(individual)
         
         xuv_values = np.append([0], individual["xuv"])
@@ -120,10 +116,7 @@ class GeneticAlgorithm():
 
         return trace, mse
 
-
-
     def calc_vecs_and_mse(self, individual, plot_and_graph=None):
-
         xuv_values = np.append([0], individual["xuv"])
         # append 0 for linear phase
         ir_values = individual["ir"]
@@ -207,7 +200,6 @@ class GeneticAlgorithm():
         return trace_mse
 
     def run(self):
-
         print("run")
         while self.g <= self.generations:
             self.g = self.g + 1
@@ -295,9 +287,7 @@ class GeneticAlgorithm():
         result["trace"]["mse"] = trace_mse
         return result
 
-
     def initialize_xuv_ir_trace_graphs(self):
-
         # calcualte autocorrelate and proof trace from measured trace
         tf_measured_trace = tf.constant(self.measured_trace, dtype=tf.float32)
         measured_auto_trace = tf_functions.autocorrelate(tf_measured_trace)
@@ -361,7 +351,6 @@ class GeneticAlgorithm():
         return tf_graphs
 
     def get_phase_curve(self, individual):
-
         xuv_values = np.append([0], individual["xuv"])
         # append 0 for linear phase
         ir_values = individual["ir"]
@@ -374,7 +363,6 @@ class GeneticAlgorithm():
         return phase_curve
 
     def create_population(self, create_individual, n):
-
         # return a list as the population
         population = []
         for i in range(n):
@@ -383,11 +371,7 @@ class GeneticAlgorithm():
         return population
 
 
-
 if __name__ == "__main__":
-
-
-
     #..................................
     # .....retrieve measured trace.....
     #..................................
