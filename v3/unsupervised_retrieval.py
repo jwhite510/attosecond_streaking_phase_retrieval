@@ -569,8 +569,9 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
     axes["predicted_xuv_t"].plot(tmat_as, I_t, color="black")
     #calculate FWHM
     fwhm, t1, t2, half_max = calc_fwhm(tmat=tmat_as, I_t=I_t)
-    axes["predicted_xuv_t"].text(1.0, 0.9, "FWHM:\n %.2f [as]" % fwhm, color="red", backgroundcolor="white", ha="center",
-                                 transform=axes["predicted_xuv_t"].transAxes)
+    axes["predicted_xuv_t"].text(1.0, 0.9, "FWHM:\n %.2f [as]" % fwhm, color="red",
+                            backgroundcolor="white", ha="center",
+                            transform=axes["predicted_xuv_t"].transAxes)
     #plot FWHM
     axes["predicted_xuv_t"].plot([t1, t2], [half_max, half_max], color="red", linewidth=2.0)
     axes["predicted_xuv_t"].set_yticks([])
@@ -644,8 +645,10 @@ def show_proof_calculation(trace, sess, nn_nodes):
 
 
     # mark the indexes
-    ax.plot([out["w1_indexes"][0], out["w1_indexes"][0]], [np.max(out["summationf"]), 0], color="red")
-    ax.plot([out["w1_indexes"][1], out["w1_indexes"][1]], [np.max(out["summationf"]), 0], color="red")
+    ax.plot([out["w1_indexes"][0], out["w1_indexes"][0]],
+                [np.max(out["summationf"]), 0], color="red")
+    ax.plot([out["w1_indexes"][1], out["w1_indexes"][1]],
+                [np.max(out["summationf"]), 0], color="red")
 
     # plot the proof trace
     ax = fig.add_subplot(gs[3, :])
@@ -703,14 +706,16 @@ def noise_test(test_run):
     with open("counts_list.p", "wb") as file:
         pickle.dump(counts_list, file)
 
-    # for counts in [0, 50, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
+    # for counts in [0, 50, 100, 150, 200, 300, 400, 
+    # 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
     for counts in counts_list:
 
         # ++++++++++Define run name++++++++++
         run_name = test_run+str(counts)
 
         # ++++Get the Measured Trace+++++++++
-        measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(counts=counts, plotting=True, run_name=run_name+"_fields")
+        measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(
+                counts=counts, plotting=True, run_name=run_name+"_fields")
 
         data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase)
 
@@ -718,10 +723,11 @@ def noise_test(test_run):
 
 
             # +++++ run unsupervised learning retrieval+++++
-            unsupervised_retrieval = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
-                                                           retrieval=retrieval_type,
-                                                           modelname="xuv_ph3", measured_trace=measured_trace,
-                                                           use_xuv_initial_output=False)
+            unsupervised_retrieval = UnsupervisedRetrieval(
+                        run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
+                                        retrieval=retrieval_type,
+                                        modelname="xuv_ph3", measured_trace=measured_trace,
+                                        use_xuv_initial_output=False)
             nn_result = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
@@ -730,10 +736,11 @@ def noise_test(test_run):
 
 
             # +++++ run unsupervised learning retrieval INITIAL OUTPUT ONLY+++++
-            unsupervised_retrieval_initial = UnsupervisedRetrieval(run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
-                                                           retrieval=retrieval_type,
-                                                           modelname="xuv_ph3", measured_trace=measured_trace,
-                                                           use_xuv_initial_output=False)
+            unsupervised_retrieval_initial = UnsupervisedRetrieval(
+                        run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
+                                        retrieval=retrieval_type,
+                                        modelname="xuv_ph3", measured_trace=measured_trace,
+                                        use_xuv_initial_output=False)
             nn_init_result = unsupervised_retrieval_initial.retrieve()
             plt.close(unsupervised_retrieval_initial.axes["fig"])
             del unsupervised_retrieval_initial
@@ -742,18 +749,23 @@ def noise_test(test_run):
 
 
             # ++++++++++run genetic algorithm++++++++++
-            genetic_algorithm = genetic_alg.GeneticAlgorithm(generations=30, pop_size=5000,
-                                                    run_name=run_name+"_ga_"+retrieval_type,
-                                                    measured_trace=measured_trace, retrieval=retrieval_type)
+            genetic_algorithm = genetic_alg.GeneticAlgorithm(
+                        generations=30, pop_size=5000,
+                                        run_name=run_name+"_ga_"+retrieval_type,
+                                        measured_trace=measured_trace, retrieval=retrieval_type)
             ga_result = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
             tf.reset_default_graph()
 
             # get RMSE of retrieved phase curve
-            # nn_result["nn_phase_rmse"] = calculate_rmse(nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
-            # nn_init_result["nn_init_phase_rmse"] = calculate_rmse(nn_init_result["nn_retrieved_phase_init"]["cropped"], measured_trace_phase)
-            # ga_result["ga_phase_rmse"] = calculate_rmse(ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
+            # nn_result["nn_phase_rmse"] = calculate_rmse(
+            #            nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
+            # nn_init_result["nn_init_phase_rmse"] = calculate_rmse(
+            #            nn_init_result["nn_retrieved_phase_init"]["cropped"], 
+            #            measured_trace_phase)
+            # ga_result["ga_phase_rmse"] = calculate_rmse(
+            #            ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
 
             # add data to collection
             data_saver.collect(counts=counts, retrieval_type=retrieval_type,
