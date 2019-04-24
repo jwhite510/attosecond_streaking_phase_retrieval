@@ -298,10 +298,10 @@ class DataSaver():
         self.data_dict = dict()
         self.name = name
 
-    def collect_actual_phase_trace(self, measured_trace, measured_trace_phase):
+    def collect_actual_phase_trace(self, measured_trace, measured_trace_phase, count_num):
         self.data_dict["actual_values"] = dict()
-        self.data_dict["actual_values"]["measured_trace"]  = measured_trace
-        self.data_dict["actual_values"]["measured_trace_phase"]  = measured_trace_phase
+        self.data_dict["actual_values"]["measured_trace_"+str(count_num)]  = measured_trace
+        self.data_dict["actual_values"]["measured_trace_phase_"+str(count_num)]  = measured_trace_phase
 
     def collect(self, counts, retrieval_type, nn, nn_init, ga):
 
@@ -723,7 +723,7 @@ def noise_test(test_run):
                     counts=counts, plotting=True, run_name=run_name+"_fields"
         )
 
-        data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase)
+        data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase, counts)
 
         for retrieval_type in ["proof", "autocorrelation", "normal"]:
 
@@ -801,7 +801,7 @@ def bootstrap_retrievals(test_name):
     test_name: the name of the test set used in noise testing
     """
     # open the data retrieval object to get the measured traces
-    with open(test_name, "rb") as file:
+    with open(test_name+".p", "rb") as file:
         data_obj = pickle.load(file)
 
     # get the trace at specific noise level
@@ -813,8 +813,9 @@ def bootstrap_retrievals(test_name):
 
     for _ in range(count):
 
+        import ipdb; ipdb.set_trace() # BREAKPOINT
         # do a retrieval with this trace
-        measured_trace = data_obj[....][count]
+        # measured_trace = data_obj[....][count]
 
 
 
@@ -863,8 +864,9 @@ def bootstrap_retrievals(test_name):
 
 if __name__ == "__main__":
     # run a noise test
-    noise_test("noise_test4__")
+    noise_test("noise_test6__")
+    exit()
 
     # re open the data file and run bootstrap tests on it
-    # bootstrap_retrievals("noise_test4__")
+    bootstrap_retrievals("noise_test6__")
 
