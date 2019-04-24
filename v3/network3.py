@@ -872,33 +872,6 @@ def setup_neural_net():
     # unsupervised_train_log = unsupervised_optimizer_log.minimize(unsupervised_learning_loss_log,
     #                                                     var_list=phase_net_vars)
 
-    # boostrap method
-
-    # two vectors:
-    recons_vec = tf.reshape(reconstructed_trace, [-1])
-    input_vec = tf.reshape(x_in, [-1])
-
-    bootstrap_indexes = tf.placeholder(tf.int32, shape=[50])
-    recons_values = tf.gather(recons_vec, bootstrap_indexes)
-    input_values = tf.gather(input_vec, bootstrap_indexes)
-
-    # mean squared error
-    bootstrap_loss = tf.losses.mean_squared_error(
-        labels=input_values, predictions=recons_values
-    )
-    bootstrap_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    bootstrap_train = bootstrap_optimizer.minimize(
-        bootstrap_loss, var_list=phase_net_vars
-    )
-
-    print("bootstrap")
-    exit(0)
-
-    print(bootstrap_indexes)
-    print(bootstrap_indexes)
-    print()
-
-
 
     # ..........................................................
     # .................PROOF RETRIEVAL LOSS FUNC................
@@ -924,7 +897,23 @@ def setup_neural_net():
                                             autocorrelate_unsupervised_learning_loss,
                                             var_list=phase_net_vars)
 
+    # +++++++++++++++++++++++++++++++++++++
+    # ++++++++++BOOTSTRAP METHOD+++++++++++
+    # +++++++++++++++++++++++++++++++++++++
+    norm_bootstrap_loss, norm_bootstrap_train, norm_bootstrap_indexes_ph = bootstrap(
+                    recons_trace=reconstructed_trace, input_trace=x_in,
+                    learning_rate_in=u_LR, train_variables=phase_net_vars
+    )
 
+    proof_bootstrap_loss, proof_bootstrap_train, proof_bootstrap_indexes_ph = bootstrap(
+                    recons_trace=reconstructed_proof["proof"], input_trace=input_image_proof["proof"],
+                    learning_rate_in=u_LR, train_variables=phase_net_vars
+    )
+
+    auto_bootstrap_loss, auto_bootstrap_train, auto_bootstrap_indexes_ph = bootstrap(
+                    recons_trace=reconstructed_autocorrelate, input_trace=input_image_autocorrelate,
+                    learning_rate_in=u_LR, train_variables=phase_net_vars
+    )
 
 
 
@@ -981,6 +970,27 @@ def setup_neural_net():
     nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"] = autocorrelate_unsupervised_learning_loss
 
 
+    # add nodes for bootstrap method
+    nn_nodes["unsupervised"]["bootstrap"] = {}
+    
+    nn_nodes["unsupervised"]["bootstrap"]["u_LR"] = u_LR
+
+    nn_nodes["unsupervised"]["bootstrap"]["normal"] = {}
+    nn_nodes["unsupervised"]["bootstrap"]["normal"]["loss"] = norm_bootstrap_loss
+    nn_nodes["unsupervised"]["bootstrap"]["normal"]["train"] = norm_bootstrap_train
+    nn_nodes["unsupervised"]["bootstrap"]["normal"]["indexes_ph"] = norm_bootstrap_indexes_ph
+
+    nn_nodes["unsupervised"]["bootstrap"]["proof"] = {}
+    nn_nodes["unsupervised"]["bootstrap"]["proof"]["loss"] = proof_bootstrap_loss
+    nn_nodes["unsupervised"]["bootstrap"]["proof"]["train"] = proof_bootstrap_train
+    nn_nodes["unsupervised"]["bootstrap"]["proof"]["indexes_ph"] = proof_bootstrap_indexes_ph
+
+    nn_nodes["unsupervised"]["bootstrap"]["auto"] = {}
+    nn_nodes["unsupervised"]["bootstrap"]["auto"]["loss"]  = auto_bootstrap_loss
+    nn_nodes["unsupervised"]["bootstrap"]["auto"]["train"] = auto_bootstrap_train
+    nn_nodes["unsupervised"]["bootstrap"]["auto"]["indexes_ph"]  = auto_bootstrap_indexes_ph
+
+
     nn_nodes["general"]["phase_net_output"] = phase_net_output
     nn_nodes["general"]["reconstructed_trace"] = reconstructed_trace
     nn_nodes["general"]["hold_prob"] = hold_prob
@@ -988,6 +998,26 @@ def setup_neural_net():
     nn_nodes["general"]["xuv_coefs_pred"] = xuv_coefs_pred
 
     return nn_nodes
+
+def bootstrap(recons_trace, input_trace, learning_rate_in, train_variables):
+
+    recons_vec = tf.reshape(recons_trace, [-1])
+    input_vec = tf.reshape(input_trace, [-1])
+    # use 2/3rds of the points
+    number_of_bootstrap_indexes = int( (2/3) * recons_vec.get_shape().as_list()[0])
+    bootstrap_indexes_ph = tf.placeholder(tf.int32, shape=[number_of_bootstrap_indexes])
+    recons_values = tf.gather(recons_vec, bootstrap_indexes_ph)
+    input_values = tf.gather(input_vec, bootstrap_indexes_ph)
+    # mean squared error
+    bootstrap_loss = tf.losses.mean_squared_error(
+        labels=input_values, predictions=recons_values
+    )
+    bootstrap_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate_in)
+    bootstrap_train = bootstrap_optimizer.minimize(
+        bootstrap_loss, var_list=train_variables
+    )
+    return bootstrap_loss, bootstrap_train, bootstrap_indexes_ph
+
 
 
 
