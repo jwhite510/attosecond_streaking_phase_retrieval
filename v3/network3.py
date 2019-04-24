@@ -753,7 +753,7 @@ def setup_neural_net():
     # use the fields to generate streaking trace
     # sample size of one required as of now
     x = tf_functions.streaking_trace(xuv_cropped_f_in=gan_output["xuv_E_prop"]["f_cropped"][0],
-                                            ir_cropped_f_in=gan_output["ir_E_prop"]["f_cropped"][0])
+                                        ir_cropped_f_in=gan_output["ir_E_prop"]["f_cropped"][0])
     x_flat = tf.reshape(x, [1, -1])
     # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
@@ -769,8 +769,9 @@ def setup_neural_net():
     supervised_label_fields = create_fields_label_from_coefs_params(actual_coefs_params)
 
     # generate the reconstructed trace
-    reconstructed_trace = tf_functions.streaking_trace(xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
-                                                       ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
+    reconstructed_trace = tf_functions.streaking_trace(
+                    xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
+                    ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
 
     # generate proof trace
     reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
@@ -819,22 +820,28 @@ def setup_neural_net():
     s_LR = tf.placeholder(tf.float32, shape=[])
 
     # phase curve loss function
-    phase_network_phasecurve_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_E_prop"]["phasecurve_cropped"],
-                                                        predictions=phase_net_output["xuv_E_prop"]["phasecurve_cropped"])
+    phase_network_phasecurve_loss = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["xuv_E_prop"]["phasecurve_cropped"],
+                            predictions=phase_net_output["xuv_E_prop"]["phasecurve_cropped"])
     phase_phasecurve_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
-    phase_network_train_phasecurve = phase_phasecurve_optimizer.minimize(phase_network_phasecurve_loss, var_list=phase_net_vars)
+    phase_network_train_phasecurve = phase_phasecurve_optimizer.minimize(
+                            phase_network_phasecurve_loss, var_list=phase_net_vars)
 
     # fields loss function for training phase retrieval network
-    phase_network_fields_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["xuv_ir_field_label"],
-                                                        predictions=phase_net_output["xuv_ir_field_label"])
+    phase_network_fields_loss = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["xuv_ir_field_label"],
+                            predictions=phase_net_output["xuv_ir_field_label"])
     phase_fields_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
-    phase_network_train_fields = phase_fields_optimizer.minimize(phase_network_fields_loss, var_list=phase_net_vars)
+    phase_network_train_fields = phase_fields_optimizer.minimize(
+                            phase_network_fields_loss, var_list=phase_net_vars)
 
     # coefs and params loss function for training phase retrieval network
-    phase_network_coefs_params_loss = tf.losses.mean_squared_error(labels=supervised_label_fields["actual_coefs_params"],
-                                                        predictions=phase_net_output["predicted_coefficients_params"])
+    phase_network_coefs_params_loss = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["actual_coefs_params"],
+                            predictions=phase_net_output["predicted_coefficients_params"])
     phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
-    phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(phase_network_coefs_params_loss, var_list=phase_net_vars)
+    phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(
+                            phase_network_coefs_params_loss, var_list=phase_net_vars)
 
 
 
@@ -846,7 +853,7 @@ def setup_neural_net():
 
     # regular cost function
     unsupervised_learning_loss = tf.losses.mean_squared_error(labels=x_in,
-                                                              predictions=tf.reshape(reconstructed_trace, [1, -1]))
+                            predictions=tf.reshape(reconstructed_trace, [1, -1]))
     unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
     unsupervised_train = unsupervised_optimizer.minimize(unsupervised_learning_loss,
                                                         var_list=phase_net_vars)
@@ -871,11 +878,13 @@ def setup_neural_net():
     # .................PROOF RETRIEVAL LOSS FUNC................
     # ..........................................................
     # regular cost function
-    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(labels=tf.reshape(input_image_proof["proof"], [1, -1]),
-                                                              predictions=tf.reshape(reconstructed_proof["proof"], [1, -1]))
+    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(
+                            labels=tf.reshape(input_image_proof["proof"], [1, -1]),
+                            predictions=tf.reshape(reconstructed_proof["proof"], [1, -1]))
     proof_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    proof_unsupervised_train = proof_unsupervised_optimizer.minimize(proof_unsupervised_learning_loss,
-                                                         var_list=phase_net_vars)
+    proof_unsupervised_train = proof_unsupervised_optimizer.minimize(
+                            proof_unsupervised_learning_loss,
+                            var_list=phase_net_vars)
 
     # ..........................................................
     # .............AUTOCORRELATION RETRIEVAL LOSS FUNC..........
