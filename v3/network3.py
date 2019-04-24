@@ -10,7 +10,6 @@ import phase_parameters.params
 
 
 class PhaseNetTrain:
-
     def __init__(self, modelname):
 
         # build neural net graph
@@ -352,7 +351,6 @@ class PhaseNetTrain:
                 os.makedirs(dir)
             figure.savefig(dir + str(self.epoch) + ".png")
 
-
 class GetData():
     def __init__(self, batch_size):
 
@@ -418,13 +416,10 @@ class GetData():
 
         return trace_batch, appended_label_batch
 
-
 def log_base(x, base, translate):
     return tf.log(x+translate) / tf.log(base)
 
-
 def create_fields_label_from_coefs_params(actual_coefs_params):
-
     xuv_coefs_actual = actual_coefs_params[:, 0:phase_parameters.params.xuv_phase_coefs]
     ir_params_actual = actual_coefs_params[:, phase_parameters.params.xuv_phase_coefs:]
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_actual)
@@ -439,18 +434,14 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
 
     return fields
 
-
 def concat_fields(xuv, ir):
-
     xuv_concat = tf.concat([tf.real(xuv), tf.imag(xuv)], axis=1)
     ir_concat = tf.concat([tf.real(ir), tf.imag(ir)], axis=1)
     both_fields_concat = tf.concat([xuv_concat, ir_concat], axis=1)
 
     return both_fields_concat
 
-
 def test_generate_data(nn_nodes):
-
     # generate a bunch of samples and test threshold value
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
@@ -498,17 +489,13 @@ def test_generate_data(nn_nodes):
 
             plt.pause(0.001)
 
-
 def separate_xuv_ir_vec(xuv_ir_vec):
-
     xuv = xuv_ir_vec[0:5]
     ir = xuv_ir_vec[5:]
 
     return xuv, ir
 
-
 def init_tf_loggers(nn_nodes):
-
     test_mse_tb_phasecurve = tf.summary.scalar("test_mse_phasecurve", nn_nodes["supervised"]["phase_network_phasecurve_loss"])
     train_mse_tb_phasecurve = tf.summary.scalar("train_mse_phasecurve", nn_nodes["supervised"]["phase_network_phasecurve_loss"])
 
@@ -528,9 +515,7 @@ def init_tf_loggers(nn_nodes):
 
     return tf_loggers
 
-
 def create_sample_plot(samples_per_plot=3):
-
     fig = plt.figure(figsize=(16, 8))
     plt.subplots_adjust(left=0.04, right=0.96, top=0.92, bottom=0.05,
                             wspace=0.2, hspace=0.1)
@@ -557,20 +542,16 @@ def create_sample_plot(samples_per_plot=3):
 
     return plot_rows, fig
 
-
 def conv2d(x, W, stride):
     return tf.nn.conv2d(x, W, strides=[1, stride[0], stride[1], 1], padding='SAME')
-
 
 def init_weights(shape):
     init_random_dist = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float32)
     return tf.Variable(init_random_dist)
 
-
 def init_bias(shape):
     init_bias_vals = tf.constant(0.1, shape=shape, dtype=tf.float32)
     return tf.Variable(init_bias_vals)
-
 
 def normal_full_layer(input_layer, size):
     input_size = int(input_layer.get_shape()[1])
@@ -578,9 +559,7 @@ def normal_full_layer(input_layer, size):
     b = init_bias([size])
     return tf.matmul(input_layer, W) + b
 
-
 def multires_layer(input, input_channels, filter_sizes, stride=1):
-
     # list of layers
     filters = []
     for filter_size in filter_sizes:
@@ -590,7 +569,6 @@ def multires_layer(input, input_channels, filter_sizes, stride=1):
 
     concat_layer = tf.concat(filters, axis=3)
     return concat_layer
-
 
 def convolutional_layer(input_x, shape, activate, stride):
     W = init_weights(shape)
@@ -605,9 +583,7 @@ def convolutional_layer(input_x, shape, activate, stride):
     elif activate == 'none':
         return conv2d(input_x, W, stride) + b
 
-
 def gan_network(input):
-
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
     output_length = xuv_phase_coefs - 1 + 4     # remove 1 for no linear phase...
                                                 # add 4 for ir params
@@ -663,9 +639,7 @@ def gan_network(input):
 
         return outputs
 
-
 def phase_retrieval_net(input):
-
     K_values = phase_parameters.params.K
     tau_values = phase_parameters.params.delay_values
 
@@ -731,9 +705,7 @@ def phase_retrieval_net(input):
 
         return phase_net_output, hold_prob, xuv_coefs_pred
 
-
 def setup_neural_net():
-
     K_values = phase_parameters.params.K
     tau_values = phase_parameters.params.delay_values
 
@@ -1000,7 +972,6 @@ def setup_neural_net():
     return nn_nodes
 
 def bootstrap(recons_trace, input_trace, learning_rate_in, train_variables):
-
     recons_vec = tf.reshape(recons_trace, [-1])
     input_vec = tf.reshape(input_trace, [-1])
     # use 2/3rds of the points
@@ -1018,11 +989,7 @@ def bootstrap(recons_trace, input_trace, learning_rate_in, train_variables):
     )
     return bootstrap_loss, bootstrap_train, bootstrap_indexes_ph
 
-
-
-
 if __name__ == "__main__":
-
     phase_net_train = PhaseNetTrain(modelname='xuv_ph')
     phase_net_train.supervised_learn()
 
