@@ -715,7 +715,8 @@ def noise_test(test_run):
 
         # ++++Get the Measured Trace+++++++++
         measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(
-                counts=counts, plotting=True, run_name=run_name+"_fields")
+                    counts=counts, plotting=True, run_name=run_name+"_fields"
+        )
 
         data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase)
 
@@ -725,9 +726,10 @@ def noise_test(test_run):
             # +++++ run unsupervised learning retrieval+++++
             unsupervised_retrieval = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
-                                        retrieval=retrieval_type,
-                                        modelname="xuv_ph3", measured_trace=measured_trace,
-                                        use_xuv_initial_output=False)
+                        retrieval=retrieval_type,
+                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        use_xuv_initial_output=False
+            )
             nn_result = unsupervised_retrieval.retrieve()
             plt.close(unsupervised_retrieval.axes["fig"])
             del unsupervised_retrieval
@@ -738,9 +740,10 @@ def noise_test(test_run):
             # +++++ run unsupervised learning retrieval INITIAL OUTPUT ONLY+++++
             unsupervised_retrieval_initial = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
-                                        retrieval=retrieval_type,
-                                        modelname="xuv_ph3", measured_trace=measured_trace,
-                                        use_xuv_initial_output=False)
+                        retrieval=retrieval_type,
+                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        use_xuv_initial_output=False
+            )
             nn_init_result = unsupervised_retrieval_initial.retrieve()
             plt.close(unsupervised_retrieval_initial.axes["fig"])
             del unsupervised_retrieval_initial
@@ -751,8 +754,9 @@ def noise_test(test_run):
             # ++++++++++run genetic algorithm++++++++++
             genetic_algorithm = genetic_alg.GeneticAlgorithm(
                         generations=30, pop_size=5000,
-                                        run_name=run_name+"_ga_"+retrieval_type,
-                                        measured_trace=measured_trace, retrieval=retrieval_type)
+                        run_name=run_name+"_ga_"+retrieval_type,
+                        measured_trace=measured_trace, retrieval=retrieval_type
+            )
             ga_result = genetic_algorithm.run()
             plt.close(genetic_algorithm.axes["fig"])
             del genetic_algorithm
@@ -768,9 +772,11 @@ def noise_test(test_run):
             #            ga_result["ga_retrieved_phase"]["cropped"], measured_trace_phase)
 
             # add data to collection
-            data_saver.collect(counts=counts, retrieval_type=retrieval_type,
-                               nn=nn_result, nn_init=nn_init_result,
-                               ga=ga_result)
+            data_saver.collect(
+                        counts=counts, retrieval_type=retrieval_type,
+                        nn=nn_result, nn_init=nn_init_result,
+                        ga=ga_result
+            )
 
         # close the fake measured trace figure
         plt.close(fake_axes["fig"])
