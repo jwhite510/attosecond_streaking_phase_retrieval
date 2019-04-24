@@ -18,7 +18,6 @@ import ga as genetic_alg
 
 
 class UnsupervisedRetrieval:
-
     def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output=False):
 
         self.run_name = run_name
@@ -269,9 +268,7 @@ class UnsupervisedRetrieval:
     def __del__(self):
         self.sess.close()
 
-
 class DataSaver():
-
     def __init__(self, name):
         self.data_dict = dict()
         self.name = name
@@ -296,19 +293,14 @@ class DataSaver():
         with open(self.name+".p", "wb") as file:
             pickle.dump(self.data_dict, file)
 
-
-
 def apply_noise(trace, counts):
-
     discrete_trace = np.round(trace * counts)
     noise = np.random.poisson(lam=discrete_trace) - discrete_trace
     noisy_trace = discrete_trace + noise
     noisy_trace_normalized = noisy_trace / np.max(noisy_trace)
     return noisy_trace_normalized
 
-
 def get_fake_measured_trace(counts, plotting, run_name=None):
-
     # initialize XUV generator
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, params.xuv_phase_coefs])
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
@@ -389,9 +381,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
 
     return noisy_trace, phase_curve, axes
 
-
 def calc_fwhm(tmat, I_t):
-
     half_max = np.max(I_t)/2
     index1 = 0
     index2 = len(I_t) - 1
@@ -405,7 +395,6 @@ def calc_fwhm(tmat, I_t):
     t2 = tmat[index2]
     fwhm = t2 - t1
     return fwhm, t1, t2, half_max
-
 
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_phase,  xuv_f_full, xuv_t, ir_f, i,
                        run_name, true_fields=False, cost_function=None, method=None):
@@ -621,9 +610,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
             save_files["i"] = i
             pickle.dump(save_files, file)
 
-
 def show_proof_calculation(trace, sess, nn_nodes):
-
     feed_dict = {nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
     out = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"],
                     feed_dict=feed_dict)
@@ -654,9 +641,7 @@ def show_proof_calculation(trace, sess, nn_nodes):
     ax = fig.add_subplot(gs[3, :])
     ax.pcolormesh(out["proof"])
 
-
 def create_plot_axes():
-
     fig = plt.figure(figsize=(8,7))
     fig.subplots_adjust(hspace=0.6, left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
     gs = fig.add_gridspec(3, 3)
@@ -681,21 +666,16 @@ def create_plot_axes():
 
     return axes_dict
 
-
 def normal_text(ax, pos, text, ha=None):
-
     if ha is not None:
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes, ha=ha)
     else:
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
-
 def red_text(ax, pos, text):
     ax.text(pos[0], pos[1], text, backgroundcolor="yellow", transform=ax.transAxes, color="red")
 
-
 def noise_test(test_run):
-    
     data_saver = DataSaver(test_run)
     # calcualte counts for SNR
     # SNR = sqrt(N)
@@ -781,7 +761,6 @@ def noise_test(test_run):
         # close the fake measured trace figure
         plt.close(fake_axes["fig"])
 
-
 def calculate_rmse(vec1, vec2):
     vec1 = np.array(vec1)
     vec2 = np.array(vec2)
@@ -794,6 +773,5 @@ def calculate_rmse(vec1, vec2):
 
 
 if __name__ == "__main__":
-    
     # run a noise test
     noise_test("noise_test4__")
