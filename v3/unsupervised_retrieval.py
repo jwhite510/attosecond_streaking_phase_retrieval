@@ -796,6 +796,70 @@ def calculate_rmse(vec1, vec2):
     rmse = np.sqrt(mse)
     return rmse
 
+def bootstrap_retrievals(test_name):
+    """
+    test_name: the name of the test set used in noise testing
+    """
+    # open the data retrieval object to get the measured traces
+    with open(test_name, "rb") as file:
+        data_obj = pickle.load(file)
+
+    # get the trace at specific noise level
+    count = 30 
+
+    results = dict()
+    results["unsupervised_"+str(count)] = list()
+    results["ga_"+str(count)] = list()
+
+    for _ in range(count):
+
+        # do a retrieval with this trace
+        measured_trace = data_obj[....][count]
+
+
+
+        # +++++++++++++++++++++++++++++++++++++
+        # ++++++++++genetic algorithm++++++++++
+        # +++++++++++++++++++++++++++++++++++++
+        genetic_algorithm = genetic_alg.GeneticAlgorithm(
+                    generations=30, pop_size=5000,
+                    run_name="bootstrap_normal_ga",
+                    measured_trace=measured_trace, retrieval="normal"
+        )
+        result = genetic_algorithm.run()
+        plt.close(genetic_algorithm.axes["fig"])
+        del genetic_algorithm
+        tf.reset_default_graph()
+        # append the results
+        results["ga_"+str(count)].append(result)
+
+
+        # ++++++++++++++++++++++++++++++
+        # ++++++++++unsupervised++++++++
+        # ++++++++++++++++++++++++++++++
+        total_points = len(measured_trace.reshape(-1))
+        bootstrap = dict()
+        # generate random indexes for bootstrap retrieval
+        bootstrap["indexes"] = np.random.randint(low=0, high=total_points, size=int( (2/3) * total_points))
+
+        unsupervised_retrieval = UnsupervisedRetrieval(
+                run_name="bootstrap_normal_unsupervised", iterations=5000,
+                retrieval="normal", modelname="xuv_ph3", measured_trace=measured_trace,
+                use_xuv_initial_output=False, bootstrap=bootstrap 
+        )
+        result = unsupervised_retrieval.retrieve()
+        plt.close(unsupervised_retrieval.axes["fig"])
+        del unsupervised_retrieval
+        tf.reset_default_graph()
+        # append the results
+        results["unsupervised_"+str(count)].append(result)
+
+        
+        # save the results
+        with open(test_name+"_bootstrap.p", "wb") as file:
+            pickle.dump(results, file)
+
+
 
 if __name__ == "__main__":
     # run a noise test
