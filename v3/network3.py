@@ -972,8 +972,16 @@ def setup_neural_net():
     return nn_nodes
 
 def bootstrap(recons_trace, input_trace, learning_rate_in, train_variables):
-    recons_vec = tf.reshape(recons_trace, [-1])
-    input_vec = tf.reshape(input_trace, [-1])
+    bootstrap_loss, bootstrap_indexes_ph = calc_bootstrap_error(recons_trace, input_trace)
+    bootstrap_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate_in)
+    bootstrap_train = bootstrap_optimizer.minimize(
+        bootstrap_loss , var_list=train_variables
+    )
+    return bootstrap_loss, bootstrap_train, bootstrap_indexes_ph
+
+def calc_bootstrap_error(recons_trace_in, input_trace_in):
+    recons_vec = tf.reshape(recons_trace_in, [-1])
+    input_vec = tf.reshape(input_trace_in, [-1])
     # use 2/3rds of the points
     number_of_bootstrap_indexes = int( (2/3) * recons_vec.get_shape().as_list()[0])
     bootstrap_indexes_ph = tf.placeholder(tf.int32, shape=[number_of_bootstrap_indexes])
@@ -983,11 +991,7 @@ def bootstrap(recons_trace, input_trace, learning_rate_in, train_variables):
     bootstrap_loss = tf.losses.mean_squared_error(
         labels=input_values, predictions=recons_values
     )
-    bootstrap_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate_in)
-    bootstrap_train = bootstrap_optimizer.minimize(
-        bootstrap_loss, var_list=train_variables
-    )
-    return bootstrap_loss, bootstrap_train, bootstrap_indexes_ph
+    return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
     phase_net_train = PhaseNetTrain(modelname='xuv_ph')

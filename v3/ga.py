@@ -21,8 +21,15 @@ import measured_trace.get_trace as get_measured_trace
 
 class GeneticAlgorithm():
 
-    def __init__(self, generations, pop_size, run_name, measured_trace, retrieval):
+    def __init__(self, generations, pop_size, run_name, measured_trace, retrieval, bootstrap=False):
+        """
+        bootstrap: dictionary
+        bootstrap["indexes"] : a numpy array of the index values for bootstrap method (2/3 length of trace)
+                                    shape (-1)
+        
+        """
         print("initialize")
+        self.bootstrap = bootstrap
         self.method = "Genetic Algorithm"
         self.retrieval = retrieval
         self.generations = generations
@@ -125,16 +132,38 @@ class GeneticAlgorithm():
                      self.tf_graphs["ir_values_in"]: ir_values.reshape(1, -1)}
 
         if self.retrieval == "normal":
-            # calculate mse for normal trace
-            trace_mse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
+            if self.bootstrap == False:
+                # calculate mse for normal trace
+                trace_mse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
+            else:
+                # evaluate with bootstrap
+                print("using bootstrap!")
+                # add bootstrap indexes to the feed dict
+                feed_dict[self.tf_graphs["error"]["bootstrap"]["normal"]["index_ph"]] = self.bootstrap["indexes"]
+                trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["normal"]["mse"], feed_dict=feed_dict)
 
         elif self.retrieval == "proof":
-            # calculate mse for proof trace
-            trace_mse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
+            if self.bootstrap == False:
+                # calculate mse for proof trace
+                trace_mse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
+            else:
+                # evaluate with bootstrap
+                print("using bootstrap!")
+                # add bootstrap indexes to the feed dict
+                feed_dict[self.tf_graphs["error"]["bootstrap"]["proof"]["index_ph"]] = self.bootstrap["indexes"]
+                trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["proof"]["mse"], feed_dict=feed_dict)
 
         elif self.retrieval == "autocorrelation":
-            # calculate mse for autocorrelation trace
-            trace_mse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
+            if self.bootstrap == False:
+                # calculate mse for autocorrelation trace
+                trace_mse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
+            else:
+                # evaluate with bootstrap
+                print("using bootstrap!")
+                # add bootstrap indexes to the feed dict
+                feed_dict[self.tf_graphs["error"]["bootstrap"]["auto"]["index_ph"]] = self.bootstrap["indexes"]
+                trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["auto"]["mse"], feed_dict=feed_dict)
+
         else:
             raise ValueError("retrieval must be either 'normal', 'proof', or 'autocorrelation'")
 
@@ -326,6 +355,12 @@ class GeneticAlgorithm():
         # mean squared error for PROOF
         proof_mse = tf.losses.mean_squared_error(labels=tf.reshape(measured_proof_trace, [1, -1]),
                                                     predictions=tf.reshape(proof_recons, [1, -1]))
+
+        # define bootstrap errors
+        trace_boot_mse, trace_boot_ph = network3.calc_bootstrap_error(image, measured_trace_flat_tens)
+        auto_boot_mse, auto_boot_ph = network3.calc_bootstrap_error(auto_trace_recons,  measured_auto_trace)
+        proof_boot_mse, proof_boot_ph = network3.calc_bootstrap_error(proof_recons, measured_proof_trace)
+
         tf_graphs = dict()
         tf_graphs["measured"] = dict()
         tf_graphs["reconstructed"] = dict()
@@ -347,6 +382,21 @@ class GeneticAlgorithm():
         tf_graphs["ir_values_in"] = ir_values_in
         tf_graphs["xuv_E_prop"] = xuv_E_prop
         tf_graphs["ir_E_prop"] = ir_E_prop
+
+        # bootstrap error
+        tf_graphs["error"]["bootstrap"] = {}
+
+        tf_graphs["error"]["bootstrap"]["normal"] = {}
+        tf_graphs["error"]["bootstrap"]["normal"]["mse"] = trace_boot_mse
+        tf_graphs["error"]["bootstrap"]["normal"]["index_ph"] = trace_boot_ph
+
+        tf_graphs["error"]["bootstrap"]["auto"] = {}
+        tf_graphs["error"]["bootstrap"]["auto"]["mse"] = auto_boot_mse
+        tf_graphs["error"]["bootstrap"]["auto"]["index_ph"] = auto_boot_ph
+
+        tf_graphs["error"]["bootstrap"]["proof"] = {}
+        tf_graphs["error"]["bootstrap"]["proof"]["mse"] = proof_boot_mse
+        tf_graphs["error"]["bootstrap"]["proof"]["index_ph"] = proof_boot_ph
 
         return tf_graphs
 
