@@ -872,6 +872,32 @@ def setup_neural_net():
     # unsupervised_train_log = unsupervised_optimizer_log.minimize(unsupervised_learning_loss_log,
     #                                                     var_list=phase_net_vars)
 
+    # boostrap method
+
+    # two vectors:
+    recons_vec = tf.reshape(reconstructed_trace, [-1])
+    input_vec = tf.reshape(x_in, [-1])
+
+    bootstrap_indexes = tf.placeholder(tf.int32, shape=[50])
+    recons_values = tf.gather(recons_vec, bootstrap_indexes)
+    input_values = tf.gather(input_vec, bootstrap_indexes)
+
+    # mean squared error
+    bootstrap_loss = tf.losses.mean_squared_error(
+        labels=input_values, predictions=recons_values
+    )
+    bootstrap_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    bootstrap_train = bootstrap_optimizer.minimize(
+        bootstrap_loss, var_list=phase_net_vars
+    )
+
+    print("bootstrap")
+    exit(0)
+
+    print(bootstrap_indexes)
+    print(bootstrap_indexes)
+    print()
+
 
 
     # ..........................................................
