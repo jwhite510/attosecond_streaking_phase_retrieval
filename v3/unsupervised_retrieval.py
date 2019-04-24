@@ -18,8 +18,15 @@ import ga as genetic_alg
 
 
 class UnsupervisedRetrieval:
-    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace, use_xuv_initial_output=False):
+    def __init__(self, run_name, iterations, retrieval, modelname, measured_trace,
+                use_xuv_initial_output=False, bootstrap=False):
+        """
+        bootstrap: dictionary
+        bootstrap["indexes"] : a numpy array of the index values for bootstrap method (2/3 length of trace)
+                                    shape (-1)
+        """
 
+        self.bootstrap = bootstrap
         self.run_name = run_name
         self.method = "Unsupervised Learning"
         self.use_xuv_initial_output = use_xuv_initial_output
@@ -92,6 +99,18 @@ class UnsupervisedRetrieval:
                               self.nn_nodes["unsupervised"]["u_LR"]: 0.00001
                               }
 
+        # if using the bootstrap method, add the placeholder for bootstrap retrieval
+        if self.bootstrap is not False:
+
+            if self.retrieval == "normal":
+                self.feed_dict[self.nn_nodes["unsupervised"]["bootstrap"]["normal"]["indexes_ph"]] = self.bootstrap["indexes"]
+
+            elif self.retrieval == "proof":
+                self.feed_dict[self.nn_nodes["unsupervised"]["bootstrap"]["proof"]["indexes_ph"]] = self.bootstrap["indexes"]
+
+            elif self.retrieval == "autocorrelation":
+                self.feed_dict[self.nn_nodes["unsupervised"]["bootstrap"]["auto"]["indexes_ph"]] = self.bootstrap["indexes"]
+
         # =================================================
         # check the measured and training data proof traces
         # =================================================
@@ -110,7 +129,6 @@ class UnsupervisedRetrieval:
         # exit(0)
 
     def retrieve(self):
-
         plt.ion()
         for i in range(self.iterations):
             self.c_iteration = i + 1
@@ -131,15 +149,24 @@ class UnsupervisedRetrieval:
             # train neural network
             if self.retrieval == "normal":
                 #=========regular========
-                self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_train"], feed_dict=self.feed_dict)
-
+                if self.bootstrap == False:
+                    self.sess.run(self.nn_nodes["unsupervised"]["unsupervised_train"], feed_dict=self.feed_dict)
+                else:
+                    self.sess.run(self.nn_nodes["unsupervised"]["bootstrap"]["normal"]["train"], feed_dict=self.feed_dict)
+            
             elif self.retrieval == "proof":
                 # =========proof==========
-                self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"], feed_dict=self.feed_dict)
+                if self.bootstrap == False:
+                    self.sess.run(self.nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"], feed_dict=self.feed_dict)
+                else:
+                    self.sess.run(self.nn_nodes["unsupervised"]["bootstrap"]["proof"]["train"], feed_dict=self.feed_dict)
 
             elif self.retrieval == "autocorrelation":
                 # =========autocorrelation==========
-                self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"], feed_dict=self.feed_dict)
+                if self.bootstrap == False:
+                    self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"], feed_dict=self.feed_dict)
+                else:
+                    self.sess.run(self.nn_nodes["unsupervised"]["bootstrap"]["auto"]["train"], feed_dict=self.feed_dict)
 
             # =========supervised=====
             # retrieve data
@@ -156,7 +183,6 @@ class UnsupervisedRetrieval:
         return self.retrieve_final_result()
 
     def update_plots(self):
-
         ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=self.feed_dict)[0]
         xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=self.feed_dict)[0]
         xuv_f_phase = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],feed_dict=self.feed_dict)[0]
@@ -221,7 +247,6 @@ class UnsupervisedRetrieval:
             plt.pause(0.00001)
 
     def retrieve_final_result(self):
-
         # get trace rmse and trace
         if self.retrieval == "normal":
             # trace mse
@@ -775,3 +800,7 @@ def calculate_rmse(vec1, vec2):
 if __name__ == "__main__":
     # run a noise test
     noise_test("noise_test4__")
+
+    # re open the data file and run bootstrap tests on it
+    # bootstrap_retrievals("noise_test4__")
+
