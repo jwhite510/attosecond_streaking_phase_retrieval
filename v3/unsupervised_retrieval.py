@@ -732,7 +732,7 @@ def noise_test(test_run):
             unsupervised_retrieval = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
                         retrieval=retrieval_type,
-                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        modelname="xuv_ph_2", measured_trace=measured_trace,
                         use_xuv_initial_output=False
             )
             nn_result = unsupervised_retrieval.retrieve()
@@ -746,7 +746,7 @@ def noise_test(test_run):
             unsupervised_retrieval_initial = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
                         retrieval=retrieval_type,
-                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        modelname="xuv_ph_2", measured_trace=measured_trace,
                         use_xuv_initial_output=False
             )
             nn_init_result = unsupervised_retrieval_initial.retrieve()
@@ -819,13 +819,22 @@ def bootstrap_retrievals(test_name):
 
 
 
+        # generate bootstrap indexes
+        total_points = len(measured_trace.reshape(-1))
+        bootstrap = dict()
+        # generate random indexes for bootstrap retrieval
+        bootstrap["indexes"] = np.random.randint(low=0, high=total_points,
+                                            size=int( (2/3) * total_points))
+
+
         # +++++++++++++++++++++++++++++++++++++
         # ++++++++++genetic algorithm++++++++++
         # +++++++++++++++++++++++++++++++++++++
         genetic_algorithm = genetic_alg.GeneticAlgorithm(
                     generations=30, pop_size=5000,
                     run_name="bootstrap_normal_ga",
-                    measured_trace=measured_trace, retrieval="normal"
+                    measured_trace=measured_trace, retrieval="normal",
+                    bootstrap=bootstrap
         )
         result = genetic_algorithm.run()
         plt.close(genetic_algorithm.axes["fig"])
@@ -838,14 +847,10 @@ def bootstrap_retrievals(test_name):
         # ++++++++++++++++++++++++++++++
         # ++++++++++unsupervised++++++++
         # ++++++++++++++++++++++++++++++
-        total_points = len(measured_trace.reshape(-1))
-        bootstrap = dict()
-        # generate random indexes for bootstrap retrieval
-        bootstrap["indexes"] = np.random.randint(low=0, high=total_points, size=int( (2/3) * total_points))
 
         unsupervised_retrieval = UnsupervisedRetrieval(
                 run_name="bootstrap_normal_unsupervised", iterations=5000,
-                retrieval="normal", modelname="xuv_ph3", measured_trace=measured_trace,
+                retrieval="normal", modelname="xuv_ph_2", measured_trace=measured_trace,
                 use_xuv_initial_output=False, bootstrap=bootstrap 
         )
         result = unsupervised_retrieval.retrieve()
@@ -865,6 +870,7 @@ def bootstrap_retrievals(test_name):
 if __name__ == "__main__":
     # run a noise test
     noise_test("noise_test6__")
+    print("finished test 6")
     exit()
 
     # re open the data file and run bootstrap tests on it
