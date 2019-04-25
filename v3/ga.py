@@ -137,7 +137,6 @@ class GeneticAlgorithm():
                 trace_mse = self.sess.run(self.tf_graphs["error"]["trace_mse"], feed_dict=feed_dict)
             else:
                 # evaluate with bootstrap
-                print("using bootstrap!")
                 # add bootstrap indexes to the feed dict
                 feed_dict[self.tf_graphs["error"]["bootstrap"]["normal"]["index_ph"]] = self.bootstrap["indexes"]
                 trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["normal"]["mse"], feed_dict=feed_dict)
@@ -148,7 +147,6 @@ class GeneticAlgorithm():
                 trace_mse = self.sess.run(self.tf_graphs["error"]["proof_mse"], feed_dict=feed_dict)
             else:
                 # evaluate with bootstrap
-                print("using bootstrap!")
                 # add bootstrap indexes to the feed dict
                 feed_dict[self.tf_graphs["error"]["bootstrap"]["proof"]["index_ph"]] = self.bootstrap["indexes"]
                 trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["proof"]["mse"], feed_dict=feed_dict)
@@ -159,7 +157,6 @@ class GeneticAlgorithm():
                 trace_mse = self.sess.run(self.tf_graphs["error"]["autocorr_mse"], feed_dict=feed_dict)
             else:
                 # evaluate with bootstrap
-                print("using bootstrap!")
                 # add bootstrap indexes to the feed dict
                 feed_dict[self.tf_graphs["error"]["bootstrap"]["auto"]["index_ph"]] = self.bootstrap["indexes"]
                 trace_mse = self.sess.run(self.tf_graphs["error"]["bootstrap"]["auto"]["mse"], feed_dict=feed_dict)
