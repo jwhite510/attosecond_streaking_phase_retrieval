@@ -297,9 +297,9 @@ class DataSaver():
     def __init__(self, name):
         self.data_dict = dict()
         self.name = name
+        self.data_dict["actual_values"] = dict()
 
     def collect_actual_phase_trace(self, measured_trace, measured_trace_phase, count_num):
-        self.data_dict["actual_values"] = dict()
         self.data_dict["actual_values"]["measured_trace_"+str(count_num)]  = measured_trace
         self.data_dict["actual_values"]["measured_trace_phase_"+str(count_num)]  = measured_trace_phase
 
