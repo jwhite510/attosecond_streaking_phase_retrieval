@@ -78,6 +78,7 @@ ax.plot(spectrum_scaled, np.abs(spectrum.Ef[spectrum.indexmin:spectrum.indexmax]
         color="black")
 ax.set_ylabel("Intensity")
 ax.set_xlabel(r"$10^{16}$Hz")
+ax.set_ylim(0, 1.2)
 
 
 # plot the actual trace trace
