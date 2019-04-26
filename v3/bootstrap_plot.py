@@ -10,14 +10,17 @@ spectrum_scaled = spectrum.fmat_hz_cropped * 1e-16
 with open("noise_test7__.p", "rb") as file:
     data_retrievals = pickle.load(file)
 
-
 with open("noise_test7___bootstrap.p", "rb") as file:
     data_bootstrap = pickle.load(file)
 
-key = "unsupervised_20"
-key = "ga_20"
-run_sample = data_bootstrap[key]
 
+
+key = "unsupervised_20"
+# key = "ga_20"
+run_sample = data_bootstrap[key]
+initial_network_out_phase = data_retrievals["20"]["normal"]["nn_init"]["field"]["cropped_phase"]
+actual_phase_curve = data_retrievals["actual_values"]["measured_trace_phase_20"]
+actual_trace = data_retrievals["actual_values"]["measured_trace_20"]
 
 # create axes
 fig = plt.figure(figsize=(7,7))
@@ -41,6 +44,18 @@ standard_dev = np.std(phase_curve, axis=0)
 # plot the mean
 axtwin = ax.twinx()
 axtwin.plot(spectrum_scaled, mean_vals, color="green", label="Mean")
+
+# plot the actual phase curve
+axtwin.plot(spectrum_scaled, actual_phase_curve,
+            color="green", label="Actual Phase", linestyle="dashed")
+
+# plot the phase curve from the initial network output
+initial_network_out_phase
+axtwin.plot(spectrum_scaled, initial_network_out_phase,
+            color="blue", label="Initial Network Output", linestyle="dashed")
+
+
+
 first_plotted = False
 for x, this_std_val, this_mean_val in zip(spectrum_scaled[::8], standard_dev[::8], mean_vals[::8]):
     scale_fac = 1
@@ -67,7 +82,7 @@ ax.set_xlabel(r"$10^{16}$Hz")
 
 # plot the actual trace trace
 ax = fig.add_subplot(gs[0,0])
-ax.pcolormesh(phase_params.delay_values_fs ,phase_params.K, data_retrievals["actual_values"]["measured_trace_20"], cmap="jet")
+ax.pcolormesh(phase_params.delay_values_fs ,phase_params.K, actual_trace, cmap="jet")
 ax.set_xlabel("time [fs]")
 ax.set_ylabel("Energy [eV]")
 
