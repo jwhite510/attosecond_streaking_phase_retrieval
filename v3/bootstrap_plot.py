@@ -15,8 +15,8 @@ with open("noise_test7___bootstrap.p", "rb") as file:
 
 
 
-key = "unsupervised_20"
-# key = "ga_20"
+# key = "unsupervised_20"
+key = "ga_20"
 run_sample = data_bootstrap[key]
 initial_network_out_phase = data_retrievals["20"]["normal"]["nn_init"]["field"]["cropped_phase"]
 actual_phase_curve = data_retrievals["actual_values"]["measured_trace_phase_20"]
@@ -45,16 +45,6 @@ standard_dev = np.std(phase_curve, axis=0)
 axtwin = ax.twinx()
 axtwin.plot(spectrum_scaled, mean_vals, color="green", label="Mean")
 
-# plot the actual phase curve
-axtwin.plot(spectrum_scaled, actual_phase_curve,
-            color="green", label="Actual Phase", linestyle="dashed")
-
-# plot the phase curve from the initial network output
-initial_network_out_phase
-axtwin.plot(spectrum_scaled, initial_network_out_phase,
-            color="blue", label="Initial Network Output", linestyle="dashed")
-
-
 
 first_plotted = False
 for x, this_std_val, this_mean_val in zip(spectrum_scaled[::8], standard_dev[::8], mean_vals[::8]):
@@ -71,9 +61,19 @@ for x, this_std_val, this_mean_val in zip(spectrum_scaled[::8], standard_dev[::8
     else:
         axtwin.plot([x,x], [ymin_val, ymax_val], color="green", marker="o")
 
+# plot the actual phase curve
+axtwin.plot(spectrum_scaled, actual_phase_curve,
+            color="green", label="Actual Phase", linestyle="dashed")
+
+# plot the phase curve from the initial network output
+axtwin.plot(spectrum_scaled, initial_network_out_phase,
+            color="blue", label="Initial Network Output", linestyle="dashed")
+
 axtwin.legend(loc=1)
 axtwin.tick_params(axis='y', colors="green")
 axtwin.set_ylabel("Phase [rad]")
+axtwin.set_ylim(0,150)
+
 ax.plot(spectrum_scaled, np.abs(spectrum.Ef[spectrum.indexmin:spectrum.indexmax]**2),
         color="black")
 ax.set_ylabel("Intensity")
@@ -81,20 +81,20 @@ ax.set_xlabel(r"$10^{16}$Hz")
 
 
 # plot the actual trace trace
-ax = fig.add_subplot(gs[0,0])
-ax.pcolormesh(phase_params.delay_values_fs ,phase_params.K, actual_trace, cmap="jet")
-ax.set_xlabel("time [fs]")
-ax.set_ylabel("Energy [eV]")
+ax2 = fig.add_subplot(gs[0,0])
+ax2.pcolormesh(phase_params.delay_values_fs ,phase_params.K, actual_trace, cmap="jet")
+ax2.set_xlabel("time [fs]")
+ax2.set_ylabel("Energy [eV]")
 
 # write the number of samples
-unsupervised_retrieval.normal_text(ax, (0.9, 1.1), "Samples = "+str(total_samples))
+unsupervised_retrieval.normal_text(ax2, (0.9, 1.1), "Samples = "+str(total_samples))
 
 if key[0] == "g":
-    ax.set_title("Genetic Algorithm")
+    ax2.set_title("Genetic Algorithm")
     fig.savefig("./bootstrap_ga.png")
 elif key[0] == "u":
-    ax.set_title("Unsupervised Learning")
-    fig.savefig("./bootstrap_ga.png")
+    ax2.set_title("Unsupervised Learning")
+    fig.savefig("./bootstrap_unsupervised.png")
 
 plt.show()
 
