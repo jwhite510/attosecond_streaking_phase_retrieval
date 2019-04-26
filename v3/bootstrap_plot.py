@@ -74,7 +74,7 @@ axtwin.tick_params(axis='y', colors="green")
 axtwin.set_ylabel("Phase [rad]")
 axtwin.set_ylim(0,150)
 
-ax.plot(spectrum_scaled, np.abs(spectrum.Ef[spectrum.indexmin:spectrum.indexmax]**2),
+ax.plot(spectrum_scaled, np.abs(spectrum.Ef[spectrum.indexmin:spectrum.indexmax])**2,
         color="black")
 ax.set_ylabel("Intensity")
 ax.set_xlabel(r"$10^{16}$Hz")
