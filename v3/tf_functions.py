@@ -108,7 +108,7 @@ def normal_text(ax, pos, text, ha=None):
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
 
-def animate_trace(sess):
+def animate_trace_compare_with_measured(sess):
     # construct placeholders
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
     xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
@@ -149,12 +149,15 @@ def animate_trace(sess):
     feed_dicts = []
     step = 0.2
     gdd_vals = -1 * np.arange(0, 5.0 + step, step)
+    gdd_vals = np.linspace(-1, 1, 10)
     for val in gdd_vals:
         feed_dict_i = {
             xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
             ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
         }
         feed_dicts.append(feed_dict_i)
+        
+
 
     gif_images = []
 
@@ -222,6 +225,117 @@ def animate_trace(sess):
 
     print("making gif")
     imageio.mimsave('./dispersion_animation.gif', gif_images, fps=10)
+
+
+def animate_trace(sess):
+    # construct placeholders
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
+    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    ir_E_prop = ir_from_params(ir_values_in)
+    image = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+                 ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # construct proof trace
+    proof = proof_trace(image)
+    autocorrelation = autocorrelate(image)
+
+    # make graph
+    fig = plt.figure(figsize=(12, 5))
+    fig.subplots_adjust(wspace=0.4, left=0.05, right=0.95, hspace=0.0)
+    gs = fig.add_gridspec(2, 3)
+    plt.ion()
+
+    # create axes
+    axes = {}
+    axes["xuv_Et"] = fig.add_subplot(gs[0, 0])
+    axes["xuv_It"] = fig.add_subplot(gs[1, 0])
+    axes["xuv_f"] = fig.add_subplot(gs[0, 1])
+    axes["xuv_f_phase"] = axes["xuv_f"].twinx()
+    axes["trace"] = fig.add_subplot(gs[0:2, 2])
+
+    # calculate feed dicts
+    feed_dicts = []
+    # step = 0.2
+    # gdd_vals = -1 * np.arange(0, 5.0 + step, step)
+    gdd_vals = np.linspace(-1, 1, 20)
+    for val in gdd_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+
+    gif_images = []
+
+    for feed_dict in feed_dicts:
+        # generate output
+        xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
+        out_2 = sess.run(image, feed_dict=feed_dict)
+        # plot output
+        # define xuv time
+        xuv_time_fs = xuv_spectrum.spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
+        axes["xuv_Et"].cla()
+        axes["xuv_Et"].plot(xuv_time_fs, np.real(xuv_out["t"][0]), color="blue", label="Real $E(t)$")
+        # axes["xuv_Et"].set_title("$E(t)$")
+        axes["xuv_Et"].set_xticks([])
+        axes["xuv_Et"].set_ylim(-0.03, 0.03)
+        axes["xuv_Et"].legend(loc=2)
+
+        axes["xuv_It"].cla()
+        I_t = np.abs(xuv_out["t"][0]) ** 2
+        axes["xuv_It"].plot(xuv_time_fs,
+                            I_t, color="black", label="Intensity")
+
+        # calc fwhm
+        halfmaxI = np.max(I_t) / 2
+        I2_I = np.abs(I_t - halfmaxI)
+        sorted = np.argsort(I2_I)
+        index1 = sorted[0]
+        index2 = find_second_minima(sorted, index1)
+        fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
+        axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]],
+                        [halfmaxI, halfmaxI], color="red", linewidth=2)
+        axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
+                            color="red",
+                            backgroundcolor="white")
+        axes["xuv_It"].set_xlabel("time [as]")
+        # axes["xuv_It"].set_title("$I(t)$")
+        # axes["xuv_It"].set_ylim(0, 1.1 * np.max(I_t))
+        axes["xuv_It"].set_ylim(0, 0.0007)
+        axes["xuv_It"].legend(loc=2)
+
+        axes["xuv_f"].cla()
+        xuv_f_hz = xuv_spectrum.spectrum.fmat_cropped / sc.physical_constants['atomic unit of time'][0]
+        xuv_f_hz = xuv_f_hz * 1e-17
+        axes["xuv_f"].plot(xuv_f_hz, np.abs(xuv_out["f_cropped"][0]) ** 2, color="black")
+        axes["xuv_f"].set_title("XUV spectral phase")
+        axes["xuv_f"].set_xlabel("frequency [$10^{17}$Hz]")
+        axes["xuv_f_phase"].cla()
+        axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
+        axes["xuv_f_phase"].tick_params(axis='y', colors='green')
+        axes["xuv_f_phase"].set_ylim(-20, 20)
+        axes["xuv_f_phase"].set_ylabel("$\phi$[Rad]", color="green")
+        axes["trace"].cla()
+        axes["trace"].pcolormesh(
+            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
+            phase_parameters.params.K,
+            out_2, cmap="jet")
+        axes["trace"].set_xlabel("Delay [fs]")
+        axes["trace"].set_ylabel("Energy [eV]")
+
+        textdraw = "XUV Phase"
+        for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
+            textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
+        axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
+
+        plt.pause(0.001)
+        fig.canvas.draw()
+        image_draw = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+        image_draw = image_draw.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        gif_images.append(image_draw)
+
+    print("making gif")
+    imageio.mimsave('./dispersion_animation.gif', gif_images, fps=5)
 
 
 def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2):
@@ -992,6 +1106,8 @@ if __name__ == "__main__":
     # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
     with tf.Session() as sess:
         animate_trace(sess)
+
+    exit()
 
 
 
