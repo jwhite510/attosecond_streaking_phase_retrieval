@@ -347,7 +347,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     tf_graphs["proof_trace"] = proof_trace
     tf_graphs["autocorelation"] = autocorelation
 
-    xuv_input = np.array([[0.0, 0.5, 0.0, 0.0, 0.0]])
+    xuv_input = np.array([[0.0, 0.0, 0.7, 0.0, 0.0]])
     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
     with tf.Session() as sess:
@@ -706,11 +706,11 @@ def noise_test(test_run):
     # SNR = sqrt(N)
     snr_min = np.sqrt(20)  # minimum count level
     snr_max = np.sqrt(5000)  # maximum count level
-    snr_levels = np.linspace(snr_min, snr_max, 20)
+    snr_levels = np.linspace(snr_min, snr_max, 40)
     counts_list = [int(count) for count in snr_levels**2]
 
     # overwrite, sample a few counts for bootstrap method
-    counts_list = [20, 1833]
+    # counts_list = [20, 1833]
 
     for counts in counts_list:
 
@@ -864,10 +864,10 @@ def bootstrap_retrievals(test_name):
 
 if __name__ == "__main__":
     # run a noise test
-    noise_test("noise_test7__")
+    noise_test("noise_test10__")
     # print("finished test 6")
     # exit()
 
     # re open the data file and run bootstrap tests on it
-    bootstrap_retrievals("noise_test7__")
+    bootstrap_retrievals("noise_test10__")
 

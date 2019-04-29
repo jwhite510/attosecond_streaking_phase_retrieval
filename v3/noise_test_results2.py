@@ -7,7 +7,7 @@ import xuv_spectrum.spectrum as xuvspec
 
 def get_rmses(trace_type, actual_phase):
 
-    with open("noise_test7__.p", "rb") as file:
+    with open("noise_test9__.p", "rb") as file:
         obj = pickle.load(file)
 
     # order the dictionary
