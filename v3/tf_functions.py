@@ -9,7 +9,7 @@ import math
 import phase_parameters.params
 # import generate_data3
 import pickle
-# import unsupervised_retrieval
+import unsupervised_retrieval
 import imageio
 import measured_trace.get_trace as get_measured_trace
 
@@ -314,9 +314,9 @@ def animate_trace(sess):
         out_2 = sess.run(image, feed_dict=feed_dict)
         # plot output
         # define xuv time
-        xuv_time_fs = xuv_spectrum.spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
+        xuv_time_as = xuv_spectrum.spectrum.tmat_as # time in attoseconds
         axes["xuv_Et"].cla()
-        axes["xuv_Et"].plot(xuv_time_fs, np.real(xuv_out["t"][0]), color="blue", label="Real $E(t)$")
+        axes["xuv_Et"].plot(xuv_time_as, np.real(xuv_out["t"][0]), color="blue", label="Real $E(t)$")
         # axes["xuv_Et"].set_title("$E(t)$")
         # axes["xuv_Et"].set_xticks([])
         axes["xuv_Et"].set_yticks([])
@@ -328,18 +328,26 @@ def animate_trace(sess):
 
         axes["xuv_It"].cla()
         I_t = np.abs(xuv_out["t"][0]) ** 2
-        axes["xuv_It"].plot(xuv_time_fs,
+        axes["xuv_It"].plot(xuv_time_as,
                             I_t, color="black", label="Intensity")
 
         # calc fwhm
-        halfmaxI = np.max(I_t) / 2
-        I2_I = np.abs(I_t - halfmaxI)
-        sorted = np.argsort(I2_I)
-        index1 = sorted[0]
-        index2 = find_second_minima(sorted, index1)
-        fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
-        axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]],
-                        [halfmaxI, halfmaxI], color="red", linewidth=2)
+        # halfmaxI = np.max(I_t) / 2
+
+
+        # I2_I = np.abs(I_t - halfmaxI)
+        # sorted = np.argsort(I2_I)
+        # index1 = sorted[0]
+        # index2 = find_second_minima(sorted, index1)
+        # fwhm = np.abs(xuv_time_as[index1] - xuv_time_as[index2])
+
+        fwhm , t1, t2, half_max = unsupervised_retrieval.calc_fwhm(tmat=xuv_time_as, I_t=I_t)
+
+
+        # plot the fwhm
+        axes["xuv_It"].plot([t1, t2],
+                        [half_max, half_max], color="red", linewidth=2)
+
         axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
                             color="red",
                             backgroundcolor="white")
@@ -376,10 +384,11 @@ def animate_trace(sess):
         axes["trace"].set_xlabel("Delay [fs]")
         axes["trace"].set_ylabel("Energy [eV]")
 
-        textdraw = "XUV Phase"
-        for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
-            textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
-        axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
+        # # writing the spectral phase coefficient values
+        # textdraw = "XUV Phase"
+        # for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
+        #     textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
+        # axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
 
         plt.pause(0.001)
         fig.canvas.draw()
