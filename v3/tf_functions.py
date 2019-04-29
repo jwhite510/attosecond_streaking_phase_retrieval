@@ -11,7 +11,7 @@ import phase_parameters.params
 import pickle
 # import unsupervised_retrieval
 import imageio
-
+import measured_trace.get_trace as get_measured_trace
 
 class TestGraphs:
 
@@ -108,7 +108,19 @@ def normal_text(ax, pos, text, ha=None):
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
 
-def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
+def animate_trace(sess):
+    # construct placeholders
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
+    xuv_E_prop = xuv_taylor_to_E(xuv_coefs_in)
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    ir_E_prop = ir_from_params(ir_values_in)
+    image = streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
+                 ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # construct proof trace
+    proof = proof_trace(image)
+    autocorrelation = autocorrelate(image)
+
+
     # make graph
     fig = plt.figure(figsize=(17, 5))
     fig.subplots_adjust(wspace=0.4, left=0.05, right=0.95)
@@ -124,7 +136,12 @@ def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
     axes["trace"] = fig.add_subplot(gs[0:2, 2])
     axes["trace_meas"] = fig.add_subplot(gs[0:2, 3])
     # plot the measured trace
-    delay, energy, measured_trace = unsupervised_retrieval.get_measured_trace()
+    # delay, energy, measured_trace = unsupervised_retrieval.get_measured_trace()
+
+    delay = get_measured_trace.delay
+    energy = get_measured_trace.energy
+    measured_trace = get_measured_trace.trace
+
     axes["trace_meas"].pcolormesh(delay * 1e15, energy, measured_trace, cmap="jet")
     axes["trace_meas"].set_title("measured trace")
 
@@ -144,7 +161,7 @@ def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
     for feed_dict in feed_dicts:
         # generate output
         xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
-        out_2 = sess.run(image2_2, feed_dict=feed_dict)
+        out_2 = sess.run(image, feed_dict=feed_dict)
         # plot output
         axes["xuv_Et"].cla()
         axes["xuv_Et"].plot(np.real(xuv_out["t"][0]), color="blue")
@@ -204,7 +221,7 @@ def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
         gif_images.append(image_draw)
 
     print("making gif")
-    imageio.mimsave('./A2_2.gif', gif_images, fps=10)
+    imageio.mimsave('./dispersion_animation.gif', gif_images, fps=10)
 
 
 def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2):
@@ -973,14 +990,13 @@ if __name__ == "__main__":
     # ===========Animation Functions============
     # ==========================================
     # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
-    # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
+    with tf.Session() as sess:
+        animate_trace(sess)
 
 
 
     # test the coefficients to scale them properly
     testgraphs = TestGraphs()
-
-
 
     feed_dict_in = {
         "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
