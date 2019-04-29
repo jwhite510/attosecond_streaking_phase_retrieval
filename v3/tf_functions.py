@@ -247,8 +247,8 @@ def animate_trace(sess):
 
     # create axes
     axes = {}
-    axes["xuv_Et"] = fig.add_subplot(gs[0, 0])
-    axes["xuv_It"] = fig.add_subplot(gs[1, 0])
+    axes["xuv_Et"] = fig.add_subplot(gs[1, 0])
+    axes["xuv_It"] = fig.add_subplot(gs[0, 0])
     axes["xuv_f"] = fig.add_subplot(gs[0, 1])
     axes["xuv_f_phase"] = axes["xuv_f"].twinx()
     axes["trace"] = fig.add_subplot(gs[0:2, 2])
@@ -257,13 +257,54 @@ def animate_trace(sess):
     feed_dicts = []
     # step = 0.2
     # gdd_vals = -1 * np.arange(0, 5.0 + step, step)
-    gdd_vals = np.linspace(-1, 1, 20)
+    
+    # GDD
+    gdd_vals = np.linspace(0.0, 0.3, 10)
     for val in gdd_vals:
         feed_dict_i = {
             xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
             ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
         }
         feed_dicts.append(feed_dict_i)
+    gdd_vals = np.linspace(0.3, -0.3, 20)
+    for val in gdd_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+    gdd_vals = np.linspace(-0.3, 0.0, 10)
+    for val in gdd_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+
+    # TOD
+    tod_vals = np.linspace(0.0, 0.5, 10)
+    for val in tod_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, 0.0, val, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+    tod_vals = np.linspace(0.5, -0.5, 20)
+    for val in tod_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, 0.0, val, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+    tod_vals = np.linspace(-0.5, 0.0, 10)
+    for val in tod_vals:
+        feed_dict_i = {
+            xuv_coefs_in: np.array([[0.0, 0.0, val, 0.0, 0.0]]),
+            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
+        }
+        feed_dicts.append(feed_dict_i)
+
+
 
     gif_images = []
 
@@ -277,9 +318,13 @@ def animate_trace(sess):
         axes["xuv_Et"].cla()
         axes["xuv_Et"].plot(xuv_time_fs, np.real(xuv_out["t"][0]), color="blue", label="Real $E(t)$")
         # axes["xuv_Et"].set_title("$E(t)$")
-        axes["xuv_Et"].set_xticks([])
+        # axes["xuv_Et"].set_xticks([])
+        axes["xuv_Et"].set_yticks([])
+        axes["xuv_Et"].set_ylabel(r"Electric Field $\rightarrow$")
         axes["xuv_Et"].set_ylim(-0.03, 0.03)
         axes["xuv_Et"].legend(loc=2)
+        axes["xuv_Et"].set_xlabel("time [as]")
+        axes["xuv_Et"].set_xlim(-500, 500)
 
         axes["xuv_It"].cla()
         I_t = np.abs(xuv_out["t"][0]) ** 2
@@ -298,10 +343,14 @@ def animate_trace(sess):
         axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
                             color="red",
                             backgroundcolor="white")
-        axes["xuv_It"].set_xlabel("time [as]")
+        # axes["xuv_It"].set_xlabel("time [as]")
+        axes["xuv_It"].set_yticks([])
+        axes["xuv_It"].set_xticks([])
+        axes["xuv_It"].set_ylabel(r"Intensity $\rightarrow$")
         # axes["xuv_It"].set_title("$I(t)$")
         # axes["xuv_It"].set_ylim(0, 1.1 * np.max(I_t))
-        axes["xuv_It"].set_ylim(0, 0.0007)
+        axes["xuv_It"].set_ylim(0, 0.001)
+        axes["xuv_It"].set_xlim(-500, 500)
         axes["xuv_It"].legend(loc=2)
 
         axes["xuv_f"].cla()
@@ -310,16 +359,20 @@ def animate_trace(sess):
         axes["xuv_f"].plot(xuv_f_hz, np.abs(xuv_out["f_cropped"][0]) ** 2, color="black")
         axes["xuv_f"].set_title("XUV spectral phase")
         axes["xuv_f"].set_xlabel("frequency [$10^{17}$Hz]")
+        axes["xuv_f"].set_yticks([])
+        axes["xuv_f"].set_ylabel(r"Intensity $\rightarrow$")
         axes["xuv_f_phase"].cla()
         axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
         axes["xuv_f_phase"].tick_params(axis='y', colors='green')
-        axes["xuv_f_phase"].set_ylim(-20, 20)
+        axes["xuv_f_phase"].set_ylim(-40, 40)
         axes["xuv_f_phase"].set_ylabel("$\phi$[Rad]", color="green")
         axes["trace"].cla()
+
         axes["trace"].pcolormesh(
-            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
+            phase_parameters.params.delay_values_fs,
             phase_parameters.params.K,
             out_2, cmap="jet")
+
         axes["trace"].set_xlabel("Delay [fs]")
         axes["trace"].set_ylabel("Energy [eV]")
 
