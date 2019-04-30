@@ -860,14 +860,31 @@ def bootstrap_retrievals(test_name):
             with open(test_name+"_bootstrap.p", "wb") as file:
                 pickle.dump(results, file)
 
+def retrieve_measured():
+    unsupervised_retrieval = UnsupervisedRetrieval(
+            run_name="measured_retrieval",
+            iterations=5000,
+            retrieval="normal",
+            modelname="xuv_ph_2",
+            measured_trace=get_measured_trace.trace,
+            )
+    _ = unsupervised_retrieval.retrieve()
+    plt.close(unsupervised_retrieval.axes["fig"])
+    del unsupervised_retrieval
+    tf.reset_default_graph()
+
+
 
 
 if __name__ == "__main__":
+
+    # retrieve the measured specturm
+    retrieve_measured()
+    exit()
+
     # run a noise test
     noise_test("noise_test10__")
-    # print("finished test 6")
-    # exit()
-
     # re open the data file and run bootstrap tests on it
     bootstrap_retrievals("noise_test10__")
+    exit()
 
