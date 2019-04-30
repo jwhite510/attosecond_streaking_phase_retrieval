@@ -397,7 +397,7 @@ def animate_trace(sess):
         gif_images.append(image_draw)
 
     print("making gif")
-    imageio.mimsave('./dispersion_animation.gif', gif_images, fps=5)
+    imageio.mimsave('./dispersion_animation.gif', gif_images, fps=10)
 
 
 def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2):
