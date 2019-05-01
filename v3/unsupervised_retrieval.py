@@ -893,6 +893,7 @@ def retrieve_measured():
             retrieval="normal",
             modelname="xuv_ph_2",
             measured_trace=get_measured_trace.trace,
+            output_plot_objects=True
             )
     _ = unsupervised_retrieval.retrieve()
     plt.close(unsupervised_retrieval.axes["fig"])
