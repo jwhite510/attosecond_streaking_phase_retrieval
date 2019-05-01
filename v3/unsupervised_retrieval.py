@@ -19,7 +19,7 @@ import ga as genetic_alg
 
 class UnsupervisedRetrieval:
     def __init__(self, run_name, iterations, retrieval, modelname, measured_trace,
-                use_xuv_initial_output=False, bootstrap=False):
+                use_xuv_initial_output=False, bootstrap=False, output_plot_objects=False):
         """
         bootstrap: dictionary
         bootstrap["indexes"] : a numpy array of the index values for bootstrap method (2/3 length of trace)
@@ -31,6 +31,7 @@ class UnsupervisedRetrieval:
         self.method = "Unsupervised Learning"
         self.use_xuv_initial_output = use_xuv_initial_output
         self.iterations = iterations
+        self.output_plot_objects = output_plot_objects 
         #===================
         #==Retrieval Type===
         #===================
@@ -233,22 +234,21 @@ class UnsupervisedRetrieval:
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="trace",
-                               method=self.method)
-
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
         elif self.retrieval == "proof":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="proof",
-                               method=self.method)
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
         elif self.retrieval == "autocorrelation":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
-                               method=self.method)
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
     def retrieve_final_result(self):
@@ -427,7 +427,23 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_phase,  xuv_f_full, xuv_t, ir_f, i,
-                       run_name, true_fields=False, cost_function=None, method=None):
+                       run_name, true_fields=False, cost_function=None, method=None, save_data_objs=False):
+
+    if save_data_objs:
+        file_objs = dict()
+        file_objs["axes"] = axes
+        file_objs["traces_meas"] = traces_meas
+        file_objs["traces_reconstructed"] = traces_reconstructed
+        file_objs["xuv_f"] = xuv_f
+        file_objs["xuv_f_phase"] = xuv_f_phase
+        file_objs["xuv_f_full"] = xuv_f_full
+        file_objs["xuv_t"] = xuv_t
+        file_objs["ir_f"] = ir_f
+        file_objs["i"] = i
+        file_objs["run_name"] = run_name 
+        file_objs["true_fields"] = true_fields 
+        file_objs["cost_function"] = cost_function 
+        file_objs["method"] = method 
 
     # ...........................
     # ........CLEAR AXES.........
@@ -639,6 +655,11 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
             save_files["traces_reconstructed"] = traces_reconstructed
             save_files["i"] = i
             pickle.dump(save_files, file)
+
+        # save the objects used to make the plot
+        if save_data_objs:
+            with open("./retrieval/" + run_name + "/plot_objs.p", "wb") as file:
+                pickle.dump(file_objs, file)
 
 def show_proof_calculation(trace, sess, nn_nodes):
     feed_dict = {nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
