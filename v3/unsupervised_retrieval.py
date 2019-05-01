@@ -130,6 +130,11 @@ class UnsupervisedRetrieval:
 
     def retrieve(self):
         plt.ion()
+        # if taking the initial network output, 
+        # show the plot
+        if self.iterations == 0:
+                self.update_plots()
+
         for i in range(self.iterations):
             self.c_iteration = i + 1
 
@@ -862,8 +867,8 @@ def bootstrap_retrievals(test_name):
 
 def retrieve_measured():
     unsupervised_retrieval = UnsupervisedRetrieval(
-            run_name="measured_retrieval",
-            iterations=5000,
+            run_name="measured_retrieval_init",
+            iterations=0,
             retrieval="normal",
             modelname="xuv_ph_2",
             measured_trace=get_measured_trace.trace,
