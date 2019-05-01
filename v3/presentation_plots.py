@@ -28,6 +28,50 @@ with open("./retrieval/" + run_name + "/plot_objs.p", "rb") as file:
 def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv_f_phase,  xuv_f_full, xuv_t, ir_f, i,
                        run_name, true_fields=False, cost_function=None, method=None, save_data_objs=False):
 
+    # xuv_f_full
+    # fft the xuv f 
+    xuv_t_full = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(xuv_f_full)))
+
+    fig, ax = plt.subplots(2,1)
+    # plot the signal in frequency space
+    ax[0].plot(np.abs(xuv_f_full), color="black")
+    ax[0].plot(np.real(xuv_f_full), color="blue")
+    ax[0].plot(np.imag(xuv_f_full), color="red")
+    ax[0].set_title("our current sign convention")
+    axtwin = ax[0].twinx()
+    axtwin.plot(np.unwrap(np.angle(xuv_f_full)), color="green")
+
+    # plot the signal in time
+    ax[1].plot(np.abs(xuv_t_full)**2, color="black")
+    
+    fig.savefig("./fft_fig.png")
+
+
+
+    # plot different sign convention
+    xuv_f_tl = xuv_f_full * np.exp(-2j*np.angle(xuv_f_full))
+    fig, ax = plt.subplots(2,1)
+    ax[0].set_title("different")
+    # plot the signal in frequency space
+    ax[0].plot(np.abs(xuv_f_tl), color="black")
+    ax[0].plot(np.real(xuv_f_tl), color="blue")
+    ax[0].plot(np.imag(xuv_f_tl), color="red")
+    axtwin = ax[0].twinx()
+    axtwin.plot(np.unwrap(np.angle(xuv_f_tl)), color="green")
+
+    xuv_t_2 = np.fft.fftshift(np.fft.fft(np.fft.fftshift(xuv_f_tl)))
+
+    # plot the signal in time
+    ax[1].plot(np.abs(xuv_t_2)**2, color="black")
+    
+    fig.savefig("./fft_fig_diff.png")
+    exit()
+    plt.show()
+
+    exit()
+
+
+
     # if save_data_objs:
     #     file_objs = dict()
     #     file_objs["axes"] = axes
