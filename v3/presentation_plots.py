@@ -64,12 +64,12 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     # axes["predicted_ir_phase"].cla()
 
     # create new axes
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10,7))
     gs = fig.add_gridspec(2,2)
     axes = dict()
     axes["input_trace"] = fig.add_subplot(gs[0,0])
-    axes["reconstructed_trace"] = fig.add_subplot(gs[1,0])
-    axes["xuv_t"] = fig.add_subplot(gs[0,1])
+    axes["reconstructed_trace"] = fig.add_subplot(gs[0,1])
+    axes["xuv_t"] = fig.add_subplot(gs[1,0])
     axes["xuv_f"] = fig.add_subplot(gs[1,1])
     axes["xuv_f_phase"] = axes["xuv_f"].twinx()
 
@@ -106,8 +106,8 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
         unsupervised_retrieval.normal_text(axes["input_trace"], (0.0, 1.0), "noisy trace")
     else:
         unsupervised_retrieval.normal_text(axes["input_trace"], (0.0, 1.0), "input trace")
-        if cost_function == "trace":
-            unsupervised_retrieval.red_text(axes["input_trace"], (1.0, 1.0), "C")
+        # if cost_function == "trace":
+        #     unsupervised_retrieval.red_text(axes["input_trace"], (1.0, 1.0), "C")
 
     #     axes["input_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_meas["proof"], cmap='jet')
     #     axes["input_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
@@ -153,8 +153,8 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
         unsupervised_retrieval.normal_text(axes["reconstructed_trace"], (0.0, 1.0), "actual trace")
     else:
         unsupervised_retrieval.normal_text(axes["reconstructed_trace"], (0.0, 1.0), "generated trace")
-        if cost_function == "trace":
-            unsupervised_retrieval.red_text(axes["reconstructed_trace"], (1.0, 1.0), "C")
+        # if cost_function == "trace":
+        #     unsupervised_retrieval.red_text(axes["reconstructed_trace"], (1.0, 1.0), "C")
 
     #     axes["generated_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["proof"], cmap='jet')
     #     axes["generated_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
@@ -221,6 +221,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     #plot FWHM
     axes["xuv_t"].plot([t1, t2], [half_max, half_max], color="red", linewidth=2.0)
     axes["xuv_t"].set_yticks([])
+    axes["xuv_t"].set_xlim(-500, 500)
     axes["xuv_t"].set_xlabel("time [as]")
     # axes["xuv_t"].set_xlim(-200, 300)
 
@@ -300,6 +301,6 @@ plot_images_fields_publication(traces_meas=plot_obj["traces_meas"],
 
 
 
-plt.show()
+# plt.show()
 
 
