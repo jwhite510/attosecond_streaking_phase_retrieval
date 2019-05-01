@@ -7,16 +7,18 @@ import unsupervised_retrieval
 spectrum_scaled = spectrum.fmat_hz_cropped * 1e-16
 
 
-with open("noise_test9__.p", "rb") as file:
+with open("noise_test10__.p", "rb") as file:
     data_retrievals = pickle.load(file)
 
-with open("noise_test9___bootstrap.p", "rb") as file:
+with open("noise_test10___bootstrap.p", "rb") as file:
     data_bootstrap = pickle.load(file)
 
 
 
 key = "unsupervised_20"
+# key = "unsupervised_1895"
 # key = "ga_20"
+# key = "ga_1895"
 run_sample = data_bootstrap[key]
 initial_network_out_phase = data_retrievals["20"]["normal"]["nn_init"]["field"]["cropped_phase"]
 actual_phase_curve = data_retrievals["actual_values"]["measured_trace_phase_20"]
