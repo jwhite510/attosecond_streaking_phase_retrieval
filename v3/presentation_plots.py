@@ -1,6 +1,22 @@
-import unsupervised_retrieval
+import tensorflow as tf
+import numpy as np
+import scipy.constants as sc
 import matplotlib.pyplot as plt
+import tables
+import shutil
+import os
+import csv
+import network3
+from xuv_spectrum import spectrum
+from phase_parameters import params
+from ir_spectrum import ir_spectrum
+import glob
 import pickle
+import tf_functions
+import measured_trace.get_trace as get_measured_trace
+import ga as genetic_alg
+import unsupervised_retrieval
+
 
 run_name = "measured_retrieval_init"
 with open("./retrieval/" + run_name + "/plot_objs.p", "rb") as file:
@@ -76,30 +92,30 @@ def plot_images_fields_publication(axes, traces_meas, traces_reconstructed, xuv_
     axes["input_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["input_normal_trace"].set_ylabel("Energy [eV]")
     if true_fields:
-        normal_text(axes["input_normal_trace"], (0.0, 1.0), "noisy trace")
+        unsupervised_retrieval.normal_text(axes["input_normal_trace"], (0.0, 1.0), "noisy trace")
     else:
-        normal_text(axes["input_normal_trace"], (0.0, 1.0), "input trace")
+        unsupervised_retrieval.normal_text(axes["input_normal_trace"], (0.0, 1.0), "input trace")
         if cost_function == "trace":
-            red_text(axes["input_normal_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["input_normal_trace"], (1.0, 1.0), "C")
 
     axes["input_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_meas["proof"], cmap='jet')
     axes["input_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["input_proof_trace"].set_ylabel("Energy [eV]")
     if true_fields:
-        normal_text(axes["input_proof_trace"], (0.0, 1.0), "noisy proof trace")
-        normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields", ha="center")
+        unsupervised_retrieval.normal_text(axes["input_proof_trace"], (0.0, 1.0), "noisy proof trace")
+        unsupervised_retrieval.normal_text(axes["input_proof_trace"], (0.5, 1.2), "Actual Fields", ha="center")
     else:
-        normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
+        unsupervised_retrieval.normal_text(axes["input_proof_trace"], (0.0, 1.0), "input proof trace")
         if method is not None:
-            normal_text(axes["input_proof_trace"], (0.5, 1.2), method, ha="center")
+            unsupervised_retrieval.normal_text(axes["input_proof_trace"], (0.5, 1.2), method, ha="center")
         if cost_function == "proof":
-            red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["input_proof_trace"], (1.0, 1.0), "C")
 
     if i is not None:
         if method == "Genetic Algorithm":
-            normal_text(axes["input_proof_trace"], (1.3, 1.2), "Generation: " + str(i), ha="center")
+            unsupervised_retrieval.normal_text(axes["input_proof_trace"], (1.3, 1.2), "Generation: " + str(i), ha="center")
         elif method == "Unsupervised Learning":
-            normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
+            unsupervised_retrieval.normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
         else:
             raise ValueError("method should be unsupervised learning or genetic algorithm")
 
@@ -109,11 +125,11 @@ def plot_images_fields_publication(axes, traces_meas, traces_reconstructed, xuv_
     axes["input_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["input_auto_trace"].set_ylabel(r"$\tau$ Delay [fs]")
     if true_fields:
-        normal_text(axes["input_auto_trace"], (0.0, 1.0), "noisy autocorrelation")
+        unsupervised_retrieval.normal_text(axes["input_auto_trace"], (0.0, 1.0), "noisy autocorrelation")
     else:
-        normal_text(axes["input_auto_trace"], (0.0, 1.0), "input autocorrelation")
+        unsupervised_retrieval.normal_text(axes["input_auto_trace"], (0.0, 1.0), "input autocorrelation")
         if cost_function == "autocorrelation":
-            red_text(axes["input_auto_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["input_auto_trace"], (1.0, 1.0), "C")
 
     # ..........................................
     # ...............generated..................
@@ -121,35 +137,35 @@ def plot_images_fields_publication(axes, traces_meas, traces_reconstructed, xuv_
     axes["generated_normal_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["trace"], cmap='jet')
     axes["generated_normal_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_normal_trace"].set_ylabel("Energy [eV]")
-    normal_text(axes["generated_normal_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["trace"])
+    unsupervised_retrieval.normal_text(axes["generated_normal_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["trace"])
     if true_fields:
-        normal_text(axes["generated_normal_trace"], (0.0, 1.0), "actual trace")
+        unsupervised_retrieval.normal_text(axes["generated_normal_trace"], (0.0, 1.0), "actual trace")
     else:
-        normal_text(axes["generated_normal_trace"], (0.0, 1.0), "generated trace")
+        unsupervised_retrieval.normal_text(axes["generated_normal_trace"], (0.0, 1.0), "generated trace")
         if cost_function == "trace":
-            red_text(axes["generated_normal_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["generated_normal_trace"], (1.0, 1.0), "C")
 
     axes["generated_proof_trace"].pcolormesh(params.delay_values_fs, params.K, traces_reconstructed["proof"], cmap='jet')
     axes["generated_proof_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_proof_trace"].set_ylabel("Energy [eV]")
-    normal_text(axes["generated_proof_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["proof"])
+    unsupervised_retrieval.normal_text(axes["generated_proof_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["proof"])
     if true_fields:
-        normal_text(axes["generated_proof_trace"], (0.0, 1.0), "proof trace")
+        unsupervised_retrieval.normal_text(axes["generated_proof_trace"], (0.0, 1.0), "proof trace")
     else:
-        normal_text(axes["generated_proof_trace"], (0.0, 1.0), "generated proof trace")
+        unsupervised_retrieval.normal_text(axes["generated_proof_trace"], (0.0, 1.0), "generated proof trace")
         if cost_function == "proof":
-            red_text(axes["generated_proof_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["generated_proof_trace"], (1.0, 1.0), "C")
 
     axes["generated_auto_trace"].pcolormesh(params.delay_values_fs, params.delay_values_fs, traces_reconstructed["autocorrelation"], cmap='jet')
     axes["generated_auto_trace"].set_xlabel(r"$\tau$ Delay [fs]")
     axes["generated_auto_trace"].set_ylabel(r"$\tau$ Delay [fs]")
-    normal_text(axes["generated_auto_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["autocorrelation"])
+    unsupervised_retrieval.normal_text(axes["generated_auto_trace"], (0.05, 0.05), "RMSE: "+"%.4f" % rmses["autocorrelation"])
     if true_fields:
-        normal_text(axes["generated_auto_trace"], (0.0, 1.0), "autocorrelation")
+        unsupervised_retrieval.normal_text(axes["generated_auto_trace"], (0.0, 1.0), "autocorrelation")
     else:
-        normal_text(axes["generated_auto_trace"], (0.0, 1.0), "generated autocorrelation")
+        unsupervised_retrieval.normal_text(axes["generated_auto_trace"], (0.0, 1.0), "generated autocorrelation")
         if cost_function == "autocorrelation":
-            red_text(axes["generated_auto_trace"], (1.0, 1.0), "C")
+            unsupervised_retrieval.red_text(axes["generated_auto_trace"], (1.0, 1.0), "C")
 
     # xuv f
     fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
@@ -186,7 +202,7 @@ def plot_images_fields_publication(axes, traces_meas, traces_reconstructed, xuv_
 
     axes["predicted_xuv_t"].plot(tmat_as, I_t, color="black")
     #calculate FWHM
-    fwhm, t1, t2, half_max = calc_fwhm(tmat=tmat_as, I_t=I_t)
+    fwhm, t1, t2, half_max = unsupervised_retrieval.calc_fwhm(tmat=tmat_as, I_t=I_t)
     axes["predicted_xuv_t"].text(1.0, 0.9, "FWHM:\n %.2f [as]" % fwhm, color="red",
                             backgroundcolor="white", ha="center",
                             transform=axes["predicted_xuv_t"].transAxes)
@@ -246,7 +262,19 @@ def plot_images_fields_publication(axes, traces_meas, traces_reconstructed, xuv_
 
 
 # plot
-unsupervised_retrieval.plot_images_fields(axes=plot_obj["axes"], 
+# unsupervised_retrieval.plot_images_fields(axes=plot_obj["axes"], 
+#                         traces_meas=plot_obj["traces_meas"],
+#                         traces_reconstructed=plot_obj["traces_reconstructed"], 
+#                         xuv_f=plot_obj["xuv_f"],
+#                         xuv_f_phase=plot_obj["xuv_f_phase"], 
+#                         xuv_f_full=plot_obj["xuv_f_full"],
+#                         xuv_t=plot_obj["xuv_t"], ir_f=plot_obj["ir_f"], i=plot_obj["i"],
+#                         run_name=plot_obj["run_name"], true_fields=plot_obj["true_fields"],
+#                         cost_function=plot_obj["cost_function"],
+#                         method=plot_obj["method"])
+
+
+plot_images_fields_publication(axes=plot_obj["axes"], 
                         traces_meas=plot_obj["traces_meas"],
                         traces_reconstructed=plot_obj["traces_reconstructed"], 
                         xuv_f=plot_obj["xuv_f"],
@@ -257,8 +285,7 @@ unsupervised_retrieval.plot_images_fields(axes=plot_obj["axes"],
                         cost_function=plot_obj["cost_function"],
                         method=plot_obj["method"])
 
-
-plt.show()
+plt.savefig("pub_plot.png")
 
 
 
