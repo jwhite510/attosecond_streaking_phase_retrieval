@@ -17,6 +17,58 @@ import measured_trace.get_trace as get_measured_trace
 import ga as genetic_alg
 
 
+class ValidationSet():
+    def __init__(self, modelname):
+        if os.path.isfile("validation_data.p"):
+            pass
+        else:
+            # build neural net graph
+            self.nn_nodes = network3.setup_neural_net()
+            self.modelname = modelname
+            self.sess = tf.Session()
+            self.saver = tf.train.Saver()
+            self.saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname))
+            self.data_obj = network3.GetData(batch_size=10)
+
+    def run(self):
+        if os.path.isfile("validation_data.p"):
+            pass
+        else:
+            # get test data set 
+            traces, labels = self.data_obj.evaluate_on_test_data()
+            traces = traces[0:10]
+            labels = labels[0:10]
+            # define feed dictionary
+            feed_dict = dict()
+            feed_dict[self.nn_nodes["general"]["x_in"]] = traces
+            # get the output fields
+            output_xuv_fields = self.sess.run(
+                        self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],
+                        feed_dict=feed_dict
+                        )
+
+            # get the fields labels
+            feed_dict = dict()
+            feed_dict[self.nn_nodes["supervised"]["actual_coefs_params"]] = labels
+            label_fields = self.sess.run(self.nn_nodes["supervised"]["supervised_label_fields"],
+                    feed_dict=feed_dict)
+            label_xuv_fields = label_fields['xuv_E_prop']['f_cropped']
+
+
+            # write files to a pickle
+            validation_data = dict()
+            validation_data["label_xuv_fields"] = label_xuv_fields 
+            validation_data["output_xuv_fields"] = output_xuv_fields  
+            validation_data["traces"] = traces  
+            with open("validation_data.p", "wb") as file:
+                pickle.dump(validation_data, file)
+
+        with open("validation_data.p", "rb") as file:
+            validation_data = pickle.load(file)
+
+        plot_validation_data(validation_data)
+
+         
 class UnsupervisedRetrieval:
     def __init__(self, run_name, iterations, retrieval, modelname, measured_trace,
                 use_xuv_initial_output=False, bootstrap=False, output_plot_objects=False):
@@ -901,9 +953,66 @@ def retrieve_measured():
     tf.reset_default_graph()
 
 
+def plot_validation_data(validation_data):
+    label_xuv_fields = validation_data["label_xuv_fields"]
+    output_xuv_fields = validation_data["output_xuv_fields"]
+    traces = validation_data["traces"]
+    fig = plt.figure(figsize=(10,7))
+    fig.subplots_adjust(wspace=0.3, hspace=0.0)
+    gs = fig.add_gridspec(3,3)
+
+    index_numbers = [0,1,2]
+    for index_num, column in zip(index_numbers, [0,1,2]):
+
+        ax = fig.add_subplot(gs[0,column])
+        delay_vals = get_measured_trace.delay *1e15
+        energy_vals = get_measured_trace.energy
+        ax.pcolormesh(delay_vals, energy_vals,
+                    traces[index_num].reshape(len(get_measured_trace.energy), 
+                    len(get_measured_trace.delay)), cmap="jet")
+        ax.xaxis.tick_top()
+        ax.xaxis.set_label_position('top')
+        ax.set_xlabel("Delay [fs]")
+        if column==0:
+            pass
+            ax.set_ylabel("Energy [eV]")
+        else:
+            ax.set_yticks([])
+
+        ax = fig.add_subplot(gs[1,column])
+        ax.plot(spectrum.fmat_hz_cropped*1e-16, np.abs(label_xuv_fields[index_num]), color="black")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if column==0:
+            ax.set_ylabel("Actual XUV Phase")
+        axtwin = ax.twinx()
+        axtwin.plot(spectrum.fmat_hz_cropped[10:-10]*1e-16, np.unwrap(np.angle(label_xuv_fields[index_num]))[10:-10], color="green")
+        axtwin.tick_params(axis='y', colors="green")
+        if column==2:
+            axtwin.set_ylabel(r"$\phi$[Rad]", color="green")
+
+        ax = fig.add_subplot(gs[2,column])
+        ax.plot(spectrum.fmat_hz_cropped*1e-16, np.abs(output_xuv_fields[index_num]), color="black")
+        ax.set_yticks([])
+        ax.set_xlabel(r"Frequency [$10^{16}$ Hz]")
+        if column==0:
+            ax.set_ylabel("Predicted XUV Phase")
+        axtwin = ax.twinx()
+        axtwin.plot(spectrum.fmat_hz_cropped[10:-10]*1e-16, np.unwrap(np.angle(output_xuv_fields[index_num]))[10:-10], color="green")
+        axtwin.tick_params(axis='y', colors="green")
+        if column==2:
+            axtwin.set_ylabel(r"$\phi$[Rad]", color="green")
+
+    fig.savefig("./validationplot.png")
+
+
 
 
 if __name__ == "__main__":
+    validation = ValidationSet(modelname="xuv_ph_2")
+    validation.run()
+    exit()
+
 
     # retrieve the measured specturm
     retrieve_measured()
