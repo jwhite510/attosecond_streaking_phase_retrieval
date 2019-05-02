@@ -133,7 +133,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     axes["xuv_t"].plot(tmat_as, I_t, color="black")
     #calculate FWHM
     fwhm, t1, t2, half_max = unsupervised_retrieval.calc_fwhm(tmat=tmat_as, I_t=I_t)
-    axes["xuv_t"].text(0.5, 0.5, "FWHM:\n %.2f [as]" % fwhm, color="black",
+    axes["xuv_t"].text(0.5, 0.5, "%.0f as" % fwhm, color="black",
                             backgroundcolor="white", ha="center",
                             transform=axes["xuv_t"].transAxes)
     #plot FWHM
