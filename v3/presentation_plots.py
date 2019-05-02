@@ -86,15 +86,19 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
 
     # xuv f
     fmat_hz = spectrum.fmat_cropped/sc.physical_constants['atomic unit of time'][0]*1e-17
+
+    fmat_ev = spectrum.fmat_hz_cropped * sc.h / sc.electron_volt
+
     I_f = np.abs(xuv_f) ** 2
-    axes["xuv_f"].plot(fmat_hz, I_f, color="black", label="Electron Spectrum")
+    axes["xuv_f"].plot(fmat_ev , I_f, color="black", label="Electron Spectrum")
     axes["xuv_f"].set_yticks([])
-    axes["xuv_f"].set_xlabel("Frequency [$10^{17}$Hz]")
-    axes["xuv_f"].set_xlim(np.min(fmat_hz), np.max(fmat_hz))
+    # axes["xuv_f"].set_xlabel("Frequency [$10^{17}$Hz]")
+    axes["xuv_f"].set_xlabel("Energy [eV]")
+    axes["xuv_f"].set_xlim(np.min(fmat_ev), np.max(fmat_ev))
     axes["xuv_f"].set_ylim(np.min(I_f), 1.2*np.max(I_f))
     axes["xuv_f"].set_ylabel("Intensity [Relative]")
     # plotting photon spectrum
-    axes["xuv_f"].plot(fmat_hz, np.abs(spectrum.Ef_photon[spectrum.indexmin:spectrum.indexmax]) ** 2, color="blue", label="Photon Spectrum")
+    axes["xuv_f"].plot(fmat_ev, np.abs(spectrum.Ef_photon[spectrum.indexmin:spectrum.indexmax]) ** 2, color="blue", label="Photon Spectrum")
     axes["xuv_f"].legend(loc=1)
     unsupervised_retrieval.normal_text(axes["xuv_f"], (0.5, 1.05), "Predicted XUV spectrum", ha="center")
     
@@ -108,7 +112,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     #                                      transform=axes["xuv_f_phase"].transAxes)
 
     axes["xuv_f_phase"].tick_params(axis='y', colors='green')
-    axes["xuv_f_phase"].plot(fmat_hz, -1*xuv_f_phase, color="green")
+    axes["xuv_f_phase"].plot(fmat_ev, -1*xuv_f_phase, color="green")
     axes["xuv_f_phase"].set_ylabel("$\phi$ [Rad]", color="green")
 
 
