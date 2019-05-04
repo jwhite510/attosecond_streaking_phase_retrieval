@@ -339,6 +339,18 @@ class UnsupervisedRetrieval:
         # get the retrieved complex spectrum
         phase_retrieved["f_full"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],
                                                    feed_dict=self.feed_dict)[0]
+        # +++++++++++++++++++++++++++++
+        # for setting linear phase to 0
+        # +++++++++++++++++++++++++++++
+        # output coefficients
+        # output_coefs_ph = self.nn_nodes["general"]["xuv_coefs_pred"]
+        # coefs = self.sess.run(output_coefs_ph, feed_dict=self.feed_dict)
+        # set linear phase to 0
+        # coefs[0][0] = 0.0
+        # self.feed_dict[output_coefs_ph] = coefs
+        # coefs = self.sess.run(output_coefs_ph, feed_dict=self.feed_dict)
+        # phase_retrieved["cropped_phase2"] = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],
+        #                      feed_dict=self.feed_dict)[0]
 
         result = dict()
         result["field"] = phase_retrieved 
@@ -938,12 +950,12 @@ def bootstrap_retrievals(test_name):
             with open(test_name+"_bootstrap.p", "wb") as file:
                 pickle.dump(results, file)
 
-def retrieve_measured():
+def retrieve_measured(modelname):
     unsupervised_retrieval = UnsupervisedRetrieval(
             run_name="measured_retrieval_init",
             iterations=0,
             retrieval="normal",
-            modelname="xuv_ph_2",
+            modelname=modelname,
             measured_trace=get_measured_trace.trace,
             output_plot_objects=True
             )
@@ -1015,7 +1027,7 @@ if __name__ == "__main__":
 
 
     # retrieve the measured specturm
-    retrieve_measured()
+    retrieve_measured(modelname='xuv_ph_2')
     exit()
 
     # run a noise test
