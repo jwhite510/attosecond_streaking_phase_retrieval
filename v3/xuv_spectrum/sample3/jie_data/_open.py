@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 # with open('7002 Unstreaked vs retrieve electron spectrum.opj', 'rb') as file:
 #     matrix = np.array(list(file))
@@ -53,10 +54,15 @@ plt.plot(mat11_c1, mat11_c2)
 axtwin = plt.gca().twinx()
 axtwin.plot(mat11_c1, mat11_c3)
 
-# import ipdb; ipdb.set_trace() # BREAKPOINT
-# plt.plot(mat22_c0 , mat22_c1)
-# plt.plot(mat22_c0 , mat22_c2)
-# axtwin = plt.gca().twinx()
-# axtwin.plot(mat22_c0 , mat22_c4)
+with open("spec.p", "wb") as file:
+    obj = dict()
+    obj["electron"] = dict()
+    obj["electron"]["eV"] = mat22_c1
+    obj["electron"]["I"] = mat22_c2
+    obj["photon"] = dict()
+    obj["photon"]["eV"] = mat11_c1
+    obj["photon"]["I"] = mat11_c2
+    pickle.dump(obj, file)
+    print("pickled")
 plt.show()
 
