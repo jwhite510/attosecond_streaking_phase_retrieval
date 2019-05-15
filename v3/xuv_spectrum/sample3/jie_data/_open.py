@@ -46,6 +46,13 @@ plt.figure(1)
 plt.plot(mat21_c1 ,mat21_c2)
 plt.figure(2)
 plt.plot(mat22_c1, mat22_c2)
+
+# photon corrected spectrum
+plt.figure(3)
+plt.plot(mat11_c1, mat11_c2)
+axtwin = plt.gca().twinx()
+axtwin.plot(mat11_c1, mat11_c3)
+
 # import ipdb; ipdb.set_trace() # BREAKPOINT
 # plt.plot(mat22_c0 , mat22_c1)
 # plt.plot(mat22_c0 , mat22_c2)
