@@ -46,8 +46,10 @@ def interpolate(electronvolts_in, intensity_in, plotting=False):
     # calculate signal in time
     linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
     # set the indexes for cropped input
-    indexmin = np.argmin(np.abs(fmat - 1.75e16))
-    indexmax = np.argmin(np.abs(fmat - 7.99e16))
+    # indexmin = np.argmin(np.abs(fmat - 1.75e16))
+    indexmin = np.argmin(np.abs(fmat - 1.26e16))
+    # indexmax = np.argmin(np.abs(fmat - 7.99e16))
+    indexmax = np.argmin(np.abs(fmat - 9.34e16))
 
     if plotting:
         plt.figure(1)
@@ -163,32 +165,32 @@ def retrieve_spectrum2(plotting=False):
 
 def retrieve_spectrum3(plotting=False):
     # open the file
-    with open(os.path.dirname(__file__)+"/sample3/s3measured_spec.csv", "r") as file:
-        matrix = np.array(list(file))
-        electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
-        Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
+    # with open(os.path.dirname(__file__)+"/sample3/s3measured_spec.csv", "r") as file:
+    #     matrix = np.array(list(file))
+    #     electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
+    #     Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
 
-
-    plt.figure(10)
-    plt.plot(electronvolts, Intensity)
+    # plt.figure(10)
+    # plt.plot(electronvolts, Intensity)
     # plt.show()
     # open the data
     with open(os.path.dirname(__file__)+"/sample3/jie_data/spec.p", "rb") as file:
         spec_data = pickle.load(file)
-    plt.figure(2)
-    plt.plot(spec_data["electron"]["eV"], spec_data["electron"]["I"])
-    plt.plot(spec_data["photon"]["eV"], spec_data["photon"]["I"])
-    plt.show()
-    import ipdb; ipdb.set_trace() # BREAKPOINT
-    exit()
+    # plt.figure(2)
+    # plt.plot(spec_data["electron"]["eV"], spec_data["electron"]["I"], color="red")
+    # plt.plot(spec_data["electron"]["eV"], spec_data["photon"]["I"], color="blue")
+    electronvolts = spec_data["electron"]["eV"]
+    Intensity = spec_data["electron"]["I"]
 
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
     # open the photon spectrum file
-    with open(os.path.dirname(__file__)+"/sample3/photon_spectrum.csv", "r") as file:
-        matrix = np.array(list(file))
-        electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
-        Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
+    # with open(os.path.dirname(__file__)+"/sample3/photon_spectrum.csv", "r") as file:
+    #     matrix = np.array(list(file))
+    #     electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
+    #     Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
+    electronvolts = spec_data["electron"]["eV"]
+    Intensity = spec_data["photon"]["I"]
 
     _, _, _, _, Ef_interp_photon, _, _, _, _, _= interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
