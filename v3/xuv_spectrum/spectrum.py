@@ -167,6 +167,12 @@ def retrieve_spectrum3(plotting=False):
         electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
         Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
 
+
+    plt.figure()
+    plt.plot(electronvolts, Intensity)
+    plt.show()
+    exit()
+
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
     # open the photon spectrum file
