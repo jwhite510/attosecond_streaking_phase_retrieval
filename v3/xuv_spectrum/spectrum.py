@@ -1,4 +1,5 @@
 import csv
+import pickle
 import matplotlib.pyplot as plt
 import scipy.constants as sc
 import numpy as np
@@ -168,9 +169,17 @@ def retrieve_spectrum3(plotting=False):
         Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
 
 
-    plt.figure()
+    plt.figure(10)
     plt.plot(electronvolts, Intensity)
+    # plt.show()
+    # open the data
+    with open(os.path.dirname(__file__)+"/sample3/jie_data/spec.p", "rb") as file:
+        spec_data = pickle.load(file)
+    plt.figure(2)
+    plt.plot(spec_data["electron"]["eV"], spec_data["electron"]["I"])
+    plt.plot(spec_data["photon"]["eV"], spec_data["photon"]["I"])
     plt.show()
+    import ipdb; ipdb.set_trace() # BREAKPOINT
     exit()
 
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
