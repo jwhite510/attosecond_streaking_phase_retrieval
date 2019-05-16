@@ -19,7 +19,7 @@ import ga as genetic_alg
 
 class UnsupervisedRetrieval:
     def __init__(self, run_name, iterations, retrieval, modelname, measured_trace,
-                use_xuv_initial_output=False, bootstrap=False):
+                use_xuv_initial_output=False, bootstrap=False, output_plot_objects=False):
         """
         bootstrap: dictionary
         bootstrap["indexes"] : a numpy array of the index values for bootstrap method (2/3 length of trace)
@@ -31,6 +31,7 @@ class UnsupervisedRetrieval:
         self.method = "Unsupervised Learning"
         self.use_xuv_initial_output = use_xuv_initial_output
         self.iterations = iterations
+        self.output_plot_objects = output_plot_objects 
         #===================
         #==Retrieval Type===
         #===================
@@ -130,6 +131,11 @@ class UnsupervisedRetrieval:
 
     def retrieve(self):
         plt.ion()
+        # if taking the initial network output, 
+        # show the plot
+        if self.iterations == 0:
+                self.update_plots()
+
         for i in range(self.iterations):
             self.c_iteration = i + 1
 
@@ -228,22 +234,21 @@ class UnsupervisedRetrieval:
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="trace",
-                               method=self.method)
-
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
         elif self.retrieval == "proof":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="proof",
-                               method=self.method)
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
         elif self.retrieval == "autocorrelation":
             plot_images_fields(axes=self.axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                                xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.c_iteration,
                                run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
-                               method=self.method)
+                               method=self.method, save_data_objs=self.output_plot_objects)
             plt.pause(0.00001)
 
     def retrieve_final_result(self):
@@ -297,9 +302,9 @@ class DataSaver():
     def __init__(self, name):
         self.data_dict = dict()
         self.name = name
+        self.data_dict["actual_values"] = dict()
 
     def collect_actual_phase_trace(self, measured_trace, measured_trace_phase, count_num):
-        self.data_dict["actual_values"] = dict()
         self.data_dict["actual_values"]["measured_trace_"+str(count_num)]  = measured_trace
         self.data_dict["actual_values"]["measured_trace_phase_"+str(count_num)]  = measured_trace_phase
 
@@ -347,7 +352,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     tf_graphs["proof_trace"] = proof_trace
     tf_graphs["autocorelation"] = autocorelation
 
-    xuv_input = np.array([[0.0, 0.5, 0.0, 0.0, 0.0]])
+    xuv_input = np.array([[0.0, 0.0, 0.7, 0.0, 0.0]])
     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
     with tf.Session() as sess:
@@ -422,7 +427,23 @@ def calc_fwhm(tmat, I_t):
     return fwhm, t1, t2, half_max
 
 def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_phase,  xuv_f_full, xuv_t, ir_f, i,
-                       run_name, true_fields=False, cost_function=None, method=None):
+                       run_name, true_fields=False, cost_function=None, method=None, save_data_objs=False):
+
+    if save_data_objs:
+        file_objs = dict()
+        file_objs["axes"] = axes
+        file_objs["traces_meas"] = traces_meas
+        file_objs["traces_reconstructed"] = traces_reconstructed
+        file_objs["xuv_f"] = xuv_f
+        file_objs["xuv_f_phase"] = xuv_f_phase
+        file_objs["xuv_f_full"] = xuv_f_full
+        file_objs["xuv_t"] = xuv_t
+        file_objs["ir_f"] = ir_f
+        file_objs["i"] = i
+        file_objs["run_name"] = run_name 
+        file_objs["true_fields"] = true_fields 
+        file_objs["cost_function"] = cost_function 
+        file_objs["method"] = method 
 
     # ...........................
     # ........CLEAR AXES.........
@@ -635,6 +656,11 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
             save_files["i"] = i
             pickle.dump(save_files, file)
 
+        # save the objects used to make the plot
+        if save_data_objs:
+            with open("./retrieval/" + run_name + "/plot_objs.p", "wb") as file:
+                pickle.dump(file_objs, file)
+
 def show_proof_calculation(trace, sess, nn_nodes):
     feed_dict = {nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
     out = sess.run(nn_nodes["unsupervised"]["proof"]["input_image_proof"],
@@ -706,13 +732,12 @@ def noise_test(test_run):
     # SNR = sqrt(N)
     snr_min = np.sqrt(20)  # minimum count level
     snr_max = np.sqrt(5000)  # maximum count level
-    snr_levels = np.linspace(snr_min, snr_max, 20)
+    snr_levels = np.linspace(snr_min, snr_max, 40)
     counts_list = [int(count) for count in snr_levels**2]
-    with open("counts_list.p", "wb") as file:
-        pickle.dump(counts_list, file)
 
-    # for counts in [0, 50, 100, 150, 200, 300, 400, 
-    # 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]:
+    # overwrite, sample a few counts for bootstrap method
+    # counts_list = [20, 1833]
+
     for counts in counts_list:
 
         # ++++++++++Define run name++++++++++
@@ -732,7 +757,7 @@ def noise_test(test_run):
             unsupervised_retrieval = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_"+retrieval_type, iterations=5000,
                         retrieval=retrieval_type,
-                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        modelname="xuv_ph_2", measured_trace=measured_trace,
                         use_xuv_initial_output=False
             )
             nn_result = unsupervised_retrieval.retrieve()
@@ -746,7 +771,7 @@ def noise_test(test_run):
             unsupervised_retrieval_initial = UnsupervisedRetrieval(
                         run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
                         retrieval=retrieval_type,
-                        modelname="xuv_ph3", measured_trace=measured_trace,
+                        modelname="xuv_ph_2", measured_trace=measured_trace,
                         use_xuv_initial_output=False
             )
             nn_init_result = unsupervised_retrieval_initial.retrieve()
@@ -805,68 +830,88 @@ def bootstrap_retrievals(test_name):
         data_obj = pickle.load(file)
 
     # get the trace at specific noise level
-    count = 30 
-
     results = dict()
-    results["unsupervised_"+str(count)] = list()
-    results["ga_"+str(count)] = list()
+    n_samples = 20
+    noise_counts = [20, 1833]
 
-    for _ in range(count):
+    for noise_count in noise_counts:
+        results["unsupervised_"+str(noise_count)] = list()
+        results["ga_"+str(noise_count)] = list()
 
-        import ipdb; ipdb.set_trace() # BREAKPOINT
-        # do a retrieval with this trace
-        # measured_trace = data_obj[....][count]
+        for _ in range(n_samples):
 
+            # do a retrieval with this trace
+            measured_trace = data_obj["actual_values"]["measured_trace_"+str(noise_count)]
 
+            # generate bootstrap indexes
+            total_points = len(measured_trace.reshape(-1))
+            bootstrap = dict()
+            # generate random indexes for bootstrap retrieval
+            bootstrap["indexes"] = np.random.randint(low=0, high=total_points,
+                                                size=int( (2/3) * total_points))
 
-        # +++++++++++++++++++++++++++++++++++++
-        # ++++++++++genetic algorithm++++++++++
-        # +++++++++++++++++++++++++++++++++++++
-        genetic_algorithm = genetic_alg.GeneticAlgorithm(
-                    generations=30, pop_size=5000,
-                    run_name="bootstrap_normal_ga",
-                    measured_trace=measured_trace, retrieval="normal"
-        )
-        result = genetic_algorithm.run()
-        plt.close(genetic_algorithm.axes["fig"])
-        del genetic_algorithm
-        tf.reset_default_graph()
-        # append the results
-        results["ga_"+str(count)].append(result)
+            # +++++++++++++++++++++++++++++++++++++
+            # ++++++++++genetic algorithm++++++++++
+            # +++++++++++++++++++++++++++++++++++++
+            genetic_algorithm = genetic_alg.GeneticAlgorithm(
+                        generations=30, pop_size=5000,
+                        run_name="bootstrap_normal_ga",
+                        measured_trace=measured_trace, retrieval="normal",
+                        bootstrap=bootstrap
+            )
+            result = genetic_algorithm.run()
+            plt.close(genetic_algorithm.axes["fig"])
+            del genetic_algorithm
+            tf.reset_default_graph()
+            # append the results
+            results["ga_"+str(noise_count)].append(result)
 
+            # ++++++++++++++++++++++++++++++
+            # ++++++++++unsupervised++++++++
+            # ++++++++++++++++++++++++++++++
 
-        # ++++++++++++++++++++++++++++++
-        # ++++++++++unsupervised++++++++
-        # ++++++++++++++++++++++++++++++
-        total_points = len(measured_trace.reshape(-1))
-        bootstrap = dict()
-        # generate random indexes for bootstrap retrieval
-        bootstrap["indexes"] = np.random.randint(low=0, high=total_points, size=int( (2/3) * total_points))
+            unsupervised_retrieval = UnsupervisedRetrieval(
+                    run_name="bootstrap_normal_unsupervised", iterations=5000,
+                    retrieval="normal", modelname="xuv_ph_2", measured_trace=measured_trace,
+                    use_xuv_initial_output=False, bootstrap=bootstrap 
+            )
+            result = unsupervised_retrieval.retrieve()
+            plt.close(unsupervised_retrieval.axes["fig"])
+            del unsupervised_retrieval
+            tf.reset_default_graph()
+            # append the results
+            results["unsupervised_"+str(noise_count)].append(result)
+            
+            # save the results
+            with open(test_name+"_bootstrap.p", "wb") as file:
+                pickle.dump(results, file)
 
-        unsupervised_retrieval = UnsupervisedRetrieval(
-                run_name="bootstrap_normal_unsupervised", iterations=5000,
-                retrieval="normal", modelname="xuv_ph3", measured_trace=measured_trace,
-                use_xuv_initial_output=False, bootstrap=bootstrap 
-        )
-        result = unsupervised_retrieval.retrieve()
-        plt.close(unsupervised_retrieval.axes["fig"])
-        del unsupervised_retrieval
-        tf.reset_default_graph()
-        # append the results
-        results["unsupervised_"+str(count)].append(result)
+def retrieve_measured():
+    unsupervised_retrieval = UnsupervisedRetrieval(
+            run_name="measured_retrieval_init",
+            iterations=0,
+            retrieval="normal",
+            modelname="xuv_ph_2",
+            measured_trace=get_measured_trace.trace,
+            output_plot_objects=True
+            )
+    _ = unsupervised_retrieval.retrieve()
+    plt.close(unsupervised_retrieval.axes["fig"])
+    del unsupervised_retrieval
+    tf.reset_default_graph()
 
-        
-        # save the results
-        with open(test_name+"_bootstrap.p", "wb") as file:
-            pickle.dump(results, file)
 
 
 
 if __name__ == "__main__":
-    # run a noise test
-    noise_test("noise_test6__")
+
+    # retrieve the measured specturm
+    retrieve_measured()
     exit()
 
+    # run a noise test
+    noise_test("noise_test10__")
     # re open the data file and run bootstrap tests on it
-    bootstrap_retrievals("noise_test6__")
+    bootstrap_retrievals("noise_test10__")
+    exit()
 
