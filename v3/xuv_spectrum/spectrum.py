@@ -5,6 +5,8 @@ import scipy.constants as sc
 import numpy as np
 import scipy.interpolate
 import os
+import sys
+import phase_parameters.params as phase_params
 
 
 def interpolate(electronvolts_in, intensity_in, plotting=False):
@@ -176,9 +178,24 @@ def retrieve_spectrum3(plotting=False):
     # open the data
     with open(os.path.dirname(__file__)+"/sample3/jie_data/spec.p", "rb") as file:
         spec_data = pickle.load(file)
+
+    # add the Ip to eV axis
+    spec_data["electron"]["eV"] = np.array(spec_data["electron"]["eV"]) + phase_params.Ip_eV
+
     # plt.figure(2)
+    # # plot electron spectrum
     # plt.plot(spec_data["electron"]["eV"], spec_data["electron"]["I"], color="red")
-    # plt.plot(spec_data["electron"]["eV"], spec_data["photon"]["I"], color="blue")
+    # max_index = np.argmax(spec_data["electron"]["I"])
+    # max_value = np.max(spec_data["electron"]["I"])
+    # plt.plot([spec_data["electron"]["eV"][max_index], spec_data["electron"]["eV"][max_index]], [0, max_value], color="red", linestyle="dashed")
+
+    # # plot photon spectrum
+    # plt.plot(spec_data["electron"]["eV"], spec_data["photon"]["I"], color="blue") 
+    # max_index = np.argmax(spec_data["photon"]["I"]) 
+    # max_value = np.max(spec_data["photon"]["I"])
+    # plt.plot([spec_data["electron"]["eV"][max_index], spec_data["electron"]["eV"][max_index]], [0, max_value], color="blue", linestyle="dashed")
+
+    # plt.show()
     electronvolts = spec_data["electron"]["eV"]
     Intensity = spec_data["electron"]["I"]
 
