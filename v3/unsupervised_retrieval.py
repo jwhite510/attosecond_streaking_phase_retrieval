@@ -658,7 +658,7 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
 
         # save the objects used to make the plot
         if save_data_objs:
-            with open("./retrieval/" + run_name + "/plot_objs.p", "wb") as file:
+            with open("./retrieval/" + run_name + "/plot_objs_epoch"+str(i)+".p", "wb") as file:
                 pickle.dump(file_objs, file)
 
 def show_proof_calculation(trace, sess, nn_nodes):
@@ -908,14 +908,21 @@ def retrieve_measured():
 
 
 if __name__ == "__main__":
+    pass
+    ##################################################
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # the phase retrieval plotting is modified, if ran 
+    # as main, this will save every retrieval iteration
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ##################################################
 
     # retrieve the measured specturm
-    retrieve_measured()
-    exit()
+    # retrieve_measured()
+    # exit()
 
-    # run a noise test
-    noise_test("noise_test10__")
-    # re open the data file and run bootstrap tests on it
-    bootstrap_retrievals("noise_test10__")
-    exit()
+    # # run a noise test
+    # noise_test("noise_test10__")
+    # # re open the data file and run bootstrap tests on it
+    # bootstrap_retrievals("noise_test10__")
+    # exit()
 

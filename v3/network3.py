@@ -7,6 +7,8 @@ import shutil
 import matplotlib.pyplot as plt
 import os
 import phase_parameters.params
+import measured_trace.get_trace as get_measured_trace
+import unsupervised_retrieval
 
 
 class PhaseNetTrain:
@@ -14,6 +16,13 @@ class PhaseNetTrain:
 
         # build neural net graph
         self.nn_nodes = setup_neural_net()
+
+        self.measured_trace = get_measured_trace.trace
+        self.measured_axes = unsupervised_retrieval.create_plot_axes()
+        # create a feed dictionary to test on the measured trace
+        self.measured_feed_dict = {
+                self.nn_nodes["general"]["x_in"]: self.measured_trace.reshape(1, -1)
+                }
 
         # test_generate_data(nn_nodes)
 
@@ -126,6 +135,10 @@ class PhaseNetTrain:
 
                 # save model
                 self.saver.save(self.sess, "models/" + self.modelname + ".ckpt")
+
+            if self.epoch % 5 == 0:
+                self.retrieve_experimental()
+
 
             # return the index to 0
             self.get_data.batch_index = 0
@@ -350,6 +363,59 @@ class PhaseNetTrain:
             if not os.path.isdir(dir):
                 os.makedirs(dir)
             figure.savefig(dir + str(self.epoch) + ".png")
+
+    def retrieve_experimental(self):
+
+
+        ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=self.measured_feed_dict)[0]
+        xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=self.measured_feed_dict)[0]
+        xuv_f_phase = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],feed_dict=self.measured_feed_dict)[0]
+        xuv_f_full = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],feed_dict=self.measured_feed_dict)[0]
+        xuv_t = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["t"],feed_dict=self.measured_feed_dict)[0]
+
+        #================================================
+        #==================INPUT TRACES==================
+        #================================================
+
+        # calculate INPUT Autocorrelation from input image
+        input_auto = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"], feed_dict=self.measured_feed_dict)
+
+        # calculate INPUT PROOF trace from input image
+        input_proof = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["input_image_proof"]["proof"], feed_dict=self.measured_feed_dict)
+
+        #================================================
+        #==================MEASURED TRACES===============
+        #================================================
+
+        # reconstructed regular trace from input image
+        reconstructed = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"],feed_dict=self.measured_feed_dict)
+
+        # calculate reconstructed proof trace
+        reconstructed_proof = self.sess.run(self.nn_nodes["unsupervised"]["proof"]["reconstructed_proof"]["proof"], feed_dict=self.measured_feed_dict)
+
+        # calculate reconstructed autocorrelation trace
+        reconstruced_auto = self.sess.run(self.nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"], feed_dict=self.measured_feed_dict)
+
+        # measured/calculated from input traces
+        input_traces = dict()
+        input_traces["trace"] = self.measured_trace
+        input_traces["proof"] = input_proof
+        input_traces["autocorrelation"] = input_auto
+
+        # reconstruction traces
+        recons_traces = dict()
+        recons_traces["trace"] = reconstructed
+        recons_traces["proof"] = reconstructed_proof
+
+        recons_traces["autocorrelation"] = reconstruced_auto
+        unsupervised_retrieval.plot_images_fields(axes=self.measured_axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
+                           xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.epoch,
+                           run_name=self.modelname+"measured_retrieval_while_training", true_fields=False, cost_function="trace",
+                           method=self.method, save_data_objs=self.output_plot_objects)
+        plt.pause(0.00001)
+
+
+
 
 class GetData():
     def __init__(self, batch_size):
@@ -994,7 +1060,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='xuv_ph_2_new_spec_data_4')
+    phase_net_train = PhaseNetTrain(modelname='xuv_ph_2_new_spec_data_5_with_plotmeasret')
     phase_net_train.supervised_learn()
 
 
