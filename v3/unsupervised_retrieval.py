@@ -887,12 +887,14 @@ def bootstrap_retrievals(test_name):
                 pickle.dump(results, file)
 
 def retrieve_measured():
+    modelname = "xuv_ph_2_new_spec_data_4"
     unsupervised_retrieval = UnsupervisedRetrieval(
-            run_name="measured_retrieval_init",
+            #run_name="xuv_ph_2_new_spec_data_measured_retrieval_init",
+            run_name=modelname+"_run",
             # run_name="measured_retrieval_init_2",
             iterations=0,
             retrieval="normal",
-            modelname="xuv_ph_2",
+            modelname=modelname,
             # modelname="xuv_ph_2_b",
             measured_trace=get_measured_trace.trace,
             output_plot_objects=True
