@@ -517,6 +517,8 @@ def plot_images_fields(axes, traces_meas, traces_reconstructed, xuv_f, xuv_f_pha
             normal_text(axes["input_proof_trace"], (1.3, 1.2), "Generation: " + str(i), ha="center")
         elif method == "Unsupervised Learning":
             normal_text(axes["input_proof_trace"], (1.3, 1.2), "Iteration: " + str(i), ha="center")
+        elif method == "Training":
+            normal_text(axes["input_proof_trace"], (1.3, 1.2), "Epoch: " + str(i), ha="center")
         else:
             raise ValueError("method should be unsupervised learning or genetic algorithm")
 

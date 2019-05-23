@@ -136,7 +136,7 @@ class PhaseNetTrain:
                 # save model
                 self.saver.save(self.sess, "models/" + self.modelname + ".ckpt")
 
-            if self.epoch % 5 == 0:
+            if self.epoch % 5 == 0 or self.epoch==1:
                 self.retrieve_experimental()
 
 
@@ -411,7 +411,7 @@ class PhaseNetTrain:
         unsupervised_retrieval.plot_images_fields(axes=self.measured_axes, traces_meas=input_traces, traces_reconstructed=recons_traces,
                            xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.epoch,
                            run_name=self.modelname+"measured_retrieval_while_training", true_fields=False, cost_function="trace",
-                           method=self.method, save_data_objs=self.output_plot_objects)
+                           method="Training", save_data_objs=True)
         plt.pause(0.00001)
 
 
@@ -1060,7 +1060,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='xuv_ph_2_new_spec_data_5_with_plotmeasret')
+    phase_net_train = PhaseNetTrain(modelname='xuv_ph_2_new_spec_data_5_with_plotmeasret1')
     phase_net_train.supervised_learn()
 
 
