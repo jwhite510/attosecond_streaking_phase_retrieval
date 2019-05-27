@@ -189,6 +189,28 @@ class PhaseNetTrain:
                                             self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
         self.writer.add_summary(summ, global_step=self.epoch)
 
+        # ----------------------------------------
+        # -----------xuv avg loss-----------------
+        # ----------------------------------------
+        summ = self.sess.run(self.tf_loggers["individual"]["xuv_coefs_avg_test"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+        self.writer.add_summary(summ, global_step=self.epoch)
+        # ----------------------------------------
+        # -----------ir avg loss------------------
+        # ----------------------------------------
+        summ = self.sess.run(self.tf_loggers["individual"]["ir_avg_test"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+        self.writer.add_summary(summ, global_step=self.epoch)
+        # ----------------------------------------
+        # -----------xuv coefficient losses-------
+        # ----------------------------------------
+        for tens in self.tf_loggers["individual"]["xuv_coefs_test"]:
+            summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+            self.writer.add_summary(summ, global_step=self.epoch)
+
 
         #***********************************
         # ..................................
@@ -231,6 +253,29 @@ class PhaseNetTrain:
                                             feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
                                             self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
         self.writer.add_summary(summ, global_step=self.epoch)
+
+
+        # ----------------------------------------
+        # -----------xuv avg loss-----------------
+        # ----------------------------------------
+        summ = self.sess.run(self.tf_loggers["individual"]["xuv_coefs_avg_train"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+        self.writer.add_summary(summ, global_step=self.epoch)
+        # ----------------------------------------
+        # -----------ir avg loss------------------
+        # ----------------------------------------
+        summ = self.sess.run(self.tf_loggers["individual"]["ir_avg_train"],
+                                            feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                            self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+        self.writer.add_summary(summ, global_step=self.epoch)
+        # ----------------------------------------
+        # -----------xuv coefficient losses-------
+        # ----------------------------------------
+        for tens in self.tf_loggers["individual"]["xuv_coefs_train"]:
+            summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+            self.writer.add_summary(summ, global_step=self.epoch)
 
         # ..................................
         # .....write to tensorboard.........
@@ -497,6 +542,8 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
     fields["ir_E_prop"] = ir_E_prop
     fields["xuv_ir_field_label"] = xuv_ir_field_label
     fields["actual_coefs_params"] = actual_coefs_params
+    fields["xuv_coefs_actual"] = xuv_coefs_actual
+    fields["ir_params_actual"] = ir_params_actual
 
     return fields
 
@@ -578,6 +625,31 @@ def init_tf_loggers(nn_nodes):
     tf_loggers["train_mse_tb_fields"] = train_mse_tb_fields
     tf_loggers["test_mse_tb_coefs_params"] = test_mse_tb_coefs_params
     tf_loggers["train_mse_tb_coefs_params"] = train_mse_tb_coefs_params
+
+    # log indiivdually:
+    # ir parameters (total avg error)
+    # xuv parameters (total avg error)
+    # xuv parameters (individual)
+    
+    
+    tf_loggers["individual"] = {}
+    tf_loggers["individual"]["xuv_coefs_avg_test"] = tf.summary.scalar("xuv_coefs_avg_test", nn_nodes["supervised"]["extra_losses"]["xuv_loss"])
+    tf_loggers["individual"]["xuv_coefs_avg_train"] = tf.summary.scalar("xuv_coefs_avg_train", nn_nodes["supervised"]["extra_losses"]["xuv_loss"])
+
+    tf_loggers["individual"]["ir_avg_test"] = tf.summary.scalar("ir_avg_test", nn_nodes["supervised"]["extra_losses"]["ir_loss"])
+    tf_loggers["individual"]["ir_avg_train"] = tf.summary.scalar("ir_avg_train", nn_nodes["supervised"]["extra_losses"]["ir_loss"])
+
+    # logger for coefficients in test data
+    tf_loggers["individual"]["xuv_coefs_test"] = []
+    for i, loss_tens in enumerate(nn_nodes["supervised"]["extra_losses"]["xuv_individual_coef_loss"]):
+        # linear, 2nd, 3rd, 4th , 5th as list
+        tf_loggers["individual"]["xuv_coefs_test"].append(tf.summary.scalar("xuv_coef{}_test".format(str(i+1)), loss_tens))
+
+    # logger for coefficients in training data
+    tf_loggers["individual"]["xuv_coefs_train"] = []
+    for i, loss_tens in enumerate(nn_nodes["supervised"]["extra_losses"]["xuv_individual_coef_loss"]):
+        # linear, 2nd, 3rd, 4th , 5th as list
+        tf_loggers["individual"]["xuv_coefs_train"].append(tf.summary.scalar("xuv_coef{}_train".format(str(i+1)), loss_tens))
 
     return tf_loggers
 
@@ -769,7 +841,7 @@ def phase_retrieval_net(input):
         phase_net_output["xuv_E_prop"] = xuv_E_prop
         phase_net_output["predicted_coefficients_params"] = predicted_coefficients_params
 
-        return phase_net_output, hold_prob, xuv_coefs_pred
+        return phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred
 
 def setup_neural_net():
     K_values = phase_parameters.params.K
@@ -799,7 +871,7 @@ def setup_neural_net():
 
 
     # pass image through phase retrieval network
-    phase_net_output, hold_prob, xuv_coefs_pred = phase_retrieval_net(input=x_in)
+    phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = phase_retrieval_net(input=x_in)
 
 
     # create label for supervised learning
@@ -877,9 +949,31 @@ def setup_neural_net():
     phase_network_coefs_params_loss = tf.losses.mean_squared_error(
                             labels=supervised_label_fields["actual_coefs_params"],
                             predictions=phase_net_output["predicted_coefficients_params"])
+
     phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(
                             phase_network_coefs_params_loss, var_list=phase_net_vars)
+
+
+    # =========================================================================
+    # define individual xuv / ir /xuc coefficient loss functions to view errors
+    # =========================================================================
+    xuv_loss = tf.losses.mean_squared_error(
+            labels=supervised_label_fields["xuv_coefs_actual"],
+            predictions=xuv_coefs_pred)
+
+    ir_loss = tf.losses.mean_squared_error(
+            labels=supervised_label_fields["ir_params_actual"],
+            predictions=ir_params_pred)
+
+    xuv_individual_coef_loss = []
+    # linear, 2nd order, 3rd, 4th, 5th etc...
+    for i in range(int(xuv_coefs_pred.get_shape()[1])):
+        xuv_coef_loss = tf.losses.mean_squared_error(
+                labels=supervised_label_fields["xuv_coefs_actual"][:,i],
+                predictions=xuv_coefs_pred[:,i])
+        xuv_individual_coef_loss.append(xuv_coef_loss)
+
 
 
 
@@ -980,6 +1074,12 @@ def setup_neural_net():
     nn_nodes["supervised"]["phase_network_fields_loss"] = phase_network_fields_loss
     nn_nodes["supervised"]["phase_network_coefs_params_loss"] = phase_network_coefs_params_loss
     nn_nodes["supervised"]["supervised_label_fields"] = supervised_label_fields
+    # avg ir and xuv loss / individual xuv coefficient loss functions
+    nn_nodes["supervised"]["extra_losses"] = {}
+    nn_nodes["supervised"]["extra_losses"]["ir_loss"] = ir_loss
+    nn_nodes["supervised"]["extra_losses"]["xuv_loss"] = xuv_loss
+    nn_nodes["supervised"]["extra_losses"]["xuv_individual_coef_loss"] = xuv_individual_coef_loss
+
 
 
     nn_nodes["unsupervised"]["x_in"] = x_in
