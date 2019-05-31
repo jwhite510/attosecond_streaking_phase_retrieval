@@ -37,7 +37,7 @@ class PhaseNetTrain:
 
         # saver and set epoch number to run
         self.saver = tf.train.Saver()
-        self.epochs = 200
+        self.epochs = 100
 
         # set the name of the neural net test run and save the settigns
         self.modelname = modelname
@@ -55,7 +55,7 @@ class PhaseNetTrain:
         self.axes["trainplot1"], self.axes["trainfig1"]= create_sample_plot()
         self.axes["trainplot2"], self.axes["trainfig2"]= create_sample_plot()
 
-        plt.ion()
+        # plt.ion()
 
         self.init = tf.global_variables_initializer()
         self.sess = tf.Session()
@@ -82,21 +82,28 @@ class PhaseNetTrain:
                 # retrieve data
                 batch_x, batch_y = self.get_data.next_batch()
 
-                if self.i < 15:
-                    # train with only coefficients first
-                    self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
-                             feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
-                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                        self.nn_nodes["general"]["hold_prob"]: 0.8,
-                                        self.nn_nodes["supervised"]["s_LR"]: 0.0001})
+                # train only with coefficients
+                self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                         feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
+                                    self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                                    self.nn_nodes["general"]["hold_prob"]: 0.8,
+                                    self.nn_nodes["supervised"]["s_LR"]: 0.0001})
 
-                else:
-                    # train with fields
-                    self.sess.run(self.nn_nodes["supervised"]["phase_network_train_fields"],
-                             feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
-                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                        self.nn_nodes["general"]["hold_prob"]: 0.8,
-                                        self.nn_nodes["supervised"]["s_LR"]: 0.0001})
+                # if self.i < 15:
+                #     # train with only coefficients first
+                #     self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
+                #              feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
+                #                         self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                #                         self.nn_nodes["general"]["hold_prob"]: 0.8,
+                #                         self.nn_nodes["supervised"]["s_LR"]: 0.0001})
+
+                # else:
+                #     # train with fields
+                #     self.sess.run(self.nn_nodes["supervised"]["phase_network_train_fields"],
+                #              feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
+                #                         self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
+                #                         self.nn_nodes["general"]["hold_prob"]: 0.8,
+                #                         self.nn_nodes["supervised"]["s_LR"]: 0.0001})
 
                     ## alternate between all three cost functions
                     #if alternate_training_counter == 0:
@@ -945,10 +952,27 @@ def setup_neural_net():
     phase_network_train_fields = phase_fields_optimizer.minimize(
                             phase_network_fields_loss, var_list=phase_net_vars)
 
+    # modify scaler to phase coefficients here
+    # supervised_label_fields["actual_coefs_params"]
+    # phase_net_output["predicted_coefficients_params"]
+
     # coefs and params loss function for training phase retrieval network
-    phase_network_coefs_params_loss = tf.losses.mean_squared_error(
-                            labels=supervised_label_fields["actual_coefs_params"],
-                            predictions=phase_net_output["predicted_coefficients_params"])
+    # xuv_coefs_pred
+    # ir_params_pred
+    # supervised_label_fields["xuv_coefs_actual"]
+    # supervised_label_fields["ir_params_actual"]
+    xuv_coef_loss_w = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["xuv_coefs_actual"],
+                            predictions=xuv_coefs_pred)
+    ir_param_loss_w = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["ir_params_actual"],
+                            predictions=ir_params_pred)
+
+    phase_network_coefs_params_loss = xuv_coef_loss_w + ir_param_loss_w
+
+    # phase_network_coefs_params_loss = tf.losses.mean_squared_error(
+    #                         labels=supervised_label_fields["actual_coefs_params"],
+    #                         predictions=phase_net_output["predicted_coefficients_params"])
 
     phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(
@@ -1160,7 +1184,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='xuv_ph_2_new_spec_data_5_with_plotmeasret1')
+    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added')
     phase_net_train.supervised_learn()
 
 
