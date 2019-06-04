@@ -89,6 +89,7 @@ class PhaseNetTrain:
                                     self.nn_nodes["general"]["hold_prob"]: 0.8,
                                     self.nn_nodes["supervised"]["s_LR"]: 0.0001})
 
+                # train with coefficients then with fields
                 # if self.i < 15:
                 #     # train with only coefficients first
                 #     self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
@@ -105,33 +106,6 @@ class PhaseNetTrain:
                 #                         self.nn_nodes["general"]["hold_prob"]: 0.8,
                 #                         self.nn_nodes["supervised"]["s_LR"]: 0.0001})
 
-                    ## alternate between all three cost functions
-                    #if alternate_training_counter == 0:
-                    #    # train with coefficients
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_coefs_params"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter+=1
-
-                    #elif alternate_training_counter == 1:
-                    #    # train with fields
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_fields"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter += 1
-
-                    #elif alternate_training_counter == 2:
-                    #    # train with phase curve
-                    #    sess.run(nn_nodes["supervised"]["phase_network_train_phasecurve"],
-                    #             feed_dict={nn_nodes["supervised"]["x_in"]: batch_x,
-                    #                        nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                    #                        nn_nodes["general"]["hold_prob"]: 0.8,
-                    #                        nn_nodes["supervised"]["s_LR"]: 0.0001})
-                    #    alternate_training_counter = 0
             print("")
             self.add_tensorboard_values()
             # every x steps plot predictions
@@ -957,26 +931,29 @@ def setup_neural_net():
     # phase_net_output["predicted_coefficients_params"]
 
     # coefs and params loss function for training phase retrieval network
-    # xuv_coefs_pred
-    # ir_params_pred
-    # supervised_label_fields["xuv_coefs_actual"]
-    # supervised_label_fields["ir_params_actual"]
+    # original loss function
+    phase_network_coefs_params_loss = tf.losses.mean_squared_error(
+                            labels=supervised_label_fields["actual_coefs_params"],
+                            predictions=phase_net_output["predicted_coefficients_params"])
+
+    # construct loss function with individual cosfficients
     xuv_coef_loss_w = tf.losses.mean_squared_error(
                             labels=supervised_label_fields["xuv_coefs_actual"],
                             predictions=xuv_coefs_pred)
     ir_param_loss_w = tf.losses.mean_squared_error(
                             labels=supervised_label_fields["ir_params_actual"],
                             predictions=ir_params_pred)
+    phase_network_coefs_params_loss_individual = xuv_coef_loss_w + ir_param_loss_w
 
-    phase_network_coefs_params_loss = xuv_coef_loss_w + ir_param_loss_w
+    # original
+    # phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
+    # phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(
+    #                         phase_network_coefs_params_loss, var_list=phase_net_vars)
 
-    # phase_network_coefs_params_loss = tf.losses.mean_squared_error(
-    #                         labels=supervised_label_fields["actual_coefs_params"],
-    #                         predictions=phase_net_output["predicted_coefficients_params"])
-
+    # individual
     phase_coefs_params_optimizer = tf.train.AdamOptimizer(learning_rate=s_LR)
     phase_network_train_coefs_params = phase_coefs_params_optimizer.minimize(
-                            phase_network_coefs_params_loss, var_list=phase_net_vars)
+                            phase_network_coefs_params_loss_individual, var_list=phase_net_vars)
 
 
     # =========================================================================
