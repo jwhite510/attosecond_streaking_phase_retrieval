@@ -653,11 +653,11 @@ def init_tf_loggers(nn_nodes):
     # log for IR parameters individually in test and train data
     tf_loggers["individual"]["ir_params_test"] = {}
     for key in nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"].keys():
-        tf_loggers["individual"]["ir_params_test"][key] = tf.summary.scalar("IR_"key+"_test", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
+        tf_loggers["individual"]["ir_params_test"][key] = tf.summary.scalar("IR_"+key+"_test", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
 
     tf_loggers["individual"]["ir_params_train"] = {}
     for key in nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"].keys():
-        tf_loggers["individual"]["ir_params_train"][key] = tf.summary.scalar("IR_"key+"_train", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
+        tf_loggers["individual"]["ir_params_train"][key] = tf.summary.scalar("IR_"+key+"_train", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
 
     return tf_loggers
 
@@ -1202,7 +1202,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added_dnn')
+    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added_track_ir_params')
     phase_net_train.supervised_learn()
 
 
