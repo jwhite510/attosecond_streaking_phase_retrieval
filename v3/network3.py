@@ -191,6 +191,14 @@ class PhaseNetTrain:
             summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
                                         self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
             self.writer.add_summary(summ, global_step=self.epoch)
+        # ---------------------------------------
+        # ---------IR parameter loss-------------
+        # ---------------------------------------
+        for key in self.tf_loggers["individual"]["ir_params_test"]:
+            tens = self.tf_loggers["individual"]["ir_params_test"][key]
+            summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_test,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_test})
+            self.writer.add_summary(summ, global_step=self.epoch)
 
 
         #***********************************
@@ -254,6 +262,15 @@ class PhaseNetTrain:
         # -----------xuv coefficient losses-------
         # ----------------------------------------
         for tens in self.tf_loggers["individual"]["xuv_coefs_train"]:
+            summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
+                                        self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
+            self.writer.add_summary(summ, global_step=self.epoch)
+
+        # ---------------------------------------
+        # ---------IR parameter loss-------------
+        # ---------------------------------------
+        for key in self.tf_loggers["individual"]["ir_params_train"]:
+            tens = self.tf_loggers["individual"]["ir_params_train"][key]
             summ = self.sess.run(tens, feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x_train,
                                         self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y_train})
             self.writer.add_summary(summ, global_step=self.epoch)
@@ -632,6 +649,16 @@ def init_tf_loggers(nn_nodes):
         # linear, 2nd, 3rd, 4th , 5th as list
         tf_loggers["individual"]["xuv_coefs_train"].append(tf.summary.scalar("xuv_coef{}_train".format(str(i+1)), loss_tens))
 
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # log for IR parameters individually in test and train data
+    tf_loggers["individual"]["ir_params_test"] = {}
+    for key in nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"].keys():
+        tf_loggers["individual"]["ir_params_test"][key] = tf.summary.scalar("IR_"key+"_test", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
+
+    tf_loggers["individual"]["ir_params_train"] = {}
+    for key in nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"].keys():
+        tf_loggers["individual"]["ir_params_train"][key] = tf.summary.scalar("IR_"key+"_train", nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"][key])
+
     return tf_loggers
 
 def create_sample_plot(samples_per_plot=3):
@@ -979,7 +1006,12 @@ def setup_neural_net():
                 predictions=xuv_coefs_pred[:,i])
         xuv_individual_coef_loss.append(xuv_coef_loss)
 
-
+    ir_loss_individual = {}
+    for i, key in enumerate(["phase", "clambda", "pulseduration", "I"]):
+        ir_param_loss = tf.losses.mean_squared_error(
+                labels=supervised_label_fields["ir_params_actual"][:,i],
+                predictions=ir_params_pred[:,i])
+        ir_loss_individual[key] = ir_param_loss
 
 
 
@@ -1082,6 +1114,7 @@ def setup_neural_net():
     # avg ir and xuv loss / individual xuv coefficient loss functions
     nn_nodes["supervised"]["extra_losses"] = {}
     nn_nodes["supervised"]["extra_losses"]["ir_loss"] = ir_loss
+    nn_nodes["supervised"]["extra_losses"]["ir_loss_individual"] = ir_loss_individual
     nn_nodes["supervised"]["extra_losses"]["xuv_loss"] = xuv_loss
     nn_nodes["supervised"]["extra_losses"]["xuv_individual_coef_loss"] = xuv_individual_coef_loss
 
