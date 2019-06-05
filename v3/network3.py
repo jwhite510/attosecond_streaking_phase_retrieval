@@ -768,32 +768,36 @@ def phase_retrieval_net(input):
     # define phase retrieval neural network
     with tf.variable_scope("phase"):
         # input image
-        x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
+        # x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
+        x_image_flat = tf.reshape(input, [-1, len(K_values)*len(tau_values)])
+        dense1 = normal_full_layer(x_image_flat, 1024)
 
         # six convolutional layers
-        multires_filters = [11, 7, 5, 3]
+        # multires_filters = [11, 7, 5, 3]
 
-        multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
+        # multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
 
-        conv_layer_1 = convolutional_layer(multires_layer_1,
-                                           shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
-                                           activate='relu', stride=[2, 2])
+        # conv_layer_1 = convolutional_layer(multires_layer_1,
+        #                                    shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
+        #                                    activate='relu', stride=[2, 2])
 
-        multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
-                                          filter_sizes=multires_filters)
+        # multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
+        #                                   filter_sizes=multires_filters)
 
-        conv_layer_2 = convolutional_layer(multires_layer_2,
-                                           shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
+        # conv_layer_2 = convolutional_layer(multires_layer_2,
+        #                                    shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
 
-        multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
-                                          filter_sizes=multires_filters)
+        # multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
+        #                                   filter_sizes=multires_filters)
 
-        conv_layer_3 = convolutional_layer(multires_layer_3,
-                                           shape=[1, 1, 256,
-                                                  512], activate='relu', stride=[2, 2])
+        # conv_layer_3 = convolutional_layer(multires_layer_3,
+        #                                    shape=[1, 1, 256,
+        #                                           512], activate='relu', stride=[2, 2])
 
-        convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-        full_layer_one = normal_full_layer(convo_3_flat, 1024)
+        # convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
+
+        # dense layer 1
+        full_layer_one = normal_full_layer(dense1, 1024)
         #full_layer_one = normal_full_layer(convo_3_flat, 2)
         #print("layer needs to be set to 1024!!")
 
@@ -1161,7 +1165,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added')
+    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added_dnn')
     phase_net_train.supervised_learn()
 
 
