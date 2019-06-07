@@ -525,6 +525,23 @@ class GetData():
 
         return trace_batch, appended_label_batch
 
+def convert_ir_params(ir_params):
+    """
+    convert the ir parameters to include only
+    the variables which are changing, the phase
+    and the intensity
+    """
+    # index:
+    # "phase", "clambda", "pulseduration", "I"
+    import ipdb; ipdb.set_trace() # BREAKPOINT
+    phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
+    intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
+    ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
+    return ir_p_I
+
+
+
+
 def log_base(x, base, translate):
     return tf.log(x+translate) / tf.log(base)
 
@@ -975,9 +992,11 @@ def setup_neural_net():
     xuv_coef_loss_w = tf.losses.mean_squared_error(
                             labels=supervised_label_fields["xuv_coefs_actual"],
                             predictions=xuv_coefs_pred)
+
+    # construct a vector of for the IR loss with only the intensity and phaseshift
     ir_param_loss_w = tf.losses.mean_squared_error(
-                            labels=supervised_label_fields["ir_params_actual"],
-                            predictions=ir_params_pred)
+                            labels=convert_ir_params(supervised_label_fields["ir_params_actual"]),
+                            predictions=convert_ir_params(ir_params_pred))
     phase_network_coefs_params_loss_individual = xuv_coef_loss_w + ir_param_loss_w
 
     # original
