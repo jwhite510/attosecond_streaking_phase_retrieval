@@ -14,10 +14,13 @@ import unsupervised_retrieval
 class PhaseNetTrain:
     def __init__(self, modelname):
 
+        # convert the measured trace to a proof trace
+        # also this function clears tf default graph
+        self.measured_trace = convert_regular_trace_to_proof(get_measured_trace.trace)
+
         # build neural net graph
         self.nn_nodes = setup_neural_net()
 
-        self.measured_trace = get_measured_trace.trace
         self.measured_axes = unsupervised_retrieval.create_plot_axes()
         # create a feed dictionary to test on the measured trace
         self.measured_feed_dict = {
@@ -533,13 +536,18 @@ def convert_ir_params(ir_params):
     """
     # index:
     # "phase", "clambda", "pulseduration", "I"
-    import ipdb; ipdb.set_trace() # BREAKPOINT
     phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
     return ir_p_I
 
-
+def convert_regular_trace_to_proof(regular_trace):
+    image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
+    proof_trace = tf_functions.proof_trace(image_noisy_placeholder)["proof"]
+    with tf.Session() as sess:
+        proof_trace_gen = sess.run(proof_trace, feed_dict={image_noisy_placeholder:regular_trace})
+    tf.reset_default_graph()
+    return proof_trace_gen
 
 
 def log_base(x, base, translate):
