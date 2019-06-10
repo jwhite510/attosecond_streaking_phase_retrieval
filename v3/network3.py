@@ -998,8 +998,8 @@ def setup_neural_net():
 
     # construct loss function with individual cosfficients
     xuv_coef_loss_w = tf.losses.mean_squared_error(
-                            labels=supervised_label_fields["xuv_coefs_actual"],
-                            predictions=xuv_coefs_pred)
+                            labels=supervised_label_fields["xuv_coefs_actual"][:,1:],
+                            predictions=xuv_coefs_pred[:,1:])
 
     # construct a vector of for the IR loss with only the intensity and phaseshift
     ir_param_loss_w = tf.losses.mean_squared_error(

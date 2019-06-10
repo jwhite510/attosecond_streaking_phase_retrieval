@@ -448,7 +448,8 @@ def xuv_taylor_to_E(coefficients_in):
     # scaler_2 = tf.constant(np.array([1.0, 1.0, 0.2, 0.06, 0.04]).reshape(1,-1,1), dtype=tf.float32)
 
     # for sample 3
-    scaler_2 = tf.constant(np.array([1.0, 1.3, 0.15, 0.03, 0.01]).reshape(1,-1,1), dtype=tf.float32)
+    # ++++ force the linear phase term to always be 0
+    scaler_2 = tf.constant(np.array([0.0, 1.3, 0.15, 0.03, 0.01]).reshape(1,-1,1), dtype=tf.float32)
 
 
 
@@ -967,215 +968,23 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
 
 if __name__ == "__main__":
-
-
-    # ==========================================
-    # ===========Animation Functions============
-    # ==========================================
-    # compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2)
-    # animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2)
-
-
-
-    # test the coefficients to scale them properly
-    testgraphs = TestGraphs()
-
-
-
-    feed_dict_in = {
-        "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
-        "ir_values_in": np.array([[1.0, 0.0, 0.0, 1.0]])
-    }
-    testgraphs.plot_xuv_trace(feed_dict_in)
-
-    # feed_dict_in = {
-    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, -1.0]])
-    # }
-    # testgraphs.plot_xuv_trace(feed_dict_in)
+    # view generated xuv pulse
+    xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    feed_dict = {
+            # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+            xuv_coefs:np.array([[10.0, 0.0, 0.0, 0.0, 0.0]])
+            # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
+            # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
+            }
+    with tf.Session() as sess:
+        out = sess.run(gen_xuv, feed_dict=feed_dict)
+        xuv_t = out['t'][0]
+        plt.figure(1)
+        plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
+        plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
+        plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
+        plt.show()
 
 
 
-
-
-    # feed_dict_in = {
-    #     "xuv_coefs_in": np.array([[0.0, 0.0, 1.0, 0.0, 0.0]]),
-    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
-    # }
-    # testgraphs.plot_xuv_trace(feed_dict_in)
-
-    # feed_dict_in = {
-    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 1.0, 0.0]]),
-    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
-    # }
-    # testgraphs.plot_xuv_trace(feed_dict_in)
-
-    # feed_dict_in = {
-    #     "xuv_coefs_in": np.array([[0.0, 0.0, 0.0, 0.0, 1.0]]),
-    #     "ir_values_in": np.array([[1.0, 0.0, 0.0, 0.0]])
-    # }
-    # testgraphs.plot_xuv_trace(feed_dict_in)
-
-    plt.show()
-    exit(0)
-
-    # ==========================================
-    # ===========View XUV and trace=============
-    # ==========================================
-
-    # # coefficient scalers
-    # plt.figure(999)
-    # plt.plot([1.0, 0.2, 0.06, 0.04])
-    # exit(0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # feed_dict = {
-        #     xuv_coefs_in: np.array([[0.0, -1.0, 0.0, 0.0, 0.0]]),
-        #     ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        # }
-        #
-        # xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
-        # _, ax = plt.subplots(1,2)
-        # ax[0].plot(np.real(xuv_out["t"][0]), color="blue")
-        # ax[1].plot(np.real(xuv_out["f_cropped"][0]), color="blue")
-        # ax[1].plot(np.imag(xuv_out["f_cropped"][0]), color="red")
-        # axtwin = ax[1].twinx()
-        # axtwin.plot(np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
-        #
-        #
-        # out_1 = sess.run(image2, feed_dict=feed_dict)
-        # plt.figure(2)
-        # plt.title("A")
-        # plt.pcolormesh(out_1, cmap="jet")
-        # plt.colorbar()
-        #
-        # out_2 = sess.run(image2_2, feed_dict=feed_dict)
-        # plt.figure(3)
-        # plt.title("with $A^2$")
-        # plt.pcolormesh(out_2, cmap="jet")
-        # plt.colorbar()
-        #
-        # plt.figure(4)
-        # plt.title("difference")
-        # plt.pcolormesh(np.abs(out_2-out_1), cmap="jet")
-        # plt.colorbar()
-
-
-
-        #===============================================
-        #===========testing proof trace=================
-        #===============================================
-
-        # out = sess.run(proof2, feed_dict=feed_dict)
-        #
-        # plt.figure(1)
-        # plt.pcolormesh(out["trace"], cmap="jet")
-        # plt.savefig("./1_2.png")
-        #
-        # plt.figure(2)
-        # plt.pcolormesh(out["proof"], cmap="jet")
-        # plt.savefig("./2_2.png")
-        #
-        # plt.figure(3)
-        # plt.plot(out["w1_indexes_tens_1"])
-        # plt.savefig("./3_2.png")
-        #
-        # plt.show()
-        #
-        # exit(0)
-        #
-        # plt.show()
-
-        # ===============================================
-        # =======testing autocorrelation trace===========
-        # ===============================================
-
-        # out = sess.run(autocorrelateion2, feed_dict=feed_dict)
-        #
-        # plt.figure(1)
-        # plt.pcolormesh(out, cmap="jet")
-        # plt.show()
-        # exit(0)
-
-
-
-    # with tf.Session() as sess:
-    #
-    #     # count the number of bad samples generated
-    #     bad_samples = 0
-    #
-    #     # xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
-    #     indexmin = 100
-    #     indexmax = (2*1024) - 100
-    #     xuv_input = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-    #     xuv_t = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input})
-    #     threshold = np.max(np.abs(xuv_t)) / 300
-    #
-    #
-    #     # xuv_coefs_rand = (2 * np.random.rand(4) - 1.0).reshape(1, -1)
-    #     xuv_coefs_rand = np.array([[0.0, 1.0, 1.0, 1.0]])
-    #
-    #     xuv_input = np.append(np.array([[0.0]]), xuv_coefs_rand, axis=1)
-    #     # exit(0)
-    #     print(sess.run(xuv_E_prop2["coefs_divided_by_int"], feed_dict={xuv_coefs_in: xuv_input}))
-    #     xuv_t = sess.run(xuv_E_prop2["t"], feed_dict={xuv_coefs_in: xuv_input})
-    #
-    #     fig = plt.figure()
-    #     gs = fig.add_gridspec(2, 2)
-    #     ax = fig.add_subplot(gs[:, :])
-    #     ax.plot(np.real(xuv_t[0]), color="blue")
-    #     ax.plot(np.imag(xuv_t[0]), color="red")
-    #     plt.show()
-    #
-    #
-    #
-    #     bad_samples, xuv_good = generate_data3.check_time_boundary(indexmin, indexmax, threshold, xuv_t[0], bad_samples)
-    #
-    #     print(xuv_good)
-    #
-    #     exit(0)
-    #
-    #
-    #
-    #
-    #
-    # with tf.Session() as sess:
-    #     xuv_input = np.array([[0.0, 0.0, 0.0, 1.0, 0.0]])
-    #     # xuv_input = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
-    #     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
-    #
-    #     out = sess.run(xuv_E_prop["f_cropped"], feed_dict={xuv_coefs_in: xuv_input,
-    #                                      ir_values_in: ir_input})
-    #     plt.figure(1)
-    #     plt.plot(np.real(out[0]), color='blue')
-    #     plt.plot(np.imag(out[0]), color='red')
-    #
-    #     out = sess.run(xuv_E_prop["t"], feed_dict={xuv_coefs_in: xuv_input,
-    #                                                        ir_values_in: ir_input})
-    #     plt.figure(2)
-    #     plt.plot(np.real(out[0]), color='blue')
-    #     plt.plot(np.imag(out[0]), color='red')
-    #
-    #
-    #     out = sess.run(image, feed_dict={xuv_coefs_in: xuv_input,
-    #                                                ir_values_in: ir_input})
-    #     plt.figure(3)
-    #     plt.pcolormesh(out)
-    #     # plt.savefig("./4.png")
-    #     plt.show()
-    #
