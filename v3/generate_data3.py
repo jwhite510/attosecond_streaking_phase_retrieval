@@ -160,6 +160,10 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
         # create array for IR
         hd5file.create_earray(hd5file.root, 'ir_params', tables.Float64Atom(), shape=(0, 4))
 
+        # proof trace
+        hd5file.create_earray(hd5file.root, 'proof_trace_noise', tables.Float64Atom(),shape=(0, num_E * num_tau))
+
+
         hd5file.close()
 
 
@@ -215,12 +219,14 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
                 trace = sess.run(tf_graphs["image"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs_in,
                                                                 tf_graphs["ir_values_in"]: ir_values_in})
 
-
             # add noise to trace
             noise_trace = add_shot_noise(trace)
 
+            # create a proof trace of the noise trace
+            proof_trace_gen = sess.run(tf_graphs["proof_trace"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
 
             # append data sample
+            hd5file.root.proof_trace_noise.append(proof_trace.reshape(1, -1))
             hd5file.root.trace.append(trace.reshape(1, -1))
             hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
             hd5file.root.xuv_coefs.append(xuv_coefs_in.reshape(1, -1))
@@ -274,7 +280,9 @@ if __name__ == "__main__":
     # construct streaking image
     image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                          ir_cropped_f_in=ir_E_prop["f_cropped"][0])
-
+    # make placeholder for image
+    image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
+    proof_trace = tf_functions.proof_trace(image_noisy_placeholder)["proof"]
 
     tf_graphs = {}
     tf_graphs["xuv_coefs_in"] = xuv_coefs_in
@@ -282,6 +290,8 @@ if __name__ == "__main__":
     tf_graphs["xuv_E_prop"] = xuv_E_prop
     tf_graphs["ir_E_prop"] = ir_E_prop
     tf_graphs["image"] = image
+    tf_graphs["image_noisy_placeholder"] = image_noisy_placeholder
+    tf_graphs["proof_trace"] = proof_trace
 
     # create plot to show samples as they are generated
     _, ax = plt.subplots(2, 1, figsize=(5, 5))
