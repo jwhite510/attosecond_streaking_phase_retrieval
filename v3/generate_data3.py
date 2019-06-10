@@ -226,7 +226,7 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
             proof_trace_gen = sess.run(tf_graphs["proof_trace"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
 
             # append data sample
-            hd5file.root.proof_trace_noise.append(proof_trace.reshape(1, -1))
+            hd5file.root.proof_trace_noise.append(proof_trace_gen.reshape(1, -1))
             hd5file.root.trace.append(trace.reshape(1, -1))
             hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
             hd5file.root.xuv_coefs.append(xuv_coefs_in.reshape(1, -1))
