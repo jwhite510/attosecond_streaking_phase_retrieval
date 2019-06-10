@@ -487,7 +487,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[self.batch_index:self.batch_index + self.batch_size, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[self.batch_index:self.batch_index + self.batch_size, :]
+        trace_batch = hdf5_file.root.proof_trace_noise[self.batch_index:self.batch_index + self.batch_size, :]
 
         hdf5_file.close()
 
@@ -505,7 +505,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[:, :]
+        trace_batch = hdf5_file.root.proof_trace_noise[:, :]
 
         hdf5_file.close()
 
@@ -522,7 +522,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:samples, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[:samples, :]
+        trace_batch = hdf5_file.root.proof_trace_noise[:samples, :]
 
         hdf5_file.close()
 
