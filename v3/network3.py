@@ -16,7 +16,9 @@ class PhaseNetTrain:
 
         # convert the measured trace to a proof trace
         # also this function clears tf default graph
-        self.measured_trace = convert_regular_trace_to_proof(get_measured_trace.trace)
+
+        # self.measured_trace = convert_regular_trace_to_proof(get_measured_trace.trace)
+        self.measured_trace = get_measured_trace.trace
 
         # build neural net graph
         self.nn_nodes = setup_neural_net()
@@ -487,7 +489,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[self.batch_index:self.batch_index + self.batch_size, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.proof_trace_noise[self.batch_index:self.batch_index + self.batch_size, :]
+        trace_batch = hdf5_file.root.noise_trace[self.batch_index:self.batch_index + self.batch_size, :]
 
         hdf5_file.close()
 
@@ -505,7 +507,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.proof_trace_noise[:, :]
+        trace_batch = hdf5_file.root.noise_trace[:, :]
 
         hdf5_file.close()
 
@@ -522,7 +524,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:samples, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.proof_trace_noise[:samples, :]
+        trace_batch = hdf5_file.root.noise_trace[:samples, :]
 
         hdf5_file.close()
 
