@@ -10,7 +10,6 @@ import phase_parameters.params as phase_params
 
 
 def interpolate(electronvolts_in, intensity_in, plotting=False):
-
     # convert eV to joules
     joules = np.array(electronvolts_in) * sc.electron_volt  # joules
     hertz = np.array(joules / sc.h)
@@ -73,11 +72,6 @@ def interpolate(electronvolts_in, intensity_in, plotting=False):
         plt.show()
 
     return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
-
-
-
-
-
 
 def retrieve_spectrum2(plotting=False):
     # open the file
@@ -163,50 +157,19 @@ def retrieve_spectrum2(plotting=False):
 
     return params
 
-
-
 def retrieve_spectrum3(plotting=False):
-    # open the file
-    # with open(os.path.dirname(__file__)+"/sample3/s3measured_spec.csv", "r") as file:
-    #     matrix = np.array(list(file))
-    #     electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
-    #     Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
-
-    # plt.figure(10)
-    # plt.plot(electronvolts, Intensity)
-    # plt.show()
-    # open the data
     with open(os.path.dirname(__file__)+"/sample3/jie_data/spec.p", "rb") as file:
         spec_data = pickle.load(file)
 
-    # add the Ip to eV axis
+    # add the Ip to electron eV axis
     spec_data["electron"]["eV"] = np.array(spec_data["electron"]["eV"]) + phase_params.Ip_eV
 
-    # plt.figure(2)
-    # # plot electron spectrum
-    # plt.plot(spec_data["electron"]["eV"], spec_data["electron"]["I"], color="red")
-    # max_index = np.argmax(spec_data["electron"]["I"])
-    # max_value = np.max(spec_data["electron"]["I"])
-    # plt.plot([spec_data["electron"]["eV"][max_index], spec_data["electron"]["eV"][max_index]], [0, max_value], color="red", linestyle="dashed")
-
-    # # plot photon spectrum
-    # plt.plot(spec_data["electron"]["eV"], spec_data["photon"]["I"], color="blue") 
-    # max_index = np.argmax(spec_data["photon"]["I"]) 
-    # max_value = np.max(spec_data["photon"]["I"])
-    # plt.plot([spec_data["electron"]["eV"][max_index], spec_data["electron"]["eV"][max_index]], [0, max_value], color="blue", linestyle="dashed")
-
-    # plt.show()
     electronvolts = spec_data["electron"]["eV"]
     Intensity = spec_data["electron"]["I"]
 
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
-    # open the photon spectrum file
-    # with open(os.path.dirname(__file__)+"/sample3/photon_spectrum.csv", "r") as file:
-    #     matrix = np.array(list(file))
-    #     electronvolts = [float(e.strip("\n").split(", ")[0]) for e in matrix]
-    #     Intensity = [float(e.strip("\n").split(", ")[1]) for e in matrix]
-    electronvolts = spec_data["electron"]["eV"]
+    electronvolts = spec_data["photon"]["eV"]
     Intensity = spec_data["photon"]["I"]
 
     _, _, _, _, Ef_interp_photon, _, _, _, _, _= interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
@@ -227,11 +190,6 @@ def retrieve_spectrum3(plotting=False):
     params['dt'] = dt/sc.physical_constants['atomic unit of time'][0]
 
     return params
-
-
-
-
-
 
 
 #==============================

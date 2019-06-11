@@ -54,11 +54,17 @@ plt.plot(mat11_c1, mat11_c2)
 axtwin = plt.gca().twinx()
 axtwin.plot(mat11_c1, mat11_c3)
 
+#plot the measured spectrum and smoothed measured spectrum
+plt.figure(4)
+plt.plot(mat21_c1 ,mat21_c2, color="blue")
+plt.plot(mat22_c1, mat22_c2, color="red")
+plt.plot(mat11_c1, mat11_c2, color="green")
 with open("spec.p", "wb") as file:
     obj = dict()
     obj["electron"] = dict()
-    obj["electron"]["eV"] = mat22_c1
-    obj["electron"]["I"] = mat22_c2
+    obj["electron"]["eV"] = mat21_c1
+    # change this one to be the measured spectrum
+    obj["electron"]["I"] = mat21_c2
     obj["photon"] = dict()
     obj["photon"]["eV"] = mat11_c1
     obj["photon"]["I"] = mat11_c2
