@@ -7,7 +7,8 @@ import shutil
 import matplotlib.pyplot as plt
 import os
 import phase_parameters.params
-import measured_trace.get_trace as get_measured_trace
+# import measured_trace.get_trace as get_measured_trace
+import fake_measured_trace.get_fake_meas_trace as get_measured_trace
 import unsupervised_retrieval
 
 
