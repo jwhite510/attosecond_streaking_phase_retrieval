@@ -165,7 +165,7 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
         hd5file.create_earray(hd5file.root, 'proof_trace_noise', tables.Float64Atom(),shape=(0, num_E * num_tau))
 
         # proof 2 vectors
-        hd5file.create_earray(hd5file.root, 'proof_trace_noise_2vecs', tables.Float64Atom(),shape=(0, num_E * 2))
+        hd5file.create_earray(hd5file.root, 'proof_trace_noise_2vecs', tables.Float64Atom(),shape=(0, num_E * 4))
 
 
         hd5file.close()
@@ -231,8 +231,10 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
 
             proof_vecs = sess.run(tf_graphs["proof_trace"]["w1_proof_vectors"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
 
+            proof_vecs_concat = np.append(np.real(proof_vecs), np.imag(proof_vecs), axis=0)
+
             # append data sample
-            hd5file.root.proof_trace_noise_2vecs.append(proof_vecs.reshape(1, -1))
+            hd5file.root.proof_trace_noise_2vecs.append(proof_vecs_concat.reshape(1, -1))
             hd5file.root.proof_trace_noise.append(proof_trace_gen.reshape(1, -1))
             hd5file.root.trace.append(trace.reshape(1, -1))
             hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
@@ -320,6 +322,8 @@ if __name__ == "__main__":
             xuv_coefs = hd5file.root.xuv_coefs[index, :]
             ir_params = hd5file.root.ir_params[index, :]
             trace = hd5file.root.noise_trace[index, :]
+            import ipdb; ipdb.set_trace() # BREAKPOINT
+            print("BREAKPOINT")
 
         plot_opened_file(xuv_coefs=xuv_coefs, ir_params=ir_params,
                          trace=trace, sess=sess, tf_graphs=tf_graphs)

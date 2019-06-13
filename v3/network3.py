@@ -882,7 +882,7 @@ def setup_neural_net():
     # or it will default to the GAN generated fields as input
     # x_in = tf.placeholder_with_default(x_flat, shape=(None, 2*int(len(K_values))))
 
-    x_in = tf.placeholder(tf.float32, shape=(None, 2*int(len(K_values))))
+    x_in = tf.placeholder(tf.float32, shape=(None, 4*int(len(K_values))))
 
 
     # pass image through phase retrieval network
