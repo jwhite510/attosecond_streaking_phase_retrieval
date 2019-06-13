@@ -5,23 +5,27 @@ import csv
 import scipy.constants as sc
 
 
-def find_f0(x, y):
+def find_f0_func(x, y):
 
     x = np.array(x)
     y = np.array(y)
+    index_values = list(range(len(y)))
 
+    index_vals_max = []
     maxvals = []
 
     for _ in range(3):
         max_index = np.argmax(y)
         maxvals.append(x[max_index])
+        index_vals_max.append(index_values[max_index])
 
+        index_values = np.delete(index_values, max_index)
         x = np.delete(x, max_index)
         y = np.delete(y, max_index)
 
     maxvals = np.delete(maxvals, np.argmin(np.abs(maxvals)))
 
-    return maxvals[np.argmax(maxvals)]
+    return maxvals[np.argmax(maxvals)], index_vals_max
 
 
 def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
@@ -42,7 +46,7 @@ def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
     integrate = np.sum(np.abs(trace_f), axis=0)
 
     # find the maximum values
-    f0 = find_f0(x=freq_even, y=integrate)  # seconds
+    f0, f_indexes = find_f0_func(x=freq_even, y=integrate)  # seconds
 
     lam0 = sc.c / f0
 
@@ -53,10 +57,14 @@ def find_central_frequency_from_trace(trace, delay, energy, plotting=False):
         ax[1].pcolormesh(freq_even, energy, np.abs(trace_f), cmap='jet')
         ax[2].plot(freq_even, integrate)
 
-    return f0, lam0
+    frequency_data = {}
+    frequency_data["f0"] = f0
+    frequency_data["lam0"] = lam0
+    frequency_data["f_indexes"] = f_indexes
+    return frequency_data
 
 
-def retrieve_trace3(find_f0=False):
+def retrieve_trace3(find_f0_plot=False):
     trace = []
 
     for line in open(os.path.dirname(__file__)+"/sample3/53as_trace.dat", "r"):
@@ -84,15 +92,14 @@ def retrieve_trace3(find_f0=False):
     # normalize trace
     trace = trace / np.max(trace)
 
-    if find_f0:
-        f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay, energy=energy, plotting=True)
-        print(f0)  # in seconds
-        print(lam0)
+    # find central frequences
+    # f0, lam0, f_indexes = find_central_frequency_from_trace(trace=trace, delay=delay, energy=energy, plotting=find_f0_plot)
+    frequency_data = find_central_frequency_from_trace(trace=trace, delay=delay, energy=energy, plotting=find_f0_plot)
 
-    return delay, energy, trace
+    return delay, energy, trace, frequency_data
 
 
-def retrieve_trace2(find_f0=False):
+def retrieve_trace2(find_f0_plot=False):
 
     filepath = './measured_trace/sample2/MSheet1_1.csv'
     with open(filepath) as csvfile:
@@ -112,12 +119,12 @@ def retrieve_trace2(find_f0=False):
     Delay_even = Delay[:-1]
     Delay_even = Delay_even * 1e-15  # convert to seconds
 
-    if find_f0:
-        f0, lam0 = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy, plotting=True)
-        print(f0)  # in seconds
-        print(lam0)
 
-    return Delay_even, Energy, values_even
+    # find central frequences
+    # f0, lam0, f_indexes = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy, plotting=find_f0_plot)
+    frequency_data = find_central_frequency_from_trace(trace=values_even, delay=Delay_even, energy=Energy, plotting=find_f0_plot)
+
+    return Delay_even, Energy, values_even, frequency_data
 
 
 trace_num = 3
@@ -125,11 +132,11 @@ trace_num = 3
 
 if trace_num == 2:
 
-    delay, energy, trace = retrieve_trace2()
+    delay, energy, trace, frequency_data = retrieve_trace2()
 
 elif trace_num == 3:
 
-    delay, energy, trace = retrieve_trace3()
+    delay, energy, trace, frequency_data = retrieve_trace3()
 
 
 if __name__ == "__main__":

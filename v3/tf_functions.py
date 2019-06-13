@@ -369,6 +369,8 @@ def proof_trace(trace):
     filtered_f = tf.complex(real=tf.reshape(w1_indexes_tens_1, [1, -1]),
                             imag=tf.zeros_like(tf.reshape(w1_indexes_tens_1, [1, -1]))) * freq
 
+    w1_proof_vectors = tf.concat([freq[:, w1_indexes[0]],freq[:, w1_indexes[1]]], axis=0)
+
     proof = tf.real(tf_ifft(tensor=filtered_f, shift=int(len(phase_parameters.params.delay_values) / 2),
                            axis=1))
 
@@ -380,6 +382,7 @@ def proof_trace(trace):
     nodes["summationf"] = summationf
     nodes["w1_indexes"] = w1_indexes
     nodes["w1_indexes_tens_1"] = w1_indexes_tens_1
+    nodes["w1_proof_vectors"] = w1_proof_vectors
 
     return nodes
 

@@ -8,6 +8,7 @@ import xuv_spectrum.spectrum
 import ir_spectrum.ir_spectrum
 import time
 import phase_parameters.params
+import measured_trace.get_trace as measured_trace
 
 
 
@@ -163,6 +164,9 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
         # proof trace
         hd5file.create_earray(hd5file.root, 'proof_trace_noise', tables.Float64Atom(),shape=(0, num_E * num_tau))
 
+        # proof 2 vectors
+        hd5file.create_earray(hd5file.root, 'proof_trace_noise_2vecs', tables.Float64Atom(),shape=(0, num_E * 2))
+
 
         hd5file.close()
 
@@ -223,9 +227,12 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
             noise_trace = add_shot_noise(trace)
 
             # create a proof trace of the noise trace
-            proof_trace_gen = sess.run(tf_graphs["proof_trace"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
+            proof_trace_gen = sess.run(tf_graphs["proof_trace"]["proof"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
+
+            proof_vecs = sess.run(tf_graphs["proof_trace"]["w1_proof_vectors"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
 
             # append data sample
+            hd5file.root.proof_trace_noise_2vecs.append(proof_vecs.reshape(1, -1))
             hd5file.root.proof_trace_noise.append(proof_trace_gen.reshape(1, -1))
             hd5file.root.trace.append(trace.reshape(1, -1))
             hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
@@ -282,7 +289,7 @@ if __name__ == "__main__":
                                          ir_cropped_f_in=ir_E_prop["f_cropped"][0])
     # make placeholder for image
     image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
-    proof_trace = tf_functions.proof_trace(image_noisy_placeholder)["proof"]
+    proof_trace = tf_functions.proof_trace(image_noisy_placeholder)
 
     tf_graphs = {}
     tf_graphs["xuv_coefs_in"] = xuv_coefs_in

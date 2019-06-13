@@ -118,13 +118,14 @@ class PhaseNetTrain:
             if self.epoch % 20 == 0 or self.epoch <= 15:
                 # update the plot
 
-                self.update_plots()
+                # self.update_plots()
 
                 # save model
                 self.saver.save(self.sess, "models/" + self.modelname + ".ckpt")
 
             if self.epoch % 5 == 0 or self.epoch==1:
-                self.retrieve_experimental()
+                # self.retrieve_experimental()
+                pass
 
 
             # return the index to 0
@@ -490,7 +491,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[self.batch_index:self.batch_index + self.batch_size, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[self.batch_index:self.batch_index + self.batch_size, :]
+        trace_batch = hdf5_file.root.proof_trace_noise_2vecs[self.batch_index:self.batch_index + self.batch_size, :]
 
         hdf5_file.close()
 
@@ -508,7 +509,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[:, :]
+        trace_batch = hdf5_file.root.proof_trace_noise_2vecs[:, :]
 
         hdf5_file.close()
 
@@ -525,7 +526,7 @@ class GetData():
         ir_params = hdf5_file.root.ir_params[:samples, :]
         appended_label_batch = np.append(xuv_coefs, ir_params, 1)
 
-        trace_batch = hdf5_file.root.noise_trace[:samples, :]
+        trace_batch = hdf5_file.root.proof_trace_noise_2vecs[:samples, :]
 
         hdf5_file.close()
 
@@ -823,42 +824,10 @@ def phase_retrieval_net(input):
     # define phase retrieval neural network
     with tf.variable_scope("phase"):
 
-        # # dense network
-        # x_image_flat = tf.reshape(input, [-1, len(K_values)*len(tau_values)])
-        # dense1 = normal_full_layer(x_image_flat, 1024)
-        # # dense layer 1
-        # full_layer_one = normal_full_layer(dense1, 1024)
-
-        # convolutional network
-        # input image
-        x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
-
-        # six convolutional layers
-        multires_filters = [11, 7, 5, 3]
-
-        multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters)
-
-        conv_layer_1 = convolutional_layer(multires_layer_1,
-                                           shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
-                                           activate='relu', stride=[2, 2])
-
-        multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
-                                          filter_sizes=multires_filters)
-
-        conv_layer_2 = convolutional_layer(multires_layer_2,
-                                           shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
-
-        multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
-                                          filter_sizes=multires_filters)
-
-        conv_layer_3 = convolutional_layer(multires_layer_3,
-                                           shape=[1, 1, 256,
-                                                  512], activate='relu', stride=[2, 2])
-
-        convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-        full_layer_one = normal_full_layer(convo_3_flat, 1024)
-        #full_layer_one = normal_full_layer(convo_3_flat, 2)
-        #print("layer needs to be set to 1024!!")
+        # dense network
+        dense1 = normal_full_layer(input, 1024)
+        # dense layer 1
+        full_layer_one = normal_full_layer(dense1, 1024)
 
         # dropout
         hold_prob = tf.placeholder_with_default(1.0, shape=())
@@ -911,7 +880,7 @@ def setup_neural_net():
     x_flat = tf.reshape(x, [1, -1])
     # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
-    x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(K_values) * len(tau_values))))
+    x_in = tf.placeholder_with_default(x_flat, shape=(None, 2*int(len(K_values))))
 
 
     # pass image through phase retrieval network
@@ -1232,7 +1201,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added_track_ir_params')
+    phase_net_train = PhaseNetTrain(modelname='2proof_vectors')
     phase_net_train.supervised_learn()
 
 
