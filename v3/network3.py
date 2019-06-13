@@ -828,10 +828,11 @@ def phase_retrieval_net(input):
         dense1 = normal_full_layer(input, 1024)
         # dense layer 1
         full_layer_one = normal_full_layer(dense1, 1024)
+        full_layer_two = normal_full_layer(full_layer_one, 1024)
 
         # dropout
         hold_prob = tf.placeholder_with_default(1.0, shape=())
-        dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
+        dropout_layer = tf.nn.dropout(full_layer_two, keep_prob=hold_prob)
 
         # neural net output coefficients
         predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
@@ -901,14 +902,14 @@ def setup_neural_net():
     # generate proof trace
     reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
     # input proof trace
-    x_in_reshaped = tf.reshape(x_in, [len(K_values), len(tau_values)])
-    input_image_proof = tf_functions.proof_trace(x_in_reshaped)
+    # x_in_reshaped = tf.reshape(x_in, [len(K_values), len(tau_values)])
+    # input_image_proof = tf_functions.proof_trace(x_in_reshaped)
 
 
     # generate autocorrelation trace
     reconstructed_autocorrelate = tf_functions.autocorrelate(reconstructed_trace)
     # input autocorrelation trace
-    input_image_autocorrelate = tf_functions.autocorrelate(x_in_reshaped)
+    # input_image_autocorrelate = tf_functions.autocorrelate(x_in_reshaped)
 
 
     # divide the variables to train with gan and phase retrieval net individually
@@ -1203,7 +1204,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='2proof_vectors')
+    phase_net_train = PhaseNetTrain(modelname='C2proof_vectors1')
     phase_net_train.supervised_learn()
 
 
