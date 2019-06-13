@@ -1026,11 +1026,11 @@ def setup_neural_net():
     u_LR = tf.placeholder(tf.float32, shape=[])
 
     # regular cost function
-    unsupervised_learning_loss = tf.losses.mean_squared_error(labels=x_in,
-                            predictions=tf.reshape(reconstructed_trace, [1, -1]))
-    unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    unsupervised_train = unsupervised_optimizer.minimize(unsupervised_learning_loss,
-                                                        var_list=phase_net_vars)
+    # unsupervised_learning_loss = tf.losses.mean_squared_error(labels=x_in,
+    #                         predictions=tf.reshape(reconstructed_trace, [1, -1]))
+    # unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    # unsupervised_train = unsupervised_optimizer.minimize(unsupervised_learning_loss,
+    #                                                     var_list=phase_net_vars)
 
     # # log cost function
     # # log1 = log_base(x=0.5, base=10.0, translate=1)
@@ -1051,43 +1051,43 @@ def setup_neural_net():
     # .................PROOF RETRIEVAL LOSS FUNC................
     # ..........................................................
     # regular cost function
-    proof_unsupervised_learning_loss = tf.losses.mean_squared_error(
-                            labels=tf.reshape(input_image_proof["proof"], [1, -1]),
-                            predictions=tf.reshape(reconstructed_proof["proof"], [1, -1]))
-    proof_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    proof_unsupervised_train = proof_unsupervised_optimizer.minimize(
-                            proof_unsupervised_learning_loss,
-                            var_list=phase_net_vars)
+    # proof_unsupervised_learning_loss = tf.losses.mean_squared_error(
+    #                         labels=tf.reshape(input_image_proof["proof"], [1, -1]),
+    #                         predictions=tf.reshape(reconstructed_proof["proof"], [1, -1]))
+    # proof_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    # proof_unsupervised_train = proof_unsupervised_optimizer.minimize(
+    #                         proof_unsupervised_learning_loss,
+    #                         var_list=phase_net_vars)
 
     # ..........................................................
     # .............AUTOCORRELATION RETRIEVAL LOSS FUNC..........
     # ..........................................................
     # regular cost function
-    autocorrelate_unsupervised_learning_loss = tf.losses.mean_squared_error(
-        labels=tf.reshape(input_image_autocorrelate, [1, -1]),
-        predictions=tf.reshape(reconstructed_autocorrelate, [1, -1]))
-    autocorrelate_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
-    autocorrelate_unsupervised_train = autocorrelate_unsupervised_optimizer.minimize(
-                                            autocorrelate_unsupervised_learning_loss,
-                                            var_list=phase_net_vars)
+    # autocorrelate_unsupervised_learning_loss = tf.losses.mean_squared_error(
+    #     labels=tf.reshape(input_image_autocorrelate, [1, -1]),
+    #     predictions=tf.reshape(reconstructed_autocorrelate, [1, -1]))
+    # autocorrelate_unsupervised_optimizer = tf.train.AdamOptimizer(learning_rate=u_LR)
+    # autocorrelate_unsupervised_train = autocorrelate_unsupervised_optimizer.minimize(
+    #                                         autocorrelate_unsupervised_learning_loss,
+    #                                         var_list=phase_net_vars)
 
     # +++++++++++++++++++++++++++++++++++++
     # ++++++++++BOOTSTRAP METHOD+++++++++++
     # +++++++++++++++++++++++++++++++++++++
-    norm_bootstrap_loss, norm_bootstrap_train, norm_bootstrap_indexes_ph = bootstrap(
-                    recons_trace=reconstructed_trace, input_trace=x_in,
-                    learning_rate_in=u_LR, train_variables=phase_net_vars
-    )
+    #norm_bootstrap_loss, norm_bootstrap_train, norm_bootstrap_indexes_ph = bootstrap(
+    #                recons_trace=reconstructed_trace, input_trace=x_in,
+    #                learning_rate_in=u_LR, train_variables=phase_net_vars
+    #)
 
-    proof_bootstrap_loss, proof_bootstrap_train, proof_bootstrap_indexes_ph = bootstrap(
-                    recons_trace=reconstructed_proof["proof"], input_trace=input_image_proof["proof"],
-                    learning_rate_in=u_LR, train_variables=phase_net_vars
-    )
+    #proof_bootstrap_loss, proof_bootstrap_train, proof_bootstrap_indexes_ph = bootstrap(
+    #                recons_trace=reconstructed_proof["proof"], input_trace=input_image_proof["proof"],
+    #                learning_rate_in=u_LR, train_variables=phase_net_vars
+    #)
 
-    auto_bootstrap_loss, auto_bootstrap_train, auto_bootstrap_indexes_ph = bootstrap(
-                    recons_trace=reconstructed_autocorrelate, input_trace=input_image_autocorrelate,
-                    learning_rate_in=u_LR, train_variables=phase_net_vars
-    )
+    #auto_bootstrap_loss, auto_bootstrap_train, auto_bootstrap_indexes_ph = bootstrap(
+    #                recons_trace=reconstructed_autocorrelate, input_trace=input_image_autocorrelate,
+    #                learning_rate_in=u_LR, train_variables=phase_net_vars
+    #)
 
 
 
@@ -1126,50 +1126,50 @@ def setup_neural_net():
 
 
     nn_nodes["unsupervised"]["x_in"] = x_in
-    nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
+    # nn_nodes["unsupervised"]["unsupervised_train"] = unsupervised_train
     # nn_nodes["unsupervised"]["unsupervised_train_log"] = unsupervised_train_log
     nn_nodes["unsupervised"]["u_LR"] = u_LR
-    nn_nodes["unsupervised"]["unsupervised_learning_loss"] = unsupervised_learning_loss
+    # nn_nodes["unsupervised"]["unsupervised_learning_loss"] = unsupervised_learning_loss
     # nn_nodes["unsupervised"]["unsupervised_learning_loss_log"] = unsupervised_learning_loss_log
     # nn_nodes["unsupervised"]["u_base"] = u_base
     # nn_nodes["unsupervised"]["u_translate"] = u_translate
 
-    nn_nodes["unsupervised"]["proof"] = {}
-    nn_nodes["unsupervised"]["proof"]["x_in"] = x_in
-    nn_nodes["unsupervised"]["proof"]["u_LR"] = u_LR
-    nn_nodes["unsupervised"]["proof"]["reconstructed_proof"] = reconstructed_proof
-    nn_nodes["unsupervised"]["proof"]["input_image_proof"] = input_image_proof
-    nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"] = proof_unsupervised_train
-    nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"] = proof_unsupervised_learning_loss
+    # nn_nodes["unsupervised"]["proof"] = {}
+    # nn_nodes["unsupervised"]["proof"]["x_in"] = x_in
+    # nn_nodes["unsupervised"]["proof"]["u_LR"] = u_LR
+    # nn_nodes["unsupervised"]["proof"]["reconstructed_proof"] = reconstructed_proof
+    # nn_nodes["unsupervised"]["proof"]["input_image_proof"] = input_image_proof
+    # nn_nodes["unsupervised"]["proof"]["proof_unsupervised_train"] = proof_unsupervised_train
+    # nn_nodes["unsupervised"]["proof"]["proof_unsupervised_learning_loss"] = proof_unsupervised_learning_loss
 
-    nn_nodes["unsupervised"]["autocorrelate"] = {}
-    nn_nodes["unsupervised"]["autocorrelate"]["x_in"] = x_in
-    nn_nodes["unsupervised"]["autocorrelate"]["u_LR"] = u_LR
-    nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"] = reconstructed_autocorrelate
-    nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"] = input_image_autocorrelate
-    nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"] = autocorrelate_unsupervised_train
-    nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"] = autocorrelate_unsupervised_learning_loss
+    # nn_nodes["unsupervised"]["autocorrelate"] = {}
+    # nn_nodes["unsupervised"]["autocorrelate"]["x_in"] = x_in
+    # nn_nodes["unsupervised"]["autocorrelate"]["u_LR"] = u_LR
+    # nn_nodes["unsupervised"]["autocorrelate"]["reconstructed_autocorrelate"] = reconstructed_autocorrelate
+    # nn_nodes["unsupervised"]["autocorrelate"]["input_image_autocorrelate"] = input_image_autocorrelate
+    # nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_train"] = autocorrelate_unsupervised_train
+    # nn_nodes["unsupervised"]["autocorrelate"]["autocorrelate_unsupervised_learning_loss"] = autocorrelate_unsupervised_learning_loss
 
 
     # add nodes for bootstrap method
-    nn_nodes["unsupervised"]["bootstrap"] = {}
-    
-    nn_nodes["unsupervised"]["bootstrap"]["u_LR"] = u_LR
+    # nn_nodes["unsupervised"]["bootstrap"] = {}
+    # 
+    # nn_nodes["unsupervised"]["bootstrap"]["u_LR"] = u_LR
 
-    nn_nodes["unsupervised"]["bootstrap"]["normal"] = {}
-    nn_nodes["unsupervised"]["bootstrap"]["normal"]["loss"] = norm_bootstrap_loss
-    nn_nodes["unsupervised"]["bootstrap"]["normal"]["train"] = norm_bootstrap_train
-    nn_nodes["unsupervised"]["bootstrap"]["normal"]["indexes_ph"] = norm_bootstrap_indexes_ph
+    # nn_nodes["unsupervised"]["bootstrap"]["normal"] = {}
+    # nn_nodes["unsupervised"]["bootstrap"]["normal"]["loss"] = norm_bootstrap_loss
+    # nn_nodes["unsupervised"]["bootstrap"]["normal"]["train"] = norm_bootstrap_train
+    # nn_nodes["unsupervised"]["bootstrap"]["normal"]["indexes_ph"] = norm_bootstrap_indexes_ph
 
-    nn_nodes["unsupervised"]["bootstrap"]["proof"] = {}
-    nn_nodes["unsupervised"]["bootstrap"]["proof"]["loss"] = proof_bootstrap_loss
-    nn_nodes["unsupervised"]["bootstrap"]["proof"]["train"] = proof_bootstrap_train
-    nn_nodes["unsupervised"]["bootstrap"]["proof"]["indexes_ph"] = proof_bootstrap_indexes_ph
+    # nn_nodes["unsupervised"]["bootstrap"]["proof"] = {}
+    # nn_nodes["unsupervised"]["bootstrap"]["proof"]["loss"] = proof_bootstrap_loss
+    # nn_nodes["unsupervised"]["bootstrap"]["proof"]["train"] = proof_bootstrap_train
+    # nn_nodes["unsupervised"]["bootstrap"]["proof"]["indexes_ph"] = proof_bootstrap_indexes_ph
 
-    nn_nodes["unsupervised"]["bootstrap"]["auto"] = {}
-    nn_nodes["unsupervised"]["bootstrap"]["auto"]["loss"]  = auto_bootstrap_loss
-    nn_nodes["unsupervised"]["bootstrap"]["auto"]["train"] = auto_bootstrap_train
-    nn_nodes["unsupervised"]["bootstrap"]["auto"]["indexes_ph"]  = auto_bootstrap_indexes_ph
+    # nn_nodes["unsupervised"]["bootstrap"]["auto"] = {}
+    # nn_nodes["unsupervised"]["bootstrap"]["auto"]["loss"]  = auto_bootstrap_loss
+    # nn_nodes["unsupervised"]["bootstrap"]["auto"]["train"] = auto_bootstrap_train
+    # nn_nodes["unsupervised"]["bootstrap"]["auto"]["indexes_ph"]  = auto_bootstrap_indexes_ph
 
 
     nn_nodes["general"]["phase_net_output"] = phase_net_output
