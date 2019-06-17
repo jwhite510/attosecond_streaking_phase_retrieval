@@ -856,7 +856,7 @@ def phase_retrieval_net(input):
                                                   512], activate='relu', stride=[2, 2])
 
         convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-        full_layer_one = normal_full_layer(convo_3_flat, 1024)
+        full_layer_one = tf.nn.tanh(normal_full_layer(convo_3_flat, 1024))
         #full_layer_one = normal_full_layer(convo_3_flat, 2)
         #print("layer needs to be set to 1024!!")
 
@@ -865,7 +865,7 @@ def phase_retrieval_net(input):
         dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
         # neural net output coefficients
-        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
+        predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
         # predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
 
         xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
@@ -1232,7 +1232,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='train_coefs_params_only_individual_added_track_ir_params')
+    phase_net_train = PhaseNetTrain(modelname='normal_tanh')
     phase_net_train.supervised_learn()
 
 
