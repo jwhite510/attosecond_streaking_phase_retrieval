@@ -119,8 +119,52 @@ def retrieve_trace2(find_f0=False):
 
     return Delay_even, Energy, values_even
 
+def retrieve_trace4(find_f0=False):
+    trace = []
+    electron_volt_vals = []
 
-trace_num = 3
+    # first character of each line is the x energy value
+    for line_num, line in enumerate(open(os.path.dirname(__file__)+"/sample4/trace4.csv", "r")):
+        if line_num == 0:
+            # line.split(",")
+            delay_vals = line.replace("\n", "").split(",")[1:]
+            delay_vals = [float(e) for e in delay_vals]
+        else:
+            line = line.rstrip()
+            line = line.split(",")
+            line = [float(e) for e in line]
+            electron_volt_vals.append(line.pop(0))
+            trace.append(line)
+
+    electron_volt_vals = np.array(electron_volt_vals)
+    delay_vals = np.array(delay_vals)
+    trace = np.array(trace)
+
+
+    # remove the last delay step so the delay axis is an even number for fourier transform
+    trace = trace[:, :-1]
+    delay_vals = delay_vals[:-1]
+
+    # plt.pcolormesh(delay_vals, electron_volt_vals, trace, cmap="jet")
+    # plt.show()
+    # exit()
+
+    # convert to seconds
+    delay_vals = delay_vals * 1e-15
+
+    # normalize trace
+    trace = trace / np.max(trace)
+
+    if find_f0:
+        f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay_vals, energy=electron_volt_vals, plotting=True)
+        print(f0)  # in seconds
+        print(lam0)# 1.6788377648000736e-06
+
+    return delay, energy, trace
+
+
+
+trace_num = 4
 
 
 if trace_num == 2:
@@ -130,6 +174,10 @@ if trace_num == 2:
 elif trace_num == 3:
 
     delay, energy, trace = retrieve_trace3()
+
+elif trace_num == 4:
+
+    delay, energy, trace = retrieve_trace4()
 
 
 if __name__ == "__main__":
