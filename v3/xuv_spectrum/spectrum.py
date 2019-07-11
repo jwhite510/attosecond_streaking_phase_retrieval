@@ -201,7 +201,11 @@ def retrieve_spectrum4(plotting=False):
             electron_volts.append(values[0])
             intensity.append(values[2])
 
+    # plt.figure(44)
     # plt.plot(electron_volts, intensity)
+    # plt.show()
+    # exit()
+
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
     # convert the xuv params to atomic units
@@ -261,6 +265,8 @@ elif spectrum == 3:
     fmat_hz_cropped = fmat_hz[indexmin: indexmax]
 
 elif spectrum == 4:
+    print("hello")
+
     params = retrieve_spectrum4()
     tmat = params['tmat']
     tmat_as = params['tmat'] * sc.physical_constants['atomic unit of time'][0] * 1e18 # attoseconds

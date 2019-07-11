@@ -261,21 +261,8 @@ if __name__ == "__main__":
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
 
     # initialize IR generator
-    # IR amplitudes
-    amplitudes = {}
-    amplitudes["phase_range"] = (0, 2 * np.pi)
-    amplitudes["clambda_range"] = (1.6345, 1.6345)
-    amplitudes["pulseduration_range"] =  (7.0, 12.0)
-    amplitudes["I_range"] = (0.4, 1.0)
-    # IR creation
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
     ir_E_prop = tf_functions.ir_from_params(ir_values_in)
-
-    # initialize streaking trace generator
-    # Neon
-    Ip_eV = 21.5645
-    Ip = Ip_eV * sc.electron_volt  # joules
-    Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
     # construct streaking image
     image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],

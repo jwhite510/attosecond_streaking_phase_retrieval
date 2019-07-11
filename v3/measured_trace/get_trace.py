@@ -145,6 +145,7 @@ def retrieve_trace4(find_f0=False):
     trace = trace[:, :-1]
     delay_vals = delay_vals[:-1]
 
+    # plt.figure(33)
     # plt.pcolormesh(delay_vals, electron_volt_vals, trace, cmap="jet")
     # plt.show()
     # exit()

@@ -970,10 +970,17 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 if __name__ == "__main__":
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    ir_E_prop = ir_from_params(ir_values_in)
+
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-            xuv_coefs:np.array([[10.0, 0.0, 0.0, 0.0, 0.0]])
+            xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+            ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
             # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
             # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
             }
@@ -984,6 +991,13 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
+
+        out = sess.run(image, feed_dict=feed_dict)
+        plt.figure(2)
+        import ipdb; ipdb.set_trace() # BREAKPOINT
+        print("BREAKPOINT")
+        plt.pcolormesh(image)
+
         plt.show()
 
 

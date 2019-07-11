@@ -27,9 +27,9 @@ amplitude=20.0
 # for sample 3
 ir_param_amplitudes = {}
 ir_param_amplitudes["phase_range"] = (0, 2 * np.pi)
-ir_param_amplitudes["clambda_range"] = (1.635, 1.635)
+ir_param_amplitudes["clambda_range"] = (1.678, 1.678)
 # ir_param_amplitudes["clambda_range"] = (1.0, 1.6345)
-ir_param_amplitudes["pulseduration_range"] = (12.0, 12.0)
+ir_param_amplitudes["pulseduration_range"] = (7.0, 12.0)
 ir_param_amplitudes["I_range"] = (0.02, 0.12)
 
 
