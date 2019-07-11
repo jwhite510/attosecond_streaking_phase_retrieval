@@ -980,7 +980,11 @@ if __name__ == "__main__":
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
             xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-            ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+
+            ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
+
+            # ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+
             # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
             # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
             }
@@ -994,10 +998,10 @@ if __name__ == "__main__":
 
         out = sess.run(image, feed_dict=feed_dict)
         plt.figure(2)
-        import ipdb; ipdb.set_trace() # BREAKPOINT
-        print("BREAKPOINT")
-        plt.pcolormesh(image)
-
+        # import ipdb; ipdb.set_trace() # BREAKPOINT
+        # print("BREAKPOINT")
+        plt.pcolormesh(out)
+        # plt.savefig("./A123_long.png")
         plt.show()
 
 

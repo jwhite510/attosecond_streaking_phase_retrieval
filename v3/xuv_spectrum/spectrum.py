@@ -265,7 +265,6 @@ elif spectrum == 3:
     fmat_hz_cropped = fmat_hz[indexmin: indexmax]
 
 elif spectrum == 4:
-    print("hello")
 
     params = retrieve_spectrum4()
     tmat = params['tmat']
