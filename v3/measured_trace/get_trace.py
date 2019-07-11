@@ -160,7 +160,7 @@ def retrieve_trace4(find_f0=False):
         print(f0)  # in seconds
         print(lam0)# 1.6788377648000736e-06
 
-    return delay, energy, trace
+    return delay_vals, electron_volt_vals, trace
 
 
 

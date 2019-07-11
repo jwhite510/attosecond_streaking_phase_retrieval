@@ -191,12 +191,41 @@ def retrieve_spectrum3(plotting=False):
 
     return params
 
+def retrieve_spectrum4(plotting=False):
+    electron_volts = []
+    intensity = []
+    with open(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv', 'r') as file:
+        for line in file.readlines():
+            values = line.rstrip().split(",")
+            values = [float(e) for e in values]
+            electron_volts.append(values[0])
+            intensity.append(values[2])
+
+    # plt.plot(electron_volts, intensity)
+    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
+
+    # convert the xuv params to atomic units
+    params = {}
+    params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
+    params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0]
+    params['Ef'] = Ef_interp
+    # params['Ef_photon'] = Ef_interp_photon
+    params['indexmin'] = indexmin
+    params['indexmax'] = indexmax
+    params['f0'] = f0*sc.physical_constants['atomic unit of time'][0] + 0.2
+    params['N'] = N
+    params['dt'] = dt/sc.physical_constants['atomic unit of time'][0]
+
+    return params
+
+
+
 
 #==============================
 #========select sample=========
 #==============================
 
-spectrum = 3
+spectrum = 4
 
 if spectrum == 2:
 
@@ -223,6 +252,22 @@ elif spectrum == 3:
     fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
     Ef = params['Ef']
     Ef_photon = params['Ef_photon']
+    indexmin = params['indexmin']
+    indexmax = params['indexmax']
+    f0 = params['f0']
+    N = params['N']
+    dt = params['dt']
+    fmat_cropped = fmat[indexmin: indexmax]
+    fmat_hz_cropped = fmat_hz[indexmin: indexmax]
+
+elif spectrum == 4:
+    params = retrieve_spectrum4()
+    tmat = params['tmat']
+    tmat_as = params['tmat'] * sc.physical_constants['atomic unit of time'][0] * 1e18 # attoseconds
+    fmat = params['fmat']
+    fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
+    Ef = params['Ef']
+    # Ef_photon = params['Ef_photon']
     indexmin = params['indexmin']
     indexmax = params['indexmax']
     f0 = params['f0']
