@@ -268,7 +268,7 @@ if __name__ == "__main__":
     image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
                                          ir_cropped_f_in=ir_E_prop["f_cropped"][0])
     # make placeholder for image
-    image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
+    image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 98])
     proof_trace = tf_functions.proof_trace(image_noisy_placeholder)["proof"]
 
     tf_graphs = {}
