@@ -285,7 +285,7 @@ if __name__ == "__main__":
     with tf.Session() as sess:
 
 
-        generate_samples(tf_graphs=tf_graphs, n_samples=60000,
+        generate_samples(tf_graphs=tf_graphs, n_samples=240000,
                          filename="train3.hdf5",
                          xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 

@@ -43,7 +43,7 @@ class PhaseNetTrain:
 
         # saver and set epoch number to run
         self.saver = tf.train.Saver()
-        self.epochs = 100
+        self.epochs = 2000
 
         # set the name of the neural net test run and save the settigns
         self.modelname = modelname
@@ -92,7 +92,7 @@ class PhaseNetTrain:
                 self.sess.run(self.nn_nodes["supervised"]["phase_network_train_coefs_params"],
                          feed_dict={self.nn_nodes["supervised"]["x_in"]: batch_x,
                                     self.nn_nodes["supervised"]["actual_coefs_params"]: batch_y,
-                                    self.nn_nodes["general"]["hold_prob"]: 0.8,
+                                    self.nn_nodes["general"]["hold_prob"]: 1.0,
                                     self.nn_nodes["supervised"]["s_LR"]: 0.0001})
 
                 # train with coefficients then with fields
@@ -739,7 +739,7 @@ def multires_layer(input, input_channels, filter_sizes, stride=1):
     for filter_size in filter_sizes:
         # create filter
         filters.append(convolutional_layer(input, shape=[filter_size, filter_size,
-                        input_channels, input_channels], activate='relu', stride=[stride, stride]))
+                        input_channels, input_channels], activate='leaky', stride=[stride, stride]))
 
     concat_layer = tf.concat(filters, axis=3)
     return concat_layer
@@ -840,23 +840,23 @@ def phase_retrieval_net(input):
 
         conv_layer_1 = convolutional_layer(multires_layer_1,
                                            shape=[1, 1, len(multires_filters), 2 * len(multires_filters)],
-                                           activate='relu', stride=[2, 2])
+                                           activate='leaky', stride=[2, 2])
 
         multires_layer_2 = multires_layer(input=conv_layer_1, input_channels=2 * len(multires_filters),
                                           filter_sizes=multires_filters)
 
         conv_layer_2 = convolutional_layer(multires_layer_2,
-                                           shape=[1, 1, 32, 64], activate='relu', stride=[2, 2])
+                                           shape=[1, 1, 32, 64], activate='leaky', stride=[2, 2])
 
         multires_layer_3 = multires_layer(input=conv_layer_2, input_channels=64,
                                           filter_sizes=multires_filters)
 
         conv_layer_3 = convolutional_layer(multires_layer_3,
                                            shape=[1, 1, 256,
-                                                  512], activate='relu', stride=[2, 2])
+                                                  512], activate='leaky', stride=[2, 2])
 
         convo_3_flat = tf.contrib.layers.flatten(conv_layer_3)
-        full_layer_one = tf.nn.tanh(normal_full_layer(convo_3_flat, 1024))
+        full_layer_one = normal_full_layer(convo_3_flat, 512)
         #full_layer_one = normal_full_layer(convo_3_flat, 2)
         #print("layer needs to be set to 1024!!")
 
@@ -865,8 +865,8 @@ def phase_retrieval_net(input):
         dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
 
         # neural net output coefficients
-        predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
-        # predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
+        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
+        # predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
 
         xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
         ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
@@ -1232,7 +1232,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='normal_tanh')
+    phase_net_train = PhaseNetTrain(modelname='CCCnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_2')
     phase_net_train.supervised_learn()
 
 
