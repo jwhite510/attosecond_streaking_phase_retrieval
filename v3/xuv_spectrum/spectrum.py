@@ -250,7 +250,16 @@ def retrieve_spectrum4(plotting=False):
     # plt.plot(electron_volts, photon_spec_I)
     # plt.title("photon spectrum")
 
+    # plt.figure(14)
+    # plt.plot(fmat, Ef_interp)
+    # plt.title("linear photon spectrum")
+
+    # plt.figure(15)
+    # plt.plot(fmat, Ef_interp_photon)
+    # plt.title("linear photon spectrum")
+
     # plt.show()
+    # exit()
 
     # convert the xuv params to atomic units
     params = {}
