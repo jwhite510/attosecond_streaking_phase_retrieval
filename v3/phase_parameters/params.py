@@ -39,7 +39,7 @@ ir_param_amplitudes["I_range"] = (0.02, 0.12)
 #---------------------------
 
 # because trace 4 is using the electron specturm, dont apply ionization potential
-Ip_eV = 0.0
+Ip_eV = 24.587 # eV
 Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 # sample = 2

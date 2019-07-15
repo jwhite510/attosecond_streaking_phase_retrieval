@@ -201,10 +201,8 @@ def retrieve_spectrum4(plotting=False):
             electron_volts.append(values[0])
             intensity.append(values[2])
 
-    # plt.figure(44)
-    # plt.plot(electron_volts, intensity)
-    # plt.show()
-    # exit()
+    # add the ionization potential to the electron volts
+    electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
 
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
@@ -231,39 +229,35 @@ def retrieve_spectrum4(plotting=False):
     cross_sec_interp = interpolator(electron_volts)
 
     # calculate the photon spectrum by diving by the cross section
-    photon_spec = intensity / cross_sec_interp
+    photon_spec_I = intensity / cross_sec_interp
 
-    plt.figure(10)
-    plt.plot(electron_volts_cs, cross_section)
-    plt.title("cross section")
+    # interpolate the photon spectrum
+    _, _, _, _, Ef_interp_photon, _, _, _, _, _= my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
 
-    plt.figure(11)
-    plt.plot(electron_volts, intensity)
-    plt.title("intensity")
+    # plt.figure(10)
+    # plt.plot(electron_volts_cs, cross_section)
+    # plt.title("cross section")
 
-    plt.figure(12)
-    plt.plot(electron_volts, cross_sec_interp)
-    plt.title("interpolated cross cross section")
+    # plt.figure(11)
+    # plt.plot(electron_volts, intensity)
+    # plt.title("intensity")
 
-    plt.figure(13)
-    plt.plot(electron_volts, photon_spec)
-    plt.title("photon spectrum")
+    # plt.figure(12)
+    # plt.plot(electron_volts, cross_sec_interp)
+    # plt.title("interpolated cross cross section")
 
-    plt.show()
-    # ++++++++++++++++++++++++++
-    # need to subtract the ionization
-    # potential before dividing by cross
-    # section
-    # ++++++++++++++++++++++++++
-    exit()
+    # plt.figure(13)
+    # plt.plot(electron_volts, photon_spec_I)
+    # plt.title("photon spectrum")
 
+    # plt.show()
 
     # convert the xuv params to atomic units
     params = {}
     params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
     params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0]
     params['Ef'] = Ef_interp
-    # params['Ef_photon'] = Ef_interp_photon
+    params['Ef_photon'] = Ef_interp_photon
     params['indexmin'] = indexmin
     params['indexmax'] = indexmax
     params['f0'] = f0*sc.physical_constants['atomic unit of time'][0] + 0.2
