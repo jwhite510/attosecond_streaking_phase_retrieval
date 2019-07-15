@@ -9,7 +9,7 @@ import sys
 import phase_parameters.params as phase_params
 
 
-def interpolate(electronvolts_in, intensity_in, plotting=False):
+def my_interp(electronvolts_in, intensity_in, plotting=False):
     # convert eV to joules
     joules = np.array(electronvolts_in) * sc.electron_volt  # joules
     hertz = np.array(joules / sc.h)
@@ -167,12 +167,12 @@ def retrieve_spectrum3(plotting=False):
     electronvolts = spec_data["electron"]["eV"]
     Intensity = spec_data["electron"]["I"]
 
-    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
+    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = my_interp(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
     electronvolts = spec_data["photon"]["eV"]
     Intensity = spec_data["photon"]["I"]
 
-    _, _, _, _, Ef_interp_photon, _, _, _, _, _= interpolate(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
+    _, _, _, _, Ef_interp_photon, _, _, _, _, _= my_interp(electronvolts_in=electronvolts, intensity_in=Intensity, plotting=plotting)
 
 
 
@@ -206,7 +206,57 @@ def retrieve_spectrum4(plotting=False):
     # plt.show()
     # exit()
 
-    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = interpolate(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
+    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
+
+    # calculate photon spectrum
+    electron_volts_cs = []
+    cross_section = []
+    with open(os.path.dirname(__file__)+'/sample4/HeliumCrossSection.csv', 'r') as file:
+        for line in file.readlines():
+            values = line.rstrip().split(",")
+            values = [float(e) for e in values]
+            cross_section.append(values[1])
+            electron_volts_cs.append(values[0])
+
+    # append the cross section values because the inteprolation is out of range
+    cs_append_value = float(cross_section[-1])
+    d_ev = electron_volts_cs[-1] - electron_volts_cs[-2]
+    for _ in range(15):
+        ev_append = electron_volts_cs[-1] + d_ev
+        cross_section.append(cs_append_value)
+        electron_volts_cs.append(ev_append)
+
+    # interpolate the cross section to match the electron spectrum
+    interpolator = scipy.interpolate.interp1d(electron_volts_cs, cross_section, kind='linear')
+    cross_sec_interp = interpolator(electron_volts)
+
+    # calculate the photon spectrum by diving by the cross section
+    photon_spec = intensity / cross_sec_interp
+
+    plt.figure(10)
+    plt.plot(electron_volts_cs, cross_section)
+    plt.title("cross section")
+
+    plt.figure(11)
+    plt.plot(electron_volts, intensity)
+    plt.title("intensity")
+
+    plt.figure(12)
+    plt.plot(electron_volts, cross_sec_interp)
+    plt.title("interpolated cross cross section")
+
+    plt.figure(13)
+    plt.plot(electron_volts, photon_spec)
+    plt.title("photon spectrum")
+
+    plt.show()
+    # ++++++++++++++++++++++++++
+    # need to subtract the ionization
+    # potential before dividing by cross
+    # section
+    # ++++++++++++++++++++++++++
+    exit()
+
 
     # convert the xuv params to atomic units
     params = {}
