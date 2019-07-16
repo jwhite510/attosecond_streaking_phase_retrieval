@@ -325,7 +325,7 @@ elif spectrum == 4:
     fmat = params['fmat']
     fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
     Ef = params['Ef']
-    # Ef_photon = params['Ef_photon']
+    Ef_photon = params['Ef_photon']
     indexmin = params['indexmin']
     indexmax = params['indexmax']
     f0 = params['f0']
