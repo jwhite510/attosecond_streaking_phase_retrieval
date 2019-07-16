@@ -7,8 +7,8 @@ import shutil
 import matplotlib.pyplot as plt
 import os
 import phase_parameters.params
-# import measured_trace.get_trace as get_measured_trace
-import fake_measured_trace.get_fake_meas_trace as get_measured_trace
+import measured_trace.get_trace as get_measured_trace
+# import fake_measured_trace.get_fake_meas_trace as get_measured_trace
 import unsupervised_retrieval
 
 
@@ -542,7 +542,12 @@ def convert_ir_params(ir_params):
     phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
-    return ir_p_I
+
+    # also concat the pulse duration term
+    pulse_duration_tens = tf.reshape(ir_params[:,2], [-1, 1])
+    ir_p_I_tau = tf.concat([ir_p_I, pulse_duration_tens], axis=1)
+
+    return ir_p_I_tau
 
 def convert_regular_trace_to_proof(regular_trace):
     image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
@@ -1232,7 +1237,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='CCCnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_2')
+    phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
     phase_net_train.supervised_learn()
 
 
