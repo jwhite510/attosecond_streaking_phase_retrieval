@@ -18,8 +18,16 @@ import ga as genetic_alg
 import unsupervised_retrieval
 
 
-run_name = "measured_retrieval_init_o"
-with open("./retrieval/" + run_name + "/plot_objs.p", "rb") as file:
+# run_name = "measured_retrieval_init_o"
+# with open("./retrieval/" + run_name + "/plot_objs.p", "rb") as file:
+
+# plotting data from newton
+run_name = "DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucfmeasured_retrieval_while_training"
+# run_name = "DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_4_realmeasuredtrace_includetaucfmeasured_retrieval_while_training"
+pickle_file = "plot_objs_epoch75.p"
+
+
+with open("/home/jonathon/newton_data/retrieval/"+run_name+"/"+pickle_file, "rb") as file:
     plot_obj = pickle.load(file)
 
 # import ipdb; ipdb.set_trace() # BREAKPOINT
@@ -90,6 +98,8 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     fmat_ev = spectrum.fmat_hz_cropped * sc.h / sc.electron_volt
 
     I_f = np.abs(xuv_f) ** 2
+    # normalize spectral intensity
+    I_f = I_f / np.max(I_f)
     axes["xuv_f"].plot(fmat_ev , I_f, color="black", label="Electron Spectrum")
     axes["xuv_f"].set_yticks([])
     # axes["xuv_f"].set_xlabel("Frequency [$10^{17}$Hz]")
@@ -133,7 +143,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     axes["xuv_t"].plot(tmat_as, I_t, color="black")
     #calculate FWHM
     fwhm, t1, t2, half_max = unsupervised_retrieval.calc_fwhm(tmat=tmat_as, I_t=I_t)
-    axes["xuv_t"].text(0.5, 0.5, "%.0f as" % fwhm, color="black",
+    axes["xuv_t"].text(0.7, 0.7, "%.0f as" % fwhm, color="black",
                             backgroundcolor="white", ha="center",
                             transform=axes["xuv_t"].transAxes)
     #plot FWHM
@@ -151,7 +161,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
 
 
     axes["xuv_t"].set_yticks([])
-    axes["xuv_t"].set_xlim(-150, 260)
+    axes["xuv_t"].set_xlim(-500, 500)
     axes["xuv_t"].set_ylim(0, 1.2*np.max(I_t))
     axes["xuv_t"].set_xlabel("time [as]")
     axes["xuv_t"].set_ylabel("Intensity [Relative]")
@@ -164,7 +174,7 @@ def plot_images_fields_publication(traces_meas, traces_reconstructed, xuv_f, xuv
     # else:
     #     axes["xuv_t"].text(0.0, 1.1, "predicted XUV $I(t)$", backgroundcolor="white",
     #                                  transform=axes["xuv_t"].transAxes)
-    fig.savefig("./publication_plot.png")
+    fig.savefig("./publication_plot_"+run_name+".png")
 
 
 
