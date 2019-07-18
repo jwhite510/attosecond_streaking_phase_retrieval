@@ -204,6 +204,10 @@ def retrieve_spectrum4(plotting=False):
     # add the ionization potential to the electron volts
     electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
 
+    # normalize intensity
+    intensity = np.array(intensity)
+    intensity = intensity / np.max(intensity)
+
     hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
     # calculate photon spectrum
@@ -230,6 +234,10 @@ def retrieve_spectrum4(plotting=False):
 
     # calculate the photon spectrum by diving by the cross section
     photon_spec_I = intensity / cross_sec_interp
+
+    # normalize photon spec intensity
+    photon_spec_I = photon_spec_I / np.max(photon_spec_I)
+
 
     # interpolate the photon spectrum
     _, _, _, _, Ef_interp_photon, _, _, _, _, _= my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
