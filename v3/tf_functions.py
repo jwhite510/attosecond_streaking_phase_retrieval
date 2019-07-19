@@ -961,6 +961,66 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
     return image
 
+def phase_rmse_error_test():
+    # calculate transform limited trace
+    # view generated xuv pulse
+    xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+
+    gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    ir_E_prop = ir_from_params(ir_values_in)
+
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+    feed_dict = {ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])}
+    with tf.Session() as sess:
+
+        feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
+        # calculate transform limited trace
+        tf_limited_trace = sess.run(image, feed_dict=feed_dict)
+
+        dispersion_values = np.linspace(-1.0, 1.0, 300)
+        order2_rmse = []
+        for order2 in dispersion_values:
+            feed_dict[xuv_coefs] = np.array([[0.0, order2, 0.0, 0.0, 0.0]])
+            gen_trace = sess.run(image, feed_dict=feed_dict)
+            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
+            order2_rmse.append(rmse_trace)
+        order3_rmse = []
+        for order3 in dispersion_values:
+            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, order3, 0.0, 0.0]])
+            gen_trace = sess.run(image, feed_dict=feed_dict)
+            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
+            order3_rmse.append(rmse_trace)
+        order4_rmse = []
+        for order4 in dispersion_values:
+            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, order4, 0.0]])
+            gen_trace = sess.run(image, feed_dict=feed_dict)
+            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
+            order4_rmse.append(rmse_trace)
+        order5_rmse = []
+        for order5 in dispersion_values:
+            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, order5]])
+            gen_trace = sess.run(image, feed_dict=feed_dict)
+            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
+            order5_rmse.append(rmse_trace)
+
+        plt.figure(1)
+        plt.plot(dispersion_values, order2_rmse, label="order 2 RMSE")
+        plt.plot(dispersion_values, order3_rmse, label="order 3 RMSE")
+        plt.plot(dispersion_values, order4_rmse, label="order 4 RMSE")
+        plt.plot(dispersion_values, order5_rmse, label="order 5 RMSE")
+        plt.xlabel("Normalized/scaled Dispersion Coefficient")
+        plt.ylabel("RMSE compared to transform limited trace")
+        # plt.yscale("log")
+        plt.legend()
+        # plt.show()
+        plt.savefig("./dispersion_rmse.png")
+        exit()
+
+
+
+
 
 
 
@@ -968,6 +1028,11 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
 
 if __name__ == "__main__":
+    phase_rmse_error_test()
+
+
+
+
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
