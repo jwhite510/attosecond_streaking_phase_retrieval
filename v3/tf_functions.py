@@ -974,10 +974,43 @@ def phase_rmse_error_test():
 
     feed_dict = {ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])}
     with tf.Session() as sess:
+        # feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 1.0]])
+        feed_dict[xuv_coefs] = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
+        gen_trace = sess.run(image, feed_dict=feed_dict)
+        xuv_out = sess.run(gen_xuv, feed_dict=feed_dict)["t"][0]
 
-        feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
         # calculate transform limited trace
+        feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
         tf_limited_trace = sess.run(image, feed_dict=feed_dict)
+        tf_limited_xuv_out = sess.run(gen_xuv, feed_dict=feed_dict)["t"][0]
+
+        rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
+
+        fig = plt.figure(figsize=(10,10))
+        gs = fig.add_gridspec(2,2)
+        ax = fig.add_subplot(gs[0,0])
+        ax.pcolormesh(gen_trace, cmap="jet")
+        ax.set_title("trace with dispersion")
+
+        ax = fig.add_subplot(gs[1,0])
+        ax.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_out)**2, color="black")
+        ax.set_title("I(t) with dispersion")
+
+        ax = fig.add_subplot(gs[0,1])
+        ax.pcolormesh(tf_limited_trace, cmap="jet")
+        ax.set_title("transform limited trace")
+        ax.text(0.3, 0.7, "rmse: %.10f" % rmse_trace, transform=ax.transAxes, bbox=dict(facecolor='white'))
+
+        ax = fig.add_subplot(gs[1,1])
+        ax.plot(xuv_spectrum.spectrum.tmat, np.abs(tf_limited_xuv_out)**2, color="black")
+        ax.set_title("I(t) transform limited")
+
+
+
+
+
+        plt.show()
+        exit()
 
         dispersion_values = np.linspace(-1.0, 1.0, 300)
         order2_rmse = []
