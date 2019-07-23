@@ -202,7 +202,7 @@ class GeneticAlgorithm():
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="trace",
-                                   method=self.method)
+                                   method=self.method, save_data_objs=True)
                 plt.pause(0.00001)
 
             elif self.retrieval == "proof":
@@ -210,7 +210,7 @@ class GeneticAlgorithm():
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="proof",
-                                   method=self.method)
+                                   method=self.method, save_data_objs=True)
                 plt.pause(0.00001)
 
             elif self.retrieval == "autocorrelation":
@@ -218,7 +218,7 @@ class GeneticAlgorithm():
                                    traces_reconstructed=recons_traces,
                                    xuv_f=xuv_f, xuv_f_phase=xuv_f_phase, xuv_f_full=xuv_f_full, xuv_t=xuv_t, ir_f=ir_f, i=self.g,
                                    run_name=self.run_name, true_fields=False, cost_function="autocorrelation",
-                                   method=self.method)
+                                   method=self.method, save_data_objs=True)
                 plt.pause(0.00001)
 
             # add tensorboard value
@@ -431,7 +431,7 @@ if __name__ == "__main__":
     measured_trace = get_measured_trace.trace
 
     genetic_algorithm = GeneticAlgorithm(generations=300, pop_size=5000,
-                        run_name="gatest1", measured_trace=measured_trace, retrieval="proof")
+                        run_name="sample4_ga_1_normal", measured_trace=measured_trace, retrieval="normal")
     
     genetic_algorithm.run()
 
