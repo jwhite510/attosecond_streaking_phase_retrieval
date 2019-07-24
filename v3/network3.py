@@ -724,6 +724,9 @@ def create_sample_plot(samples_per_plot=3):
 def conv2d(x, W, stride):
     return tf.nn.conv2d(x, W, strides=[1, stride[0], stride[1], 1], padding='SAME')
 
+def conv2d_nopad(x, W, stride):
+    return tf.nn.conv2d(x, W, strides=[1, stride[0], stride[1], 1], padding="VALID")
+
 def init_weights(shape):
     init_random_dist = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float32)
     return tf.Variable(init_random_dist)
@@ -761,6 +764,35 @@ def convolutional_layer(input_x, shape, activate, stride):
 
     elif activate == 'none':
         return conv2d(input_x, W, stride) + b
+
+def convolutional_layer_nopadding(input_x, shape, activate, stride):
+    W = init_weights(shape)
+    b = init_bias([shape[3]])
+
+    if activate == 'relu':
+        return tf.nn.relu(conv2d_nopad(input_x, W, stride) + b)
+
+    if activate == 'leaky':
+        return tf.nn.leaky_relu(conv2d_nopad(input_x, W, stride) + b)
+
+    elif activate == 'none':
+        return conv2d_nopad(input_x, W, stride) + b
+
+
+def max_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
+    if pad:
+        return tf.layers.max_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="SAME")
+    else:
+        return tf.layers.max_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="VALID")
+
+def avg_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
+
+    if pad:
+        return tf.layers.average_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="SAME")
+    else:
+        return tf.layers.average_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="VALID")
+
+
 
 def gan_network(input):
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
@@ -817,6 +849,54 @@ def gan_network(input):
 
 
         return outputs
+
+def part1_purple(input):
+
+    conv1 = convolutional_layer_nopadding(input, shape=[5, 5, 1, 20], activate='relu', stride=[1, 1])
+    # print("conv1", conv1)
+
+    pool1 = max_pooling_layer(conv1, pool_size_val=[3, 3], stride_val=[3, 3])
+    # print("pool1", pool1)
+
+    conv2 = convolutional_layer_nopadding(pool1, shape=[3, 3, 20, 40], activate='relu', stride=[1, 1])
+    # print("conv2", conv2)
+
+    pool2 = max_pooling_layer(conv2, pool_size_val=[2, 2], stride_val=[2, 2])
+
+    return pool2
+
+def part2_grey(input):
+
+    # center
+    conv31 = convolutional_layer_nopadding(input, shape=[3, 3, 40, 40], activate='relu', stride=[1, 1])
+    conv322 = convolutional_layer_nopadding(conv31, shape=[3, 3, 40, 20], activate='relu', stride=[1, 1])
+
+    #left
+    pool3 = max_pooling_layer(input, pool_size_val=[2, 2], stride_val=[2, 2], pad=True)
+    conv321 = convolutional_layer_nopadding(pool3, shape=[1, 1, 40, 20], activate='relu', stride=[1, 1])
+
+    #right
+    conv323 = convolutional_layer_nopadding(input, shape=[5, 5, 40, 20], activate='relu', stride=[1, 1])
+
+    # concat
+    conc1 = tf.concat([conv321, conv322, conv323], axis=3)
+
+    return conc1
+
+def part3_green(input):
+
+    # left side
+    conv4 = convolutional_layer_nopadding(input, shape=[3, 3, 60, 40], activate='relu', stride=[1, 1])
+
+    # right side
+    pool4 = max_pooling_layer(input, pool_size_val=[2, 2], stride_val=[1, 1])
+    pool4_sliced = pool4[:,0:-1,0:-1,:]
+    # slice pool4 because according to their chart the output size is supposed to be 3 x 3
+
+    # concatinate
+    conc2 = tf.concat([conv4, pool4_sliced], axis=3)
+
+    return conc2
 
 def phase_retrieval_net(input):
     K_values = phase_parameters.params.K
@@ -1237,8 +1317,27 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
-    phase_net_train.supervised_learn()
+    # phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
+    # phase_net_train.supervised_learn()
+
+    # make noise resistant network
+    image_input = tf.placeholder(shape=(None, 64, 64, 1), dtype=tf.float32)
+
+    pool2 = part1_purple(image_input)
+
+    conc1 = part2_grey(pool2)
+
+    conc2 = part3_green(conc1)
+
+    pool51 = avg_pooling_layer(conc2, pool_size_val=[3, 3], stride_val=[1, 1])
+    print("pool51", pool51)
+
+    pool52 = avg_pooling_layer(pool2, pool_size_val=[5, 5], stride_val=[5, 5])
+    print("pool52", pool52)
+
+    exit()
+
+
 
 
 
