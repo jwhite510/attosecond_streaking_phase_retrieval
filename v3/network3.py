@@ -1330,12 +1330,25 @@ if __name__ == "__main__":
     conc2 = part3_green(conc1)
 
     pool51 = avg_pooling_layer(conc2, pool_size_val=[3, 3], stride_val=[1, 1])
-    print("pool51", pool51)
+    # print("pool51", pool51)
 
-    pool52 = avg_pooling_layer(pool2, pool_size_val=[5, 5], stride_val=[5, 5])
-    print("pool52", pool52)
+    pool52 = avg_pooling_layer(pool2, pool_size_val=[5, 5], stride_val=[5, 5], pad=True)
+    # print("pool52", pool52)
 
-    exit()
+    pool53 = avg_pooling_layer(conc1, pool_size_val=[3, 3], stride_val=[2, 2])
+    # print("pool53", pool53)
+
+    pool51_flat = tf.contrib.layers.flatten(pool51)
+    pool52_flat = tf.contrib.layers.flatten(pool52)
+    pool53_flat = tf.contrib.layers.flatten(pool53)
+
+    conc3 = tf.concat([pool51_flat, pool52_flat, pool53_flat], axis=1)
+
+    fc5 = tf.layers.dense(inputs=conc3, units=256)
+
+    print("fc5", fc5)
+
+
 
 
 
