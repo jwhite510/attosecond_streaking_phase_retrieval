@@ -463,9 +463,6 @@ class PhaseNetTrain:
                            method="Training", save_data_objs=True)
         plt.pause(0.00001)
 
-
-
-
 class GetData():
     def __init__(self, batch_size):
 
@@ -778,7 +775,6 @@ def convolutional_layer_nopadding(input_x, shape, activate, stride):
     elif activate == 'none':
         return conv2d_nopad(input_x, W, stride) + b
 
-
 def max_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
     if pad:
         return tf.layers.max_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="SAME")
@@ -786,13 +782,10 @@ def max_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
         return tf.layers.max_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="VALID")
 
 def avg_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
-
     if pad:
         return tf.layers.average_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="SAME")
     else:
         return tf.layers.average_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="VALID")
-
-
 
 def gan_network(input):
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
@@ -851,7 +844,6 @@ def gan_network(input):
         return outputs
 
 def part1_purple(input):
-
     conv1 = convolutional_layer_nopadding(input, shape=[5, 5, 1, 20], activate='relu', stride=[1, 1])
     # print("conv1", conv1)
 
@@ -866,7 +858,6 @@ def part1_purple(input):
     return pool2
 
 def part2_grey(input):
-
     # center
     conv31 = convolutional_layer_nopadding(input, shape=[3, 3, 40, 40], activate='relu', stride=[1, 1])
     conv322 = convolutional_layer_nopadding(conv31, shape=[3, 3, 40, 20], activate='relu', stride=[1, 1])
@@ -884,7 +875,6 @@ def part2_grey(input):
     return conc1
 
 def part3_green(input):
-
     # left side
     conv4 = convolutional_layer_nopadding(input, shape=[3, 3, 60, 40], activate='relu', stride=[1, 1])
 
@@ -897,6 +887,42 @@ def part3_green(input):
     conc2 = tf.concat([conv4, pool4_sliced], axis=3)
 
     return conc2
+
+def noise_resistant_phase_retrieval_net(input):
+    K_values = phase_parameters.params.K
+    tau_values = phase_parameters.params.delay_values
+    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
+    total_coefs_params_length = int(xuv_phase_coefs + 4)
+    with tf.variable_scope("phase"):
+        x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
+
+        pool2 = part1_purple(x_image)
+
+        conc1 = part2_grey(pool2)
+        exit()
+
+        conc2 = part3_green(conc1)
+
+        pool51 = avg_pooling_layer(conc2, pool_size_val=[3, 3], stride_val=[1, 1])
+        # print("pool51", pool51)
+
+        pool52 = avg_pooling_layer(pool2, pool_size_val=[5, 5], stride_val=[5, 5], pad=True)
+        # print("pool52", pool52)
+
+        pool53 = avg_pooling_layer(conc1, pool_size_val=[3, 3], stride_val=[2, 2])
+        # print("pool53", pool53)
+
+        pool51_flat = tf.contrib.layers.flatten(pool51)
+        pool52_flat = tf.contrib.layers.flatten(pool52)
+        pool53_flat = tf.contrib.layers.flatten(pool53)
+
+        conc3 = tf.concat([pool51_flat, pool52_flat, pool53_flat], axis=1)
+
+        fc5 = tf.layers.dense(inputs=conc3, units=256)
+
+        print("fc5", fc5)
+    exit()
+
 
 def phase_retrieval_net(input):
     K_values = phase_parameters.params.K
@@ -997,6 +1023,10 @@ def setup_neural_net():
     # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
     x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(K_values) * len(tau_values))))
+
+
+    phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = noise_resistant_phase_retrieval_net(input=x_in)
+    exit()
 
 
     # pass image through phase retrieval network
@@ -1317,36 +1347,14 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    # phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
-    # phase_net_train.supervised_learn()
+    phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
+    phase_net_train.supervised_learn()
 
     # make noise resistant network
-    image_input = tf.placeholder(shape=(None, 64, 64, 1), dtype=tf.float32)
+    # image_input = tf.placeholder(shape=(None, 64, 64, 1), dtype=tf.float32)
 
-    pool2 = part1_purple(image_input)
+    # noise_resistant_phase_retrieval_net(image_input)
 
-    conc1 = part2_grey(pool2)
-
-    conc2 = part3_green(conc1)
-
-    pool51 = avg_pooling_layer(conc2, pool_size_val=[3, 3], stride_val=[1, 1])
-    # print("pool51", pool51)
-
-    pool52 = avg_pooling_layer(pool2, pool_size_val=[5, 5], stride_val=[5, 5], pad=True)
-    # print("pool52", pool52)
-
-    pool53 = avg_pooling_layer(conc1, pool_size_val=[3, 3], stride_val=[2, 2])
-    # print("pool53", pool53)
-
-    pool51_flat = tf.contrib.layers.flatten(pool51)
-    pool52_flat = tf.contrib.layers.flatten(pool52)
-    pool53_flat = tf.contrib.layers.flatten(pool53)
-
-    conc3 = tf.concat([pool51_flat, pool52_flat, pool53_flat], axis=1)
-
-    fc5 = tf.layers.dense(inputs=conc3, units=256)
-
-    print("fc5", fc5)
 
 
 
