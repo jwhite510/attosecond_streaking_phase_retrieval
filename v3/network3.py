@@ -844,16 +844,16 @@ def gan_network(input):
         return outputs
 
 def part1_purple(input):
-    conv1 = convolutional_layer_nopadding(input, shape=[5, 5, 1, 20], activate='relu', stride=[1, 1])
+    conv1 = convolutional_layer_nopadding(input, shape=[21, 8, 1, 20], activate='relu', stride=[1, 1])
     # print("conv1", conv1)
 
-    pool1 = max_pooling_layer(conv1, pool_size_val=[3, 3], stride_val=[3, 3])
+    pool1 = max_pooling_layer(conv1, pool_size_val=[13, 5], stride_val=[3, 3])
     # print("pool1", pool1)
 
-    conv2 = convolutional_layer_nopadding(pool1, shape=[3, 3, 20, 40], activate='relu', stride=[1, 1])
+    conv2 = convolutional_layer_nopadding(pool1, shape=[13, 5, 20, 40], activate='relu', stride=[1, 1])
     # print("conv2", conv2)
 
-    pool2 = max_pooling_layer(conv2, pool_size_val=[2, 2], stride_val=[2, 2])
+    pool2 = max_pooling_layer(conv2, pool_size_val=[9, 3], stride_val=[2, 2])
 
     return pool2
 
@@ -863,30 +863,25 @@ def part2_grey(input):
     conv322 = convolutional_layer_nopadding(conv31, shape=[13, 4, 40, 20], activate='relu', stride=[1, 1])
 
     #left
-    pool3 = max_pooling_layer(input, pool_size_val=[2, 2], stride_val=[2, 2], pad=True)
+    pool3 = max_pooling_layer(input, pool_size_val=[14, 3], stride_val=[2, 2])
     conv321 = convolutional_layer_nopadding(pool3, shape=[1, 1, 40, 20], activate='relu', stride=[1, 1])
 
     #right
     conv323 = convolutional_layer_nopadding(input, shape=[25, 8, 40, 20], activate='relu', stride=[1, 1])
 
-    # concat
     conc1 = tf.concat([conv321, conv322, conv323], axis=3)
-    print("layers concatenated!")
-    exit()
 
     return conc1
 
 def part3_green(input):
     # left side
-    conv4 = convolutional_layer_nopadding(input, shape=[3, 3, 60, 40], activate='relu', stride=[1, 1])
+    conv4 = convolutional_layer_nopadding(input, shape=[3, 2, 60, 40], activate='relu', stride=[1, 1])
 
     # right side
-    pool4 = max_pooling_layer(input, pool_size_val=[2, 2], stride_val=[1, 1])
-    pool4_sliced = pool4[:,0:-1,0:-1,:]
-    # slice pool4 because according to their chart the output size is supposed to be 3 x 3
+    pool4 = max_pooling_layer(input, pool_size_val=[3, 2], stride_val=[1, 1])
 
     # concatinate
-    conc2 = tf.concat([conv4, pool4_sliced], axis=3)
+    conc2 = tf.concat([conv4, pool4], axis=3)
 
     return conc2
 
@@ -904,7 +899,6 @@ def noise_resistant_phase_retrieval_net(input):
         pool2 = part1_purple(x_image)
 
         conc1 = part2_grey(pool2)
-        exit()
 
         conc2 = part3_green(conc1)
 
