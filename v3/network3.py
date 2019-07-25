@@ -919,9 +919,30 @@ def noise_resistant_phase_retrieval_net(input):
 
         fc5 = tf.layers.dense(inputs=conc3, units=256)
 
-        print("fc5", fc5)
-    exit()
+        # dropout
+        hold_prob = tf.placeholder_with_default(1.0, shape=())
+        dropout_layer = tf.nn.dropout(fc5, keep_prob=hold_prob)
 
+        # output layer
+        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
+        xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
+        ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
+
+        # generate fields from coefficients
+        xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
+        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)
+
+        # generate a label from the complex fields
+        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+
+
+        phase_net_output = {}
+        phase_net_output["xuv_ir_field_label"] = xuv_ir_field_label
+        phase_net_output["ir_E_prop"] = ir_E_prop
+        phase_net_output["xuv_E_prop"] = xuv_E_prop
+        phase_net_output["predicted_coefficients_params"] = predicted_coefficients_params
+
+        return phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred
 
 def phase_retrieval_net(input):
     K_values = phase_parameters.params.K
@@ -1025,7 +1046,6 @@ def setup_neural_net():
 
 
     phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = noise_resistant_phase_retrieval_net(input=x_in)
-    exit()
 
 
     # pass image through phase retrieval network
@@ -1346,20 +1366,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='DDDnormal_notanh2_long_512dense_leaky_activations_hp1_240ksamples_sample4_3_realmeasuredtrace_includetaucf')
+    phase_net_train = PhaseNetTrain(modelname='EEE_sample4_noise_resistant_network_1')
     phase_net_train.supervised_learn()
-
-    # make noise resistant network
-    # image_input = tf.placeholder(shape=(None, 64, 64, 1), dtype=tf.float32)
-
-    # noise_resistant_phase_retrieval_net(image_input)
-
-
-
-
-
-
-
-
-
 
