@@ -859,18 +859,20 @@ def part1_purple(input):
 
 def part2_grey(input):
     # center
-    conv31 = convolutional_layer_nopadding(input, shape=[3, 3, 40, 40], activate='relu', stride=[1, 1])
-    conv322 = convolutional_layer_nopadding(conv31, shape=[3, 3, 40, 20], activate='relu', stride=[1, 1])
+    conv31 = convolutional_layer_nopadding(input, shape=[13, 5, 40, 40], activate='relu', stride=[1, 1])
+    conv322 = convolutional_layer_nopadding(conv31, shape=[13, 4, 40, 20], activate='relu', stride=[1, 1])
 
     #left
     pool3 = max_pooling_layer(input, pool_size_val=[2, 2], stride_val=[2, 2], pad=True)
     conv321 = convolutional_layer_nopadding(pool3, shape=[1, 1, 40, 20], activate='relu', stride=[1, 1])
 
     #right
-    conv323 = convolutional_layer_nopadding(input, shape=[5, 5, 40, 20], activate='relu', stride=[1, 1])
+    conv323 = convolutional_layer_nopadding(input, shape=[25, 8, 40, 20], activate='relu', stride=[1, 1])
 
     # concat
     conc1 = tf.concat([conv321, conv322, conv323], axis=3)
+    print("layers concatenated!")
+    exit()
 
     return conc1
 
@@ -895,6 +897,9 @@ def noise_resistant_phase_retrieval_net(input):
     total_coefs_params_length = int(xuv_phase_coefs + 4)
     with tf.variable_scope("phase"):
         x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
+
+        print("np.shape(x_image)", np.shape(x_image))
+        # x_image = tf.placeholder(shape=(None, 64, 64, 1), dtype=tf.float32)
 
         pool2 = part1_purple(x_image)
 
