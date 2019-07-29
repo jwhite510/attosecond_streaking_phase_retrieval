@@ -906,14 +906,83 @@ def retrieve_measured():
     del unsupervised_retrieval
     tf.reset_default_graph()
 
+def noise_test_initial_only(test_run):
+    data_saver = DataSaverInitOnly(test_run)
+    # calcualte counts for SNR
+    # SNR = sqrt(N)
+    snr_min = np.sqrt(20)  # minimum count level
+    snr_max = np.sqrt(5000)  # maximum count level
+    snr_levels = np.linspace(snr_min, snr_max, 40)
+    counts_list = [int(count) for count in snr_levels**2]
+
+    # overwrite, sample a few counts for bootstrap method
+    # counts_list = [20, 1833]
+
+    for counts in counts_list:
+
+        # ++++++++++Define run name++++++++++
+        run_name = test_run+str(counts)
+
+        # ++++Get the Measured Trace+++++++++
+        measured_trace, measured_trace_phase, fake_axes = get_fake_measured_trace(
+                    counts=counts, plotting=True, run_name=run_name+"_fields"
+        )
+        data_saver.collect_actual_phase_trace(measured_trace, measured_trace_phase, counts)
+
+        # using the supervised learning, retrieval type matches whatever the network was trained on
+        retrieval_type = "normal"
+        # +++++ run unsupervised learning retrieval INITIAL OUTPUT ONLY+++++
+        unsupervised_retrieval_initial = UnsupervisedRetrieval(
+                    run_name=run_name+"_unsupervised_initial_"+retrieval_type, iterations=0,
+                    retrieval=retrieval_type,
+                    modelname="EEE_sample4_noise_resistant_network_1", measured_trace=measured_trace,
+                    use_xuv_initial_output=False
+        )
+        nn_init_result = unsupervised_retrieval_initial.retrieve()
+        plt.close(unsupervised_retrieval_initial.axes["fig"])
+        del unsupervised_retrieval_initial
+        tf.reset_default_graph()
+
+        # add data to collection
+        # save / overwrite the results every time
+        data_saver.collect(
+                    counts=counts,
+                    nn_init=nn_init_result,
+        )
+
+    # close the fake measured trace figure
+    plt.close(fake_axes["fig"])
+
+
+class DataSaverInitOnly():
+    def __init__(self, name):
+        self.data_dict = dict()
+        self.name = name
+        self.data_dict["actual_values"] = dict()
+
+    def collect_actual_phase_trace(self, measured_trace, measured_trace_phase, count_num):
+        self.data_dict["actual_values"]["measured_trace_"+str(count_num)]  = measured_trace
+        self.data_dict["actual_values"]["measured_trace_phase_"+str(count_num)]  = measured_trace_phase
+
+    def collect(self, counts, nn_init):
+
+        if not str(counts) in self.data_dict.keys():
+            self.data_dict[str(counts)] = dict()
+        self.data_dict[str(counts)]["nn_init"] = nn_init
+
+        with open(self.name+".p", "wb") as file:
+            pickle.dump(self.data_dict, file)
 
 
 
 if __name__ == "__main__":
-    pass
+
+    # test retrieval after supervised learning on different noise levels
+    noise_test_initial_only("supervised_learning_noise_test")
+
     ##################################################
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # the phase retrieval plotting is modified, if ran 
+    # the phase retrieval plotting is modified, if ran
     # as main, this will save every retrieval iteration
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ##################################################
