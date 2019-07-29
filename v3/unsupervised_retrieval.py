@@ -130,7 +130,7 @@ class UnsupervisedRetrieval:
         # exit(0)
 
     def retrieve(self):
-        plt.ion()
+        # plt.ion()
         # if taking the initial network output, 
         # show the plot
         if self.iterations == 0:
@@ -409,7 +409,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
             os.makedirs(dir)
         plt.savefig(dir+"actual_fields" + str(counts) + ".png")
 
-    return noisy_trace, phase_curve, axes
+    return noisy_trace, phase_curve, axes, xuv_input
 
 def calc_fwhm(tmat, I_t):
     half_max = np.max(I_t)/2
@@ -973,12 +973,64 @@ class DataSaverInitOnly():
         with open(self.name+".p", "wb") as file:
             pickle.dump(self.data_dict, file)
 
+class SupervisedRetrieval:
+    def __init__(self, model):
+        """
+        a class for taking only the initial output of the neural network, no additional changing the weights
+        """
+        self.modelname = model
+        # build neural net graph
+        self.nn_nodes = network3.setup_neural_net()
+
+        # restore session
+        self.sess = tf.Session()
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, './models/{}.ckpt'.format(self.modelname+'_unsupervised'))
+
+    def retrieve(self, trace):
+
+        self.feed_dict = {self.nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
+        return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"], feed_dict=self.feed_dict)
 
 
 if __name__ == "__main__":
 
     # test retrieval after supervised learning on different noise levels
-    noise_test_initial_only("supervised_learning_noise_test")
+    # noise_test_initial_only("supervised_learning_noise_test")
+    test_run = "noise_test_1"
+
+    snr_min = np.sqrt(20)  # minimum count level
+    snr_max = np.sqrt(5000)  # maximum count level
+    snr_levels = np.linspace(snr_min, snr_max, 40)
+    counts_list = [int(count) for count in snr_levels**2]
+
+    supervised_retrieval = SupervisedRetrieval("EEE_sample4_noise_resistant_network_1")
+    retrieval_data = {}
+    retrieval_data["measured"] = []
+    retrieval_data["retrieved"] = []
+    retrieval_data["count_num"] = []
+    for counts in counts_list:
+
+        run_name = test_run + str(counts)
+
+        # ++++Get the Measured Trace+++++++++
+        measured_trace, measured_trace_phase, fake_axes, xuv_input_coefs = get_fake_measured_trace(
+                    counts=counts, plotting=True, run_name=run_name+"_fields"
+        )
+
+        xuv_retrieved = supervised_retrieval.retrieve(measured_trace)
+        print(counts)
+        print("retrieved xuv")
+        retrieval_data["measured"].append(measured_trace)
+        retrieval_data["retrieved"].append(xuv_retrieved)
+        retrieval_data["count_num"].append(counts)
+
+    print("saving pickle")
+    with open("supervised_retrieval_noise_test.p", "wb") as file:
+        pickle.dump(retrieval_data, file)
+
+
+
 
     ##################################################
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
