@@ -1006,9 +1006,10 @@ if __name__ == "__main__":
 
     supervised_retrieval = SupervisedRetrieval("EEE_sample4_noise_resistant_network_1")
     retrieval_data = {}
-    retrieval_data["measured"] = []
+    retrieval_data["measured_trace"] = []
     retrieval_data["retrieved"] = []
     retrieval_data["count_num"] = []
+    retrieval_data["xuv_input_coefs"] = []
     for counts in counts_list:
 
         run_name = test_run + str(counts)
@@ -1021,9 +1022,10 @@ if __name__ == "__main__":
         xuv_retrieved = supervised_retrieval.retrieve(measured_trace)
         print(counts)
         print("retrieved xuv")
-        retrieval_data["measured"].append(measured_trace)
+        retrieval_data["measured_trace"].append(measured_trace)
         retrieval_data["retrieved"].append(xuv_retrieved)
         retrieval_data["count_num"].append(counts)
+        retrieval_data["xuv_input_coefs"].append(xuv_input_coefs)
 
     print("saving pickle")
     with open("supervised_retrieval_noise_test.p", "wb") as file:
