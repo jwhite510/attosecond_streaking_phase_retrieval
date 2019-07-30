@@ -1,4 +1,5 @@
 import tensorflow as tf
+from xuv_spectrum import spectrum
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -18,18 +19,145 @@ if __name__ == "__main__":
     acutal_xuv = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
     with tf.Session() as sess:
 
+        j = 0
+        fig1 = plt.figure(figsize=(15, 5))
+        fig1.subplots_adjust(left=0.05, right=0.95)
+        gs1 = fig1.add_gridspec(3, 5)
+
+        fig2 = plt.figure(figsize=(15, 5))
+        fig2.subplots_adjust(left=0.05, right=0.95)
+        gs2 = fig2.add_gridspec(3, 5)
+
+        fig3 = plt.figure(figsize=(15, 5))
+        fig3.subplots_adjust(left=0.05, right=0.95)
+        gs3 = fig3.add_gridspec(3, 5)
+
+        fig4 = plt.figure(figsize=(15, 5))
+        fig4.subplots_adjust(left=0.05, right=0.95)
+        gs4 = fig4.add_gridspec(3, 5)
+
         for measured_trace, retrieved, count_num, xuv_input_coefs in zip(obj["measured_trace"], obj["retrieved"], obj["count_num"], obj["xuv_input_coefs"]):
 
             xuv_actual = sess.run(acutal_xuv, feed_dict={xuv_coefs_in:xuv_input_coefs})
 
-            # measured trace
-            measured_trace
-            # retrieved E
-            retrieved
-            # actual E
-            xuv_actual
-            # count number
-            count_num
+            if j < 5:
+                # plot the trace
+                ax = fig1.add_subplot(gs1[0, j])
+                ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace, cmap="jet")
+                ax.set_title("Count Number: {}".format(count_num))
+                if j==0:
+                    ax.set_ylabel("K")
+
+                # plot actual the pulse in time
+                ax = fig1.add_subplot(gs1[1, j])
+                ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if j == 0:
+                    ax.set_ylabel("Actual\nIntensity")
+
+                # plot actual the pulse in time
+                ax = fig1.add_subplot(gs1[2, j])
+                ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_yticks([])
+                ax.set_xlabel("time [as]")
+                if j == 0:
+                    ax.set_ylabel("Retrieved\nIntensity")
+            elif j < 10:
+                # plot the trace
+                ax = fig2.add_subplot(gs2[0, (j-5)])
+                ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace, cmap="jet")
+                ax.set_title("Count Number: {}".format(count_num))
+                if (j-5)==0:
+                    ax.set_ylabel("K")
+
+                # plot actual the pulse in time
+                ax = fig2.add_subplot(gs2[1, (j-5)])
+                ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if (j-5) == 0:
+                    ax.set_ylabel("Actual\nIntensity")
+
+                # plot actual the pulse in time
+                ax = fig2.add_subplot(gs2[2, (j-5)])
+                ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_yticks([])
+                ax.set_xlabel("time [as]")
+                if (j-5) == 0:
+                    ax.set_ylabel("Retrieved\nIntensity")
+            elif j < 15:
+                # plot the trace
+                ax = fig3.add_subplot(gs3[0, (j-10)])
+                ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace, cmap="jet")
+                ax.set_title("Count Number: {}".format(count_num))
+                if (j-10)==0:
+                    ax.set_ylabel("K")
+
+                # plot actual the pulse in time
+                ax = fig3.add_subplot(gs3[1, (j-10)])
+                ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if (j-10) == 0:
+                    ax.set_ylabel("Actual\nIntensity")
+
+                # plot actual the pulse in time
+                ax = fig3.add_subplot(gs3[2, (j-10)])
+                ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_yticks([])
+                ax.set_xlabel("time [as]")
+                if (j-10) == 0:
+                    ax.set_ylabel("Retrieved\nIntensity")
+            elif j < 20:
+                # plot the trace
+                ax = fig4.add_subplot(gs4[0, (j-15)])
+                ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace, cmap="jet")
+                ax.set_title("Count Number: {}".format(count_num))
+                if (j-15)==0:
+                    ax.set_ylabel("K")
+
+                # plot actual the pulse in time
+                ax = fig4.add_subplot(gs4[1, (j-15)])
+                ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                if (j-15) == 0:
+                    ax.set_ylabel("Actual\nIntensity")
+
+                # plot actual the pulse in time
+                ax = fig4.add_subplot(gs4[2, (j-15)])
+                ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
+                ax.set_xlim(-400, 400)
+                ax.set_yticks([])
+                ax.set_xlabel("time [as]")
+                if (j-15) == 0:
+                    ax.set_ylabel("Retrieved\nIntensity")
+
+            # # measured trace
+            # measured_trace
+            # # retrieved E
+            # retrieved
+            # # actual E
+            # xuv_actual
+            # # count number
+            # count_num
 
             # just add plotting
+
+            j+=1
+
+
+        fig1.savefig("./noise_test1.png")
+        fig2.savefig("./noise_test2.png")
+        fig3.savefig("./noise_test3.png")
+        fig4.savefig("./noise_test4.png")
+        plt.show()
 
