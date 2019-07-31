@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import pickle
 import tf_functions
 import phase_parameters
+modelname = "EEE_sample4_noise_resistant_network_2"
 
 
 
 
 if __name__ == "__main__":
 
-    with open("./supervised_retrieval_noise_test.p", "rb") as file:
+    with open(modelname+"_noise_test.p", "rb") as file:
         obj = pickle.load(file)
 
     print("type(obj['retrieved'])", type(obj['retrieved']))
@@ -154,10 +155,9 @@ if __name__ == "__main__":
 
             j+=1
 
-
-        fig1.savefig("./noise_test1.png")
-        fig2.savefig("./noise_test2.png")
-        fig3.savefig("./noise_test3.png")
-        fig4.savefig("./noise_test4.png")
+        fig1.savefig("./"+modelname+"_noise_test1.png")
+        fig2.savefig("./"+modelname+"_noise_test2.png")
+        fig3.savefig("./"+modelname+"_noise_test3.png")
+        fig4.savefig("./"+modelname+"_noise_test4.png")
         plt.show()
 
