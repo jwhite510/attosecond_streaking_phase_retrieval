@@ -7,6 +7,11 @@ import tf_functions
 import phase_parameters
 modelname = "EEE_sample4_noise_resistant_network_2"
 
+def normal_text(ax, pos, text, ha=None):
+    if ha is not None:
+        ax.text(pos[0], pos[1], text, backgroundcolor="cyan", transform=ax.transAxes, ha=ha)
+    else:
+        ax.text(pos[0], pos[1], text, backgroundcolor="cyan", transform=ax.transAxes)
 
 
 
@@ -15,26 +20,25 @@ if __name__ == "__main__":
     with open(modelname+"_noise_test.p", "rb") as file:
         obj = pickle.load(file)
 
-    print("type(obj['retrieved'])", type(obj['retrieved']))
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
     generated_xuv = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
     with tf.Session() as sess:
 
         j = 0
         fig1 = plt.figure(figsize=(15, 5))
-        fig1.subplots_adjust(left=0.05, right=0.95)
+        fig1.subplots_adjust(left=0.05, right=0.95, hspace=0.5)
         gs1 = fig1.add_gridspec(3, 5)
 
         fig2 = plt.figure(figsize=(15, 5))
-        fig2.subplots_adjust(left=0.05, right=0.95)
+        fig2.subplots_adjust(left=0.05, right=0.95, hspace=0.5)
         gs2 = fig2.add_gridspec(3, 5)
 
         fig3 = plt.figure(figsize=(15, 5))
-        fig3.subplots_adjust(left=0.05, right=0.95)
+        fig3.subplots_adjust(left=0.05, right=0.95, hspace=0.5)
         gs3 = fig3.add_gridspec(3, 5)
 
         fig4 = plt.figure(figsize=(15, 5))
-        fig4.subplots_adjust(left=0.05, right=0.95)
+        fig4.subplots_adjust(left=0.05, right=0.95, hspace=0.5)
         gs4 = fig4.add_gridspec(3, 5)
 
         for measured_trace, retrieved_coefs, count_num, xuv_input_coefs in zip(obj["measured_trace"], obj["retrieved_xuv_coefs"], obj["count_num"], obj["xuv_input_coefs"]):
@@ -56,6 +60,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_xticks([])
                 ax.set_yticks([])
+                for k, coef in enumerate(xuv_input_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % xuv_input_coefs[0][k])
                 if j == 0:
                     ax.set_ylabel("Actual\nIntensity")
 
@@ -65,6 +71,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
+                for k, coef in enumerate(retrieved_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % retrieved_coefs[0][k])
                 if j == 0:
                     ax.set_ylabel("Retrieved\nIntensity")
             elif j < 10:
@@ -81,6 +89,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_xticks([])
                 ax.set_yticks([])
+                for k, coef in enumerate(xuv_input_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % xuv_input_coefs[0][k])
                 if (j-5) == 0:
                     ax.set_ylabel("Actual\nIntensity")
 
@@ -90,6 +100,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
+                for k, coef in enumerate(retrieved_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % retrieved_coefs[0][k])
                 if (j-5) == 0:
                     ax.set_ylabel("Retrieved\nIntensity")
             elif j < 15:
@@ -106,6 +118,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_xticks([])
                 ax.set_yticks([])
+                for k, coef in enumerate(xuv_input_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % xuv_input_coefs[0][k])
                 if (j-10) == 0:
                     ax.set_ylabel("Actual\nIntensity")
 
@@ -115,6 +129,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
+                for k, coef in enumerate(retrieved_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % retrieved_coefs[0][k])
                 if (j-10) == 0:
                     ax.set_ylabel("Retrieved\nIntensity")
             elif j < 20:
@@ -131,6 +147,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_xticks([])
                 ax.set_yticks([])
+                for k, coef in enumerate(xuv_input_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % xuv_input_coefs[0][k])
                 if (j-15) == 0:
                     ax.set_ylabel("Actual\nIntensity")
 
@@ -140,6 +158,8 @@ if __name__ == "__main__":
                 ax.set_xlim(-400, 400)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
+                for k, coef in enumerate(retrieved_coefs[0]):
+                    normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % retrieved_coefs[0][k])
                 if (j-15) == 0:
                     ax.set_ylabel("Retrieved\nIntensity")
 
