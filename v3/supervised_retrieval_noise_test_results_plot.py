@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     print("type(obj['retrieved'])", type(obj['retrieved']))
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
-    acutal_xuv = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+    generated_xuv = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
     with tf.Session() as sess:
 
         j = 0
@@ -37,9 +37,10 @@ if __name__ == "__main__":
         fig4.subplots_adjust(left=0.05, right=0.95)
         gs4 = fig4.add_gridspec(3, 5)
 
-        for measured_trace, retrieved, count_num, xuv_input_coefs in zip(obj["measured_trace"], obj["retrieved"], obj["count_num"], obj["xuv_input_coefs"]):
+        for measured_trace, retrieved_coefs, count_num, xuv_input_coefs in zip(obj["measured_trace"], obj["retrieved_xuv_coefs"], obj["count_num"], obj["xuv_input_coefs"]):
 
-            xuv_actual = sess.run(acutal_xuv, feed_dict={xuv_coefs_in:xuv_input_coefs})
+            xuv_actual = sess.run(generated_xuv, feed_dict={xuv_coefs_in:xuv_input_coefs})
+            retrieved = sess.run(generated_xuv, feed_dict={xuv_coefs_in:retrieved_coefs})
 
             if j < 5:
                 # plot the trace

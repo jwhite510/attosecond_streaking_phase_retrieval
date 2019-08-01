@@ -402,7 +402,8 @@ class SupervisedRetrieval:
     def retrieve(self, trace):
 
         self.feed_dict = {self.nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
-        return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"], feed_dict=self.feed_dict)
+        # return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"], feed_dict=self.feed_dict)
+        return self.sess.run(self.nn_nodes["general"]["xuv_coefs_pred"], feed_dict=self.feed_dict)
 
 
 if __name__ == "__main__":
@@ -418,7 +419,7 @@ if __name__ == "__main__":
     supervised_retrieval = SupervisedRetrieval(modelname)
     retrieval_data = {}
     retrieval_data["measured_trace"] = []
-    retrieval_data["retrieved"] = []
+    retrieval_data["retrieved_xuv_coefs"] = []
     retrieval_data["count_num"] = []
     retrieval_data["xuv_input_coefs"] = []
     for counts in counts_list:
@@ -430,11 +431,11 @@ if __name__ == "__main__":
                     counts=counts, plotting=True, run_name=run_name+"_fields"
         )
 
-        xuv_retrieved = supervised_retrieval.retrieve(measured_trace)
+        retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)
         print(counts)
         print("retrieved xuv")
         retrieval_data["measured_trace"].append(measured_trace)
-        retrieval_data["retrieved"].append(xuv_retrieved)
+        retrieval_data["retrieved_xuv_coefs"].append(retrieved_xuv_coefs)
         retrieval_data["count_num"].append(counts)
         retrieval_data["xuv_input_coefs"].append(xuv_input_coefs)
 
