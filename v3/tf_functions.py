@@ -925,10 +925,10 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # ------------gather values from integrated array-------------------
     # ------------------------------------------------------------------
     ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
-    ir_values = tf.expand_dims(ir_values, axis=0)
+    ir_values = tf.expand_dims(tf.expand_dims(ir_values, axis=0), axis=3)
     # for the squared integral
     ir_values_2 = tf.gather(A_t_integ_t_phase_2, delayindexes.astype(np.int))
-    ir_values_2 = tf.expand_dims(ir_values_2, axis=0)
+    ir_values_2 = tf.expand_dims(tf.expand_dims(ir_values_2, axis=0), axis=3)
 
 
 
@@ -938,25 +938,54 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # convert K to atomic units
     K = phase_parameters.params.K * sc.electron_volt  # joules
     K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    K = K.reshape(-1, 1, 1)
-    p = np.sqrt(2 * K).reshape(-1, 1, 1)
+    K = K.reshape(-1, 1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1, 1)
+    theta_max = np.pi # 90 degrees
+    theta_vals = np.linspace(0, theta_max, 10)
+    spec_angle = np.cos(theta_vals).reshape(1, 1, 1, -1)
     # convert to tensorflow
     p_tf = tf.constant(p, dtype=tf.float32)
-    # 3d ir mat
-    p_A_t_integ_t_phase3d = p_tf * ir_values + 0.5 * ir_values_2
+
+    # test
+    # xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    # ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    # gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    # ir_E_prop = ir_from_params(ir_values_in)
+    # with tf.Session() as sess:
+    #     # feed dict to get xuv and ir output
+    #     feed_dict = {ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]]), xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])}
+    #     xuv_cropped_out = sess.run(gen_xuv["f_cropped"], feed_dict=feed_dict)
+    #     ir_cropped_out = sess.run(ir_E_prop["f_cropped"], feed_dict=feed_dict)
+    #     feed_dict = {xuv_cropped_f_in:xuv_cropped_out[0] , ir_cropped_f_in:ir_cropped_out[0]}
+    #     ir_values_out = sess.run(ir_values, feed_dict=feed_dict)
+
+    p_A_t_integ_t_phase3d = spec_angle * p_tf * ir_values + 0.5 * ir_values_2
     ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
     # add fourier transform term
-    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
+    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1, 1))
     e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
     # add xuv to integrate over
-    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1, 1])
     # multiply elements together
+
+    # axes:
+    # (301, 2048, 98)
+    # (K, xuv_time, tau_delay)
+    # --> expand dimmension for angle -->
+    # (301, 2048, 98, ??)
+    # (K, xuv_time, tau_delay, angle)
     product = xuv_time_domain_integrate * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
     image_not_scaled = tf.square(tf.abs(integration))
-    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
+    image_not_scaled = image_not_scaled * np.sin(theta_vals).reshape(1, 1, -1)
+
+    # integrate along the theta axis
+    dtheta = theta_vals[1] - theta_vals[0]
+    theta_integration = dtheta * tf.reduce_sum(image_not_scaled, axis=2)
+
+    scaled = theta_integration - tf.reduce_min(theta_integration)
     image = scaled / tf.reduce_max(scaled)
 
     return image
