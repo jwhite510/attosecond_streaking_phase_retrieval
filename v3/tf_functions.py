@@ -990,6 +990,127 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
     return image
 
+
+
+def streaking_trace_no_angle(xuv_cropped_f_in, ir_cropped_f_in):
+    # this is the second version of streaking trace generator which also includes
+    # the A^2 term in the integral
+
+    # ionization potential
+    Ip = phase_parameters.params.Ip
+
+    #-----------------------------------------------------------------
+    # zero pad the spectrum of ir and xuv input to match the full original f matrices
+    #-----------------------------------------------------------------
+    # [pad_before , padafter]
+    paddings_xuv = tf.constant(
+        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
+    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+    # same for the IR
+    paddings_ir = tf.constant(
+        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
+        dtype=tf.int32)
+    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
+    # fourier transform the padded xuv
+    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
+    # fourier transform the padded ir
+    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
+
+
+    #------------------------------------------------------------------
+    #------ zero pad ir in frequency space to match xuv timestep-------
+    #------------------------------------------------------------------
+    # calculate N required to match timestep
+    N_req = int(1 / (xuv_spectrum.spectrum.dt * ir_spectrum.ir_spectrum.df))
+    # this much needs to be padded to each side
+    pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
+    # pad the IR to match dt of xuv
+    paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
+    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+    # calculate ir with matching dt in time
+    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
+    # match the scale of the original
+    scale_factor = tf.constant(N_req/ ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
+    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+
+    #------------------------------------------------------------------
+    # ---------------------integrate ir pulse--------------------------
+    #------------------------------------------------------------------
+    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+
+    # integrate A_L(t)
+    flipped1 = tf.reverse(A_t, axis=[0])
+    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+    # integrate A_L(t)^2
+    flipped1_2 = tf.reverse(A_t**2, axis=[0])
+    flipped_integral_2 = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1_2, axis=0)
+    A_t_integ_t_phase_2 = tf.reverse(flipped_integral_2, axis=[0])
+
+
+
+    # ------------------------------------------------------------------
+    # ---------------------make ir t axis-------------------------------
+    # ------------------------------------------------------------------
+    ir_taxis = xuv_spectrum.spectrum.dt * np.arange(-N_req/2, N_req/2, 1)
+
+
+
+    # ------------------------------------------------------------------
+    # ---------------------find indexes of tau values-------------------
+    # ------------------------------------------------------------------
+    center_indexes = []
+    delay_vals_au = phase_parameters.params.delay_values/sc.physical_constants['atomic unit of time'][0]
+    for delay_value in delay_vals_au:
+        index = np.argmin(np.abs(delay_value - ir_taxis))
+        center_indexes.append(index)
+    center_indexes = np.array(center_indexes)
+    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - int((xuv_spectrum.spectrum.N/2))
+    delayindexes = center_indexes.reshape(1, -1) + rangevals.reshape(-1, 1)
+
+
+    # ------------------------------------------------------------------
+    # ------------gather values from integrated array-------------------
+    # ------------------------------------------------------------------
+    ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
+    ir_values = tf.expand_dims(ir_values, axis=0)
+    # for the squared integral
+    ir_values_2 = tf.gather(A_t_integ_t_phase_2, delayindexes.astype(np.int))
+    ir_values_2 = tf.expand_dims(ir_values_2, axis=0)
+
+
+
+    #------------------------------------------------------------------
+    #-------------------construct streaking trace----------------------
+    #------------------------------------------------------------------
+    # convert K to atomic units
+    K = phase_parameters.params.K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    K = K.reshape(-1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1)
+    # convert to tensorflow
+    p_tf = tf.constant(p, dtype=tf.float32)
+    # 3d ir mat
+    p_A_t_integ_t_phase3d = p_tf * ir_values + 0.5 * ir_values_2
+    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+    # add fourier transform term
+    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+    # add xuv to integrate over
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
+    # multiply elements together
+    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+    # integrate over the xuv time
+    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+    # absolute square the matrix
+    image_not_scaled = tf.square(tf.abs(integration))
+    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
+    image = scaled / tf.reduce_max(scaled)
+
+    return image
+
 def phase_rmse_error_test():
     # calculate transform limited trace
     # view generated xuv pulse
