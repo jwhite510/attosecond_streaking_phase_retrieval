@@ -841,7 +841,7 @@ def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in, Beta_in):
 
     # this is the second version of streaking trace generator which also includes
     # the A^2 term in the integral
@@ -975,7 +975,12 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in):
     # --> expand dimmension for angle -->
     # (301, 2048, 98, ??)
     # (K, xuv_time, tau_delay, angle)
-    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
+    # angular distribution term calculated from equation
+    angular_distribution = 1 + (Beta_in / 2)  * (3 * (tf.cos(angle_in))**2 - 1)
+    angular_distribution = tf.reshape(angular_distribution, [1, 1, 1, -1])
+    angular_distribution = tf.complex(imag=tf.zeros_like(angular_distribution), real=angular_distribution)
+
+    product = angular_distribution * xuv_time_domain_integrate * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
@@ -1221,8 +1226,8 @@ if __name__ == "__main__":
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
     angle_in = tf.placeholder(tf.float32, shape=[10])
-
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in)
+    Beta = 1
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in, Beta_in=Beta)
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1245,7 +1250,7 @@ if __name__ == "__main__":
             plt.figure(j+2)
             plt.title(r"$\theta_{max}$: " + "%.4f" % (theta_max*(180/np.pi)) + " Degrees")
             plt.pcolormesh(out, cmap="jet")
-            plt.savefig(str(j+2)+"_angletrace.png")
+            plt.savefig(str(j+2)+"_angletrace_beta2.png")
             # plt.savefig("./A123_long.png")
         plt.show()
 
