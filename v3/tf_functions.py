@@ -841,7 +841,7 @@ def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in):
 
     # this is the second version of streaking trace generator which also includes
     # the A^2 term in the integral
@@ -940,9 +940,10 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
     K = K.reshape(-1, 1, 1, 1)
     p = np.sqrt(2 * K).reshape(-1, 1, 1, 1)
-    theta_max = np.pi # 90 degrees
-    theta_vals = np.linspace(0, theta_max, 10)
-    spec_angle = np.cos(theta_vals).reshape(1, 1, 1, -1)
+    # theta_max = np.pi # 90 degrees
+    # angle_in = np.linspace(0, theta_max, 10)
+
+    spec_angle = tf.reshape(tf.cos(angle_in), [1, 1, 1, -1])
     # convert to tensorflow
     p_tf = tf.constant(p, dtype=tf.float32)
 
@@ -979,10 +980,10 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
     image_not_scaled = tf.square(tf.abs(integration))
-    image_not_scaled = image_not_scaled * np.sin(theta_vals).reshape(1, 1, -1)
+    image_not_scaled = image_not_scaled * tf.reshape(tf.sin(angle_in), [1, 1, -1])
 
     # integrate along the theta axis
-    dtheta = theta_vals[1] - theta_vals[0]
+    dtheta = angle_in[1] - angle_in[0]
     theta_integration = dtheta * tf.reduce_sum(image_not_scaled, axis=2)
 
     scaled = theta_integration - tf.reduce_min(theta_integration)
@@ -1211,10 +1212,7 @@ def phase_rmse_error_test():
 
 
 if __name__ == "__main__":
-    phase_rmse_error_test()
-
-
-
+    # phase_rmse_error_test()
 
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
@@ -1222,20 +1220,16 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
+    angle_in = tf.placeholder(tf.float32, shape=[10])
 
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in)
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-            xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-
-            ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
-
-            # ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
-
-            # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
-            # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
+            xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]]),
             }
+
     with tf.Session() as sess:
         out = sess.run(gen_xuv, feed_dict=feed_dict)
         xuv_t = out['t'][0]
@@ -1244,12 +1238,15 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
 
-        out = sess.run(image, feed_dict=feed_dict)
-        plt.figure(2)
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
-        # print("BREAKPOINT")
-        plt.pcolormesh(out)
-        # plt.savefig("./A123_long.png")
+        # theta_max = np.pi/2 # 90 degrees
+        for j, theta_max in enumerate(np.linspace(0.1, np.pi, 5)):
+            feed_dict[angle_in] = np.linspace(0, theta_max, 10)
+            out = sess.run(image, feed_dict=feed_dict)
+            plt.figure(j+2)
+            plt.title(r"$\theta_{max}$: " + "%.4f" % (theta_max*(180/np.pi)) + " Degrees")
+            plt.pcolormesh(out, cmap="jet")
+            plt.savefig(str(j+2)+"_angletrace.png")
+            # plt.savefig("./A123_long.png")
         plt.show()
 
 
