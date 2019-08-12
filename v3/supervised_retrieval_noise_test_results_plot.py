@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import pickle
 import tf_functions
 import phase_parameters
-modelname = "EEE_sample4_noise_resistant_network_2"
+import sys
+modelname = sys.argv[1]
+# modelname = "DDD3normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_multires_stride"
 
 def normal_text(ax, pos, text, ha=None):
     if ha is not None:
@@ -57,7 +59,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig1.add_subplot(gs1[1, j])
                 ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 for k, coef in enumerate(xuv_input_coefs[0]):
@@ -68,7 +70,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig1.add_subplot(gs1[2, j])
                 ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
                 for k, coef in enumerate(retrieved_coefs[0]):
@@ -86,7 +88,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig2.add_subplot(gs2[1, (j-5)])
                 ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 for k, coef in enumerate(xuv_input_coefs[0]):
@@ -97,7 +99,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig2.add_subplot(gs2[2, (j-5)])
                 ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
                 for k, coef in enumerate(retrieved_coefs[0]):
@@ -115,7 +117,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig3.add_subplot(gs3[1, (j-10)])
                 ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 for k, coef in enumerate(xuv_input_coefs[0]):
@@ -126,7 +128,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig3.add_subplot(gs3[2, (j-10)])
                 ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
                 for k, coef in enumerate(retrieved_coefs[0]):
@@ -144,7 +146,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig4.add_subplot(gs4[1, (j-15)])
                 ax.plot(spectrum.tmat_as, np.abs(xuv_actual["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 for k, coef in enumerate(xuv_input_coefs[0]):
@@ -155,7 +157,7 @@ if __name__ == "__main__":
                 # plot actual the pulse in time
                 ax = fig4.add_subplot(gs4[2, (j-15)])
                 ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
-                ax.set_xlim(-400, 400)
+                ax.set_xlim(-800, 800)
                 ax.set_yticks([])
                 ax.set_xlabel("time [as]")
                 for k, coef in enumerate(retrieved_coefs[0]):
@@ -176,9 +178,9 @@ if __name__ == "__main__":
 
             j+=1
 
-        fig1.savefig("./"+modelname+"_noise_test1.png")
-        fig2.savefig("./"+modelname+"_noise_test2.png")
-        fig3.savefig("./"+modelname+"_noise_test3.png")
-        fig4.savefig("./"+modelname+"_noise_test4.png")
-        plt.show()
+        fig1.savefig("./8_8_19_redo_2/"+modelname+"_noise_test1.png")
+        fig2.savefig("./8_8_19_redo_2/"+modelname+"_noise_test2.png")
+        fig3.savefig("./8_8_19_redo_2/"+modelname+"_noise_test3.png")
+        fig4.savefig("./8_8_19_redo_2/"+modelname+"_noise_test4.png")
+        # plt.show()
 

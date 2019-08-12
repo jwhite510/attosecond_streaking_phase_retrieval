@@ -7,7 +7,9 @@ from xuv_spectrum import spectrum
 import matplotlib.pyplot as plt
 import numpy as np
 import tf_functions
-modelname = "EEE_sample4_noise_resistant_network_2"
+import sys
+modelname = sys.argv[1]
+# modelname = "DDD3normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_multires_stride"
 test_run = "noise_test_1"
 import importlib
 from phase_parameters import params
@@ -325,7 +327,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     tf_graphs["proof_trace"] = proof_trace
     tf_graphs["autocorelation"] = autocorelation
 
-    xuv_input = np.array([[0.0, 0.0, 0.7, 0.0, 0.0]])
+    xuv_input = np.array([[0.0, -0.1, 0.2, 0.2, 0.0]])
     ir_input = np.array([[0.0, 0.0, 0.0, 0.0]])
 
     with tf.Session() as sess:

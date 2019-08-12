@@ -1,0 +1,23 @@
+#!/bin/bash
+name=DDD2normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_realmeasuredtrace_includetaucf
+python supervised_retrieval.py $name
+python supervised_retrieval_noise_test_results_plot.py $name
+
+name=DDD2normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_2_realmeasuredtrace_includetaucf
+python supervised_retrieval.py $name
+python supervised_retrieval_noise_test_results_plot.py $name
+
+name=DDD3normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_multires_stride
+python supervised_retrieval.py $name
+python supervised_retrieval_noise_test_results_plot.py $name
+
+
+name=HHH_sample4_noise_resistant_network_1_real
+python supervised_retrieval.py $name
+python supervised_retrieval_noise_test_results_plot.py $name
+
+
+name=HHH_sample4_noise_resistant_network_2_real
+python supervised_retrieval.py $name
+python supervised_retrieval_noise_test_results_plot.py $name
+

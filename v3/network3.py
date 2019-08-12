@@ -1049,7 +1049,7 @@ def setup_neural_net():
 
 
     # pass image through phase retrieval network
-    phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = phase_retrieval_net(input=x_in)
+    # phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = phase_retrieval_net(input=x_in)
 
 
     # create label for supervised learning
@@ -1366,6 +1366,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='EEE_sample4_noise_resistant_network_1')
+    phase_net_train = PhaseNetTrain(modelname='HHH_sample4_noise_resistant_network_2_real')
     phase_net_train.supervised_learn()
 
