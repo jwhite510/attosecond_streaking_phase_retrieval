@@ -542,6 +542,7 @@ def convert_ir_params(ir_params):
     # "phase", "clambda", "pulseduration", "I"
     # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
     phase_tens = tf.cos(ir_values_scaled["phase"]) # take the cosine of the angle
+    phase_tens = tf.reshape(phase_tens, [-1, 1])
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
 
