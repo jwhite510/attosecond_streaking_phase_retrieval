@@ -1187,7 +1187,16 @@ def setup_neural_net():
 
         # add extra term for the cos of phase term
         if key == "phase":
-            ir_loss_individual["phase_cos"] = tf.losses.mean_squared_error(
+
+            phase_pred = tf_functions.ir_from_params(ir_params_pred)["scaled_values"]["phase"]
+            phase_true = tf_functions.ir_from_params(supervised_label_fields["ir_params_actual"])["scaled_values"]["phase"]
+
+            ir_loss_individual["phase_cos_rad"] = tf.losses.mean_squared_error(
+                labels=tf.cos(phase_true),
+                predictions=tf.cos(phase_pred))
+
+            # this is the old cost function that doesnt make any sense
+            ir_loss_individual["phase_cos_old"] = tf.losses.mean_squared_error(
                 labels=tf.cos(supervised_label_fields["ir_params_actual"][:,i]),
                 predictions=tf.cos(ir_params_pred[:,i]))
 
@@ -1378,6 +1387,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='JJJ_sample4_noise_resistant_network_cosphase_cosplot')
+    phase_net_train = PhaseNetTrain(modelname='HHH_sample4_noise_resistant_network_cosphase_cosplot_cosradians')
     phase_net_train.supervised_learn()
 
