@@ -534,10 +534,14 @@ def convert_ir_params(ir_params):
     the variables which are changing, the phase
     and the intensity
     """
+    # convert network output to theta
+    ir_values_scaled = tf_functions.ir_from_params(ir_params)["scaled_values"]
+    # ir_values_scaled["phase"] # radians
+
     # index:
     # "phase", "clambda", "pulseduration", "I"
-    phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
-    phase_tens = tf.cos(phase_tens)
+    # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
+    phase_tens = tf.cos(ir_values_scaled["phase"]) # take the cosine of the angle
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
 
@@ -563,7 +567,7 @@ def create_fields_label_from_coefs_params(actual_coefs_params):
     xuv_coefs_actual = actual_coefs_params[:, 0:phase_parameters.params.xuv_phase_coefs]
     ir_params_actual = actual_coefs_params[:, phase_parameters.params.xuv_phase_coefs:]
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_actual)
-    ir_E_prop = tf_functions.ir_from_params(ir_params_actual)
+    ir_E_prop = tf_functions.ir_from_params(ir_params_actual)["E_prop"]
     xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
 
     fields = {}
@@ -830,7 +834,7 @@ def gan_network(input):
 
         # generate complex fields from these coefs
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_normalized)
-        ir_E_prop = tf_functions.ir_from_params(ir_out)
+        ir_E_prop = tf_functions.ir_from_params(ir_out)["E_prop"]
 
         # concat these vectors to make a label
         xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
@@ -931,7 +935,7 @@ def noise_resistant_phase_retrieval_net(input):
 
         # generate fields from coefficients
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
-        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)
+        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)["E_prop"]
 
         # generate a label from the complex fields
         xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
@@ -1005,7 +1009,7 @@ def phase_retrieval_net(input):
 
         # generate fields from coefficients
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
-        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)
+        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)["E_prop"]
 
         # generate a label from the complex fields
         xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])

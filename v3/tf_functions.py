@@ -24,7 +24,7 @@ class TestGraphs:
         self.xuv_E_prop = xuv_taylor_to_E(self.xuv_coefs_in)
 
         self.ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-        self.ir_E_prop = ir_from_params(self.ir_values_in)
+        self.ir_E_prop = ir_from_params(self.ir_values_in)["E_prop"]
         # image1, _ = streaking_trace_old(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
         # construct streaking image
         self.image2 = streaking_traceA(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
@@ -567,7 +567,11 @@ def ir_from_params(ir_param_values):
     E_prop["f_cropped"] = Ef_phase_cropped
     E_prop["t"] = Et_phase
 
-    return E_prop
+    out = {}
+    out["scaled_values"] = scaled_tf_values
+    out["E_prop"] = E_prop
+
+    return out
 
 
 def streaking_trace_old(xuv_cropped_f_in, ir_cropped_f_in):
@@ -968,7 +972,7 @@ def phase_rmse_error_test():
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
-    ir_E_prop = ir_from_params(ir_values_in)
+    ir_E_prop = ir_from_params(ir_values_in)["E_prop"]
 
     image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
@@ -1061,7 +1065,7 @@ def phase_rmse_error_test():
 
 
 if __name__ == "__main__":
-    phase_rmse_error_test()
+    # phase_rmse_error_test()
 
 
 
@@ -1073,7 +1077,7 @@ if __name__ == "__main__":
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
 
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["E_prop"]["f_cropped"][0])
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1086,6 +1090,51 @@ if __name__ == "__main__":
             # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
             # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
             }
+
+    with tf.Session() as sess:
+
+
+
+        # feed_dict = {
+                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+                    # ir_values_in:np.array([[-1.0, 0.0, 1.0, 0.0]])
+                    # }
+        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
+        # print("out['phase']", out['phase'])
+
+
+        # feed_dict = {
+                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+                    # ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
+                    # }
+        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
+        # print("out['phase']", out['phase'])
+
+
+        # feed_dict = {
+                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+                    # ir_values_in:np.array([[1.0, 0.0, 1.0, 0.0]])
+                    # }
+        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
+        # print("out['phase']", out['phase'])
+
+
+        feed_dict = {
+                    xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
+                    ir_values_in:np.array([[0.5, 0.0, 1.0, 0.0]])
+                    }
+        out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
+        print("out['phase']", out['phase'])
+
+
+        import ipdb; ipdb.set_trace() # BREAKPOINT
+        print("BREAKPOINT")
+
+
+
+
+
+
     with tf.Session() as sess:
         out = sess.run(gen_xuv, feed_dict=feed_dict)
         xuv_t = out['t'][0]
