@@ -537,6 +537,7 @@ def convert_ir_params(ir_params):
     # index:
     # "phase", "clambda", "pulseduration", "I"
     phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
+    phase_tens = tf.cos(phase_tens)
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
 
@@ -1179,6 +1180,13 @@ def setup_neural_net():
         ir_param_loss = tf.losses.mean_squared_error(
                 labels=supervised_label_fields["ir_params_actual"][:,i],
                 predictions=ir_params_pred[:,i])
+
+        # add extra term for the cos of phase term
+        if key == "phase":
+            ir_loss_individual["phase_cos"] = tf.losses.mean_squared_error(
+                labels=tf.cos(supervised_label_fields["ir_params_actual"][:,i]),
+                predictions=tf.cos(ir_params_pred[:,i]))
+
         ir_loss_individual[key] = ir_param_loss
 
 
@@ -1366,6 +1374,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='HHH_sample4_noise_resistant_network_2_real')
+    phase_net_train = PhaseNetTrain(modelname='JJJ_sample4_noise_resistant_network_cosphase_cosplot')
     phase_net_train.supervised_learn()
 
