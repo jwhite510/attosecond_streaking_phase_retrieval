@@ -473,7 +473,7 @@ class GetData():
         self.test_filename = 'test3.hdf5'
 
         hdf5_file = tables.open_file(self.train_filename, mode="r")
-        attstraces = hdf5_file.root.trace[:, :]
+        attstraces = hdf5_file.root.noise_trace[:, :]
         self.samples = np.shape(attstraces)[0]
 
         hdf5_file.close()

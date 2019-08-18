@@ -149,7 +149,7 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
     # create hdf5 file
     with tables.open_file(filename, mode='w') as hd5file:
         # create array for trace
-        hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, num_E * num_tau))
+        # hd5file.create_earray(hd5file.root, 'trace', tables.Float64Atom(), shape=(0, num_E * num_tau))
 
         # noise trace
         hd5file.create_earray(hd5file.root, 'noise_trace', tables.Float64Atom(),shape=(0, num_E * num_tau))
@@ -161,7 +161,7 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
         hd5file.create_earray(hd5file.root, 'ir_params', tables.Float64Atom(), shape=(0, 4))
 
         # proof trace
-        hd5file.create_earray(hd5file.root, 'proof_trace_noise', tables.Float64Atom(),shape=(0, num_E * num_tau))
+        # hd5file.create_earray(hd5file.root, 'proof_trace_noise', tables.Float64Atom(),shape=(0, num_E * num_tau))
 
 
         hd5file.close()
@@ -220,25 +220,27 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
                                                                 tf_graphs["ir_values_in"]: ir_values_in})
 
             # add noise to trace
-            noise_trace = add_shot_noise(trace)
+            # set the maximum counts for the image
+            counts_min, counts_max = 25, 200
+            # maximum counts between two values
+            counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
 
-            # create a proof trace of the noise trace
-            proof_trace_gen = sess.run(tf_graphs["proof_trace"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
+            for counts_val in np.linspace(counts_min, counts_max, 10):
 
-            # append data sample
-            hd5file.root.proof_trace_noise.append(proof_trace_gen.reshape(1, -1))
-            hd5file.root.trace.append(trace.reshape(1, -1))
-            hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
-            hd5file.root.xuv_coefs.append(xuv_coefs_in.reshape(1, -1))
-            hd5file.root.ir_params.append(ir_values_in.reshape(1, -1))
+                counts_val = np.round(counts_val)
+                noise_trace = add_shot_noise(trace, counts_val)
+
+                # create a proof trace of the noise trace
+                # proof_trace_gen = sess.run(tf_graphs["proof_trace"], feed_dict={tf_graphs["image_noisy_placeholder"]:noise_trace})
+                # append data sample
+                # hd5file.root.proof_trace_noise.append(proof_trace_gen.reshape(1, -1))
+                # hd5file.root.trace.append(trace.reshape(1, -1))
+                hd5file.root.noise_trace.append(noise_trace.reshape(1, -1))
+                hd5file.root.xuv_coefs.append(xuv_coefs_in.reshape(1, -1))
+                hd5file.root.ir_params.append(ir_values_in.reshape(1, -1))
 
 
-def add_shot_noise(trace_sample):
-
-    # set the maximum counts for the image
-    counts_min, counts_max = 50, 200
-    # maximum counts between two values
-    counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
+def add_shot_noise(trace_sample, counts):
 
     discrete_trace = np.round(trace_sample*counts)
 
