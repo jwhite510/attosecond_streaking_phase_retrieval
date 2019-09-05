@@ -845,8 +845,164 @@ def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in, Beta_in):
 
+    # this is the second version of streaking trace generator which also includes
+    # the A^2 term in the integral
+
+    # ionization potential
+    Ip = phase_parameters.params.Ip
+
+    #-----------------------------------------------------------------
+    # zero pad the spectrum of ir and xuv input to match the full original f matrices
+    #-----------------------------------------------------------------
+    # [pad_before , padafter]
+    paddings_xuv = tf.constant(
+        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
+    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+    # same for the IR
+    paddings_ir = tf.constant(
+        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
+        dtype=tf.int32)
+    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
+    # fourier transform the padded xuv
+    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
+    # fourier transform the padded ir
+    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
+
+
+    #------------------------------------------------------------------
+    #------ zero pad ir in frequency space to match xuv timestep-------
+    #------------------------------------------------------------------
+    # calculate N required to match timestep
+    N_req = int(1 / (xuv_spectrum.spectrum.dt * ir_spectrum.ir_spectrum.df))
+    # this much needs to be padded to each side
+    pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
+    # pad the IR to match dt of xuv
+    paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
+    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+    # calculate ir with matching dt in time
+    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
+    # match the scale of the original
+    scale_factor = tf.constant(N_req/ ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
+    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
+
+
+    #------------------------------------------------------------------
+    # ---------------------integrate ir pulse--------------------------
+    #------------------------------------------------------------------
+    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
+
+    # integrate A_L(t)
+    flipped1 = tf.reverse(A_t, axis=[0])
+    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
+    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
+
+    # integrate A_L(t)^2
+    flipped1_2 = tf.reverse(A_t**2, axis=[0])
+    flipped_integral_2 = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1_2, axis=0)
+    A_t_integ_t_phase_2 = tf.reverse(flipped_integral_2, axis=[0])
+
+
+
+    # ------------------------------------------------------------------
+    # ---------------------make ir t axis-------------------------------
+    # ------------------------------------------------------------------
+    ir_taxis = xuv_spectrum.spectrum.dt * np.arange(-N_req/2, N_req/2, 1)
+
+
+
+    # ------------------------------------------------------------------
+    # ---------------------find indexes of tau values-------------------
+    # ------------------------------------------------------------------
+    center_indexes = []
+    delay_vals_au = phase_parameters.params.delay_values/sc.physical_constants['atomic unit of time'][0]
+    for delay_value in delay_vals_au:
+        index = np.argmin(np.abs(delay_value - ir_taxis))
+        center_indexes.append(index)
+    center_indexes = np.array(center_indexes)
+    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - int((xuv_spectrum.spectrum.N/2))
+    delayindexes = center_indexes.reshape(1, -1) + rangevals.reshape(-1, 1)
+
+
+    # ------------------------------------------------------------------
+    # ------------gather values from integrated array-------------------
+    # ------------------------------------------------------------------
+    ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
+    ir_values = tf.expand_dims(tf.expand_dims(ir_values, axis=0), axis=3)
+    # for the squared integral
+    ir_values_2 = tf.gather(A_t_integ_t_phase_2, delayindexes.astype(np.int))
+    ir_values_2 = tf.expand_dims(tf.expand_dims(ir_values_2, axis=0), axis=3)
+
+
+
+    #------------------------------------------------------------------
+    #-------------------construct streaking trace----------------------
+    #------------------------------------------------------------------
+    # convert K to atomic units
+    K = phase_parameters.params.K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    K = K.reshape(-1, 1, 1, 1)
+    p = np.sqrt(2 * K).reshape(-1, 1, 1, 1)
+    # theta_max = np.pi # 90 degrees
+    # angle_in = np.linspace(0, theta_max, 10)
+
+    spec_angle = tf.reshape(tf.cos(angle_in), [1, 1, 1, -1])
+    # convert to tensorflow
+    p_tf = tf.constant(p, dtype=tf.float32)
+
+    # test
+    # xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    # ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
+    # gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    # ir_E_prop = ir_from_params(ir_values_in)
+    # with tf.Session() as sess:
+    #     # feed dict to get xuv and ir output
+    #     feed_dict = {ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]]), xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])}
+    #     xuv_cropped_out = sess.run(gen_xuv["f_cropped"], feed_dict=feed_dict)
+    #     ir_cropped_out = sess.run(ir_E_prop["f_cropped"], feed_dict=feed_dict)
+    #     feed_dict = {xuv_cropped_f_in:xuv_cropped_out[0] , ir_cropped_f_in:ir_cropped_out[0]}
+    #     ir_values_out = sess.run(ir_values, feed_dict=feed_dict)
+
+    p_A_t_integ_t_phase3d = spec_angle * p_tf * ir_values + 0.5 * ir_values_2
+    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
+    # add fourier transform term
+    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1, 1))
+    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
+    # add xuv to integrate over
+    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1, 1])
+    # multiply elements together
+
+    # axes:
+    # (301, 2048, 98)
+    # (K, xuv_time, tau_delay)
+    # --> expand dimmension for angle -->
+    # (301, 2048, 98, ??)
+    # (K, xuv_time, tau_delay, angle)
+    # angular distribution term calculated from equation
+    angular_distribution = 1 + (Beta_in / 2)  * (3 * (tf.cos(angle_in))**2 - 1)
+    angular_distribution = tf.reshape(angular_distribution, [1, 1, 1, -1])
+    angular_distribution = tf.complex(imag=tf.zeros_like(angular_distribution), real=angular_distribution)
+
+    product = angular_distribution * xuv_time_domain_integrate * ir_phi * e_fft_tf
+    # integrate over the xuv time
+    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
+    # absolute square the matrix
+    image_not_scaled = tf.square(tf.abs(integration))
+    image_not_scaled = image_not_scaled * tf.reshape(tf.sin(angle_in), [1, 1, -1])
+
+    # integrate along the theta axis
+    dtheta = angle_in[1] - angle_in[0]
+    theta_integration = dtheta * tf.reduce_sum(image_not_scaled, axis=2)
+
+    scaled = theta_integration - tf.reduce_min(theta_integration)
+    image = scaled / tf.reduce_max(scaled)
+
+    return image
+
+
+
+def streaking_trace_no_angle(xuv_cropped_f_in, ir_cropped_f_in):
     # this is the second version of streaking trace generator which also includes
     # the A^2 term in the integral
 
@@ -1065,10 +1221,7 @@ def phase_rmse_error_test():
 
 
 if __name__ == "__main__":
-    # phase_rmse_error_test()
-
-
-
+   # phase_rmse_error_test()
 
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
@@ -1076,64 +1229,15 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
-
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["E_prop"]["f_cropped"][0])
+    angle_in = tf.placeholder(tf.float32, shape=[10])
+    Beta = 1
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in, Beta_in=Beta)
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-            xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-
-            ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
-
-            # ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
-
-            # xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
-            # xuv_coefs:np.array([[0.0, 0.0, 1.0, 0.0, 0.0]])
+            xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]]),
             }
-
-    with tf.Session() as sess:
-
-
-
-        # feed_dict = {
-                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                    # ir_values_in:np.array([[-1.0, 0.0, 1.0, 0.0]])
-                    # }
-        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
-        # print("out['phase']", out['phase'])
-
-
-        # feed_dict = {
-                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                    # ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
-                    # }
-        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
-        # print("out['phase']", out['phase'])
-
-
-        # feed_dict = {
-                    # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                    # ir_values_in:np.array([[1.0, 0.0, 1.0, 0.0]])
-                    # }
-        # out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
-        # print("out['phase']", out['phase'])
-
-
-        feed_dict = {
-                    xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                    ir_values_in:np.array([[0.5, 0.0, 1.0, 0.0]])
-                    }
-        out = sess.run(ir_E_prop["scaled_values"], feed_dict=feed_dict)
-        print("out['phase']", out['phase'])
-
-
-        import ipdb; ipdb.set_trace() # BREAKPOINT
-        print("BREAKPOINT")
-
-
-
-
-
 
     with tf.Session() as sess:
         out = sess.run(gen_xuv, feed_dict=feed_dict)
@@ -1143,13 +1247,13 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
 
-        out = sess.run(image, feed_dict=feed_dict)
-        plt.figure(2)
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
-        # print("BREAKPOINT")
-        plt.pcolormesh(out)
-        # plt.savefig("./A123_long.png")
+        # theta_max = np.pi/2 # 90 degrees
+        for j, theta_max in enumerate(np.linspace(0.1, np.pi, 5)):
+            feed_dict[angle_in] = np.linspace(0, theta_max, 10)
+            out = sess.run(image, feed_dict=feed_dict)
+            plt.figure(j+2)
+            plt.title(r"$\theta_{max}$: " + "%.4f" % (theta_max*(180/np.pi)) + " Degrees")
+            plt.pcolormesh(out, cmap="jet")
+            plt.savefig(str(j+2)+"_angletrace_beta2.png")
+            # plt.savefig("./A123_long.png")
         plt.show()
-
-
-
