@@ -845,7 +845,15 @@ def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in, angle_in, Beta_in):
+def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
+
+
+    # define the angle for streaking trace collection
+    theta_max = np.pi/2
+    N_theta = 10
+    angle_in = tf.constant(np.linspace(0, theta_max, N_theta), dtype=tf.float32)
+    Beta_in =  1
+
 
     # this is the second version of streaking trace generator which also includes
     # the A^2 term in the integral
