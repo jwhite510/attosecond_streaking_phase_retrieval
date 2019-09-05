@@ -223,9 +223,9 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
             # set the maximum counts for the image
             counts_min, counts_max = 25, 200
             # maximum counts between two values
-            counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
+            # counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
 
-            for counts_val in np.linspace(counts_min, counts_max, 10):
+            for counts_val in np.linspace(counts_min, counts_max, 5):
 
                 counts_val = np.round(counts_val)
                 noise_trace = add_shot_noise(trace, counts_val)
@@ -287,7 +287,7 @@ if __name__ == "__main__":
     with tf.Session() as sess:
 
 
-        generate_samples(tf_graphs=tf_graphs, n_samples=12800,
+        generate_samples(tf_graphs=tf_graphs, n_samples=64000,
                          filename="train3.hdf5",
                          xuv_coefs=phase_parameters.params.xuv_phase_coefs, sess=sess, axis=ax)
 

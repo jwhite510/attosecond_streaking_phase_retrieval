@@ -416,7 +416,7 @@ if __name__ == "__main__":
     snr_min = np.sqrt(20)  # minimum count level
     snr_max = np.sqrt(5000)  # maximum count level
     snr_levels = np.linspace(snr_min, snr_max, 40)
-    counts_list = [int(count) for count in snr_levels**2]
+    # counts_list = [int(count) for count in snr_levels**2]
 
     supervised_retrieval = SupervisedRetrieval(modelname)
     retrieval_data = {}
@@ -424,17 +424,35 @@ if __name__ == "__main__":
     retrieval_data["retrieved_xuv_coefs"] = []
     retrieval_data["count_num"] = []
     retrieval_data["xuv_input_coefs"] = []
-    for counts in counts_list:
 
-        run_name = test_run + str(counts)
+    # for counts in counts_list:
+    # make the same as in the generated data set
+    counts_min, counts_max = 25, 200
 
-        # ++++Get the Measured Trace+++++++++
-        measured_trace, measured_trace_phase, fake_axes, xuv_input_coefs = get_fake_measured_trace(
-                    counts=counts, plotting=True, run_name=run_name+"_fields"
-        )
+    # get traces from validations set
+    get_data = network3.GetData(batch_size=10)
+    batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
+
+    # just the xuv coefficients
+    xuv_coefs_actual = batch_y_test[:,0:5]
+
+    # for counts in np.linspace(counts_min, counts_max, 5):
+    index_min = 25
+    index_max = 30
+    # this is from generate_data3.py line 224
+    counts_min, counts_max = 25, 200
+    counts_values = np.linspace(counts_min, counts_max, 5)
+    for trace, xuv_coefs, counts in zip(batch_x_test[index_min:index_max], xuv_coefs_actual[index_min:index_max], counts_values):
+
+        K_values = params.K
+        tau_values = params.delay_values
+        measured_trace = trace.reshape(len(K_values), len(tau_values))
+        xuv_input_coefs = xuv_coefs.reshape(1, -1)
+        # run_name = test_run + str(counts)
+
 
         retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)
-        print(counts)
+        # print(counts)
         print("retrieved xuv")
         retrieval_data["measured_trace"].append(measured_trace)
         retrieval_data["retrieved_xuv_coefs"].append(retrieved_xuv_coefs)

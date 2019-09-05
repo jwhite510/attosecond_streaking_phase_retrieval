@@ -178,9 +178,9 @@ if __name__ == "__main__":
 
             j+=1
 
-        fig1.savefig("./8_8_19_redo_2/"+modelname+"_noise_test1.png")
-        fig2.savefig("./8_8_19_redo_2/"+modelname+"_noise_test2.png")
-        fig3.savefig("./8_8_19_redo_2/"+modelname+"_noise_test3.png")
-        fig4.savefig("./8_8_19_redo_2/"+modelname+"_noise_test4.png")
+        fig1.savefig("./8_23_19/"+modelname+"_noise_test1f.png")
+        fig2.savefig("./8_23_19/"+modelname+"_noise_test2f.png")
+        fig3.savefig("./8_23_19/"+modelname+"_noise_test3f.png")
+        fig4.savefig("./8_23_19/"+modelname+"_noise_test4f.png")
         # plt.show()
 
