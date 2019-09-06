@@ -7,6 +7,7 @@ import tf_functions
 import phase_parameters
 import sys
 modelname = sys.argv[1]
+save_folder = "./9_5_19/"
 # modelname = "DDD3normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_multires_stride"
 
 def normal_text(ax, pos, text, ha=None):
@@ -178,9 +179,36 @@ if __name__ == "__main__":
 
             j+=1
 
-        fig1.savefig("./8_23_19/"+modelname+"_noise_test1f.png")
-        fig2.savefig("./8_23_19/"+modelname+"_noise_test2f.png")
-        fig3.savefig("./8_23_19/"+modelname+"_noise_test3f.png")
-        fig4.savefig("./8_23_19/"+modelname+"_noise_test4f.png")
+        fig1.savefig(save_folder+modelname+"_noise_test1f.png")
+        fig2.savefig(save_folder+modelname+"_noise_test2f.png")
+        fig3.savefig(save_folder+modelname+"_noise_test3f.png")
+        fig4.savefig(save_folder+modelname+"_noise_test4f.png")
         # plt.show()
+
+        # plot the measured trace retrieval
+        # this list should always be length of 1...
+        with open(modelname+"_noise_test_measured.p", "rb") as file:
+            obj_meas = pickle.load(file)
+
+        measured_trace = obj_meas["measured_trace"][0]
+        retrieved_coefs = obj_meas["retrieved_xuv_coefs"][0]
+        retrieved = sess.run(generated_xuv, feed_dict={xuv_coefs_in:retrieved_coefs})
+
+        meas_fig = plt.figure(figsize=(15, 5))
+        meas_fig.subplots_adjust(left=0.05, right=0.95, hspace=0.5)
+        gs_meas_fig = meas_fig.add_gridspec(1, 2)
+
+        ax = meas_fig.add_subplot(gs_meas_fig[0, 0])
+        ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace, cmap="jet")
+
+        # plot retrieved signal in time
+        ax = meas_fig.add_subplot(gs_meas_fig[0, 1])
+        ax.plot(spectrum.tmat_as, np.abs(retrieved["t"][0])**2, color="black")
+        ax.set_xlim(-800, 800)
+        ax.set_yticks([])
+        ax.set_xlabel("time [as]")
+        for k, coef in enumerate(retrieved_coefs[0]):
+            normal_text(ax, (0.0 + k*0.2, 1.1), "%.2f" % retrieved_coefs[0][k])
+        ax.set_ylabel("Retrieved\nIntensity")
+        meas_fig.savefig(save_folder+modelname+"_meas.png")
 

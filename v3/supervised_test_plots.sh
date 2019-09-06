@@ -1,10 +1,11 @@
 #!/bin/bash
-name=JJJ_sample4_noise_resistant_network_various_noise_per_trace2
-python supervised_retrieval.py $name
-python supervised_retrieval_noise_test_results_plot.py $name
+name=MLMN_noise_resistant_net_angle_1
+python supervised_retrieval.py $name && python supervised_retrieval_noise_test_results_plot.py $name
 
-# name=JJJ_sample4_noise_resistant_network_various_noise_per_trace1
-# python supervised_retrieval.py $name
-# python supervised_retrieval_noise_test_results_plot.py $name
+name=MLMN_noise_resistant_net_angle_2
+python supervised_retrieval.py $name && python supervised_retrieval_noise_test_results_plot.py $name
+
+name=MLMN_noise_resistant_net_angle_3
+python supervised_retrieval.py $name && python supervised_retrieval_noise_test_results_plot.py $name
 
 

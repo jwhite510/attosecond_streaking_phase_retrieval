@@ -14,6 +14,7 @@ test_run = "noise_test_1"
 import importlib
 from phase_parameters import params
 network3 = importlib.import_module("models.network3_"+modelname)
+import measured_trace.get_trace as get_measured_trace
 
 def calc_fwhm(tmat, I_t):
     half_max = np.max(I_t)/2
@@ -425,6 +426,12 @@ if __name__ == "__main__":
     retrieval_data["count_num"] = []
     retrieval_data["xuv_input_coefs"] = []
 
+
+    # dict for measured trace
+    retrieval_data_measured_trace = {}
+    retrieval_data_measured_trace["measured_trace"] = []
+    retrieval_data_measured_trace["retrieved_xuv_coefs"] = []
+
     # for counts in counts_list:
     # make the same as in the generated data set
     counts_min, counts_max = 25, 200
@@ -462,3 +469,16 @@ if __name__ == "__main__":
     print("saving pickle")
     with open(modelname+"_noise_test.p", "wb") as file:
         pickle.dump(retrieval_data, file)
+
+    # retrieval with measured trace
+    K_values = params.K
+    tau_values = params.delay_values
+    measured_trace = get_measured_trace.trace
+    # this measured trace: 301, 98
+    retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)
+    retrieval_data_measured_trace["measured_trace"].append(measured_trace)
+    retrieval_data_measured_trace["retrieved_xuv_coefs"].append(retrieved_xuv_coefs)
+
+    print("saving pickle of measured trace")
+    with open(modelname+"_noise_test_measured.p", "wb") as file:
+        pickle.dump(retrieval_data_measured_trace, file)
