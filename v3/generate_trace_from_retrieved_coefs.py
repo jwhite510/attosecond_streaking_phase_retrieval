@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
 
-        xuv_actual = sess.run(generated_xuv, feed_dict={xuv_coefs_in:retrieved_xuv_coefs_2nd})
+        xuv_coefs_2nd = sess.run(generated_xuv, feed_dict={xuv_coefs_in:retrieved_xuv_coefs_2nd})
 
 
     # plot this
