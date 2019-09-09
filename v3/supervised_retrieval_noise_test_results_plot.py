@@ -190,8 +190,8 @@ if __name__ == "__main__":
         with open(modelname+"_noise_test_measured.p", "rb") as file:
             obj_meas = pickle.load(file)
 
-        measured_trace = obj_meas["measured_trace"][0]
-        retrieved_coefs = obj_meas["retrieved_xuv_coefs"][0]
+        measured_trace = obj_meas["measured_trace"]
+        retrieved_coefs = obj_meas["retrieved_xuv_coefs"]
         retrieved = sess.run(generated_xuv, feed_dict={xuv_coefs_in:retrieved_coefs})
 
         meas_fig = plt.figure(figsize=(15, 5))

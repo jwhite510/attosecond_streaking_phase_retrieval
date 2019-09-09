@@ -8,12 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tf_functions
 import sys
-modelname = sys.argv[1]
 # modelname = "DDD3normal_notanh2_long_512dense_leaky_activations_hp1_120ksamples_sample4_1_multires_stride"
 test_run = "noise_test_1"
 import importlib
 from phase_parameters import params
-network3 = importlib.import_module("models.network3_"+modelname)
 import measured_trace.get_trace as get_measured_trace
 
 def calc_fwhm(tmat, I_t):
@@ -393,9 +391,11 @@ class SupervisedRetrieval:
         """
         a class for taking only the initial output of the neural network, no additional changing the weights
         """
+
         self.modelname = model
+        self.network3 = importlib.import_module("models.network3_"+self.modelname)
         # build neural net graph
-        self.nn_nodes = network3.setup_neural_net()
+        self.nn_nodes = self.network3.setup_neural_net()
 
         # restore session
         self.sess = tf.Session()
@@ -417,6 +417,7 @@ class SupervisedRetrieval:
 
 if __name__ == "__main__":
 
+    modelname = sys.argv[1]
     # test retrieval after supervised learning on different noise levels
     # noise_test_initial_only("supervised_learning_noise_test")
 
@@ -433,18 +434,13 @@ if __name__ == "__main__":
     retrieval_data["xuv_input_coefs"] = []
 
 
-    # dict for measured trace
-    retrieval_data_measured_trace = {}
-    retrieval_data_measured_trace["measured_trace"] = []
-    retrieval_data_measured_trace["retrieved_xuv_coefs"] = []
-    retrieval_data_measured_trace["reconstructed_trace"] = []
 
     # for counts in counts_list:
     # make the same as in the generated data set
     counts_min, counts_max = 25, 200
 
     # get traces from validations set
-    get_data = network3.GetData(batch_size=10)
+    get_data = supervised_retrieval.network3.GetData(batch_size=10)
     batch_x_test, batch_y_test = get_data.evaluate_on_test_data()
 
     # just the xuv coefficients
@@ -485,8 +481,10 @@ if __name__ == "__main__":
     retrieve_output = supervised_retrieval.retrieve(measured_trace)
     retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
     reconstructed_trace = retrieve_output["trace_recons"]
-    retrieval_data_measured_trace["measured_trace"].append(measured_trace)
-    retrieval_data_measured_trace["retrieved_xuv_coefs"].append(retrieved_xuv_coefs)
+
+    retrieval_data_measured_trace = {}
+    retrieval_data_measured_trace["measured_trace"] = measured_trace
+    retrieval_data_measured_trace["retrieved_xuv_coefs"] = retrieved_xuv_coefs
     retrieval_data_measured_trace["reconstructed_trace"] = reconstructed_trace
 
     print("saving pickle of measured trace")
