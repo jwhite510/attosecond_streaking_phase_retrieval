@@ -221,9 +221,16 @@ def generate_samples(tf_graphs, n_samples, filename, xuv_coefs, sess, axis):
 
             # add noise to trace
             # set the maximum counts for the image
-            counts_min, counts_max = 25, 200
+            counts_min, counts_max = 10, 100
             # maximum counts between two values
             # counts = np.round(counts_min + np.random.rand() * (counts_max - counts_min))
+
+
+            # append one trace with no noise
+            hd5file.root.noise_trace.append(trace.reshape(1, -1))
+            hd5file.root.xuv_coefs.append(xuv_coefs_in.reshape(1, -1))
+            hd5file.root.ir_params.append(ir_values_in.reshape(1, -1))
+
 
             for counts_val in np.linspace(counts_min, counts_max, 5):
 
