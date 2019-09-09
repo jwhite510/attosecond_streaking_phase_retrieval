@@ -406,7 +406,13 @@ class SupervisedRetrieval:
 
         self.feed_dict = {self.nn_nodes["general"]["x_in"]: trace.reshape(1, -1)}
         # return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"], feed_dict=self.feed_dict)
-        return self.sess.run(self.nn_nodes["general"]["xuv_coefs_pred"], feed_dict=self.feed_dict)
+        trace_recons = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"], feed_dict=self.feed_dict)
+        xuv_retrieved = self.sess.run(self.nn_nodes["general"]["xuv_coefs_pred"], feed_dict=self.feed_dict)
+        retrieve_output = {}
+        retrieve_output["trace_recons"] = trace_recons
+        retrieve_output["xuv_retrieved"] = xuv_retrieved
+
+        return retrieve_output
 
 
 if __name__ == "__main__":
@@ -431,6 +437,7 @@ if __name__ == "__main__":
     retrieval_data_measured_trace = {}
     retrieval_data_measured_trace["measured_trace"] = []
     retrieval_data_measured_trace["retrieved_xuv_coefs"] = []
+    retrieval_data_measured_trace["reconstructed_trace"] = []
 
     # for counts in counts_list:
     # make the same as in the generated data set
@@ -458,7 +465,7 @@ if __name__ == "__main__":
         # run_name = test_run + str(counts)
 
 
-        retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)
+        retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)["xuv_retrieved"]
         # print(counts)
         print("retrieved xuv")
         retrieval_data["measured_trace"].append(measured_trace)
@@ -475,9 +482,12 @@ if __name__ == "__main__":
     tau_values = params.delay_values
     measured_trace = get_measured_trace.trace
     # this measured trace: 301, 98
-    retrieved_xuv_coefs = supervised_retrieval.retrieve(measured_trace)
+    retrieve_output = supervised_retrieval.retrieve(measured_trace)
+    retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
+    reconstructed_trace = retrieve_output["trace_recons"]
     retrieval_data_measured_trace["measured_trace"].append(measured_trace)
     retrieval_data_measured_trace["retrieved_xuv_coefs"].append(retrieved_xuv_coefs)
+    retrieval_data_measured_trace["reconstructed_trace"] = reconstructed_trace
 
     print("saving pickle of measured trace")
     with open(modelname+"_noise_test_measured.p", "wb") as file:
