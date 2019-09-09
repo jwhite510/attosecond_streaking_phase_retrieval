@@ -252,10 +252,7 @@ def add_shot_noise(trace_sample, counts):
 
     return noisy_trace_normalized
 
-
-
-
-if __name__ == "__main__":
+def create_tf_graphs():
 
     # initialize XUV generator
     xuv_phase_coeffs = phase_parameters.params.xuv_phase_coefs
@@ -281,6 +278,13 @@ if __name__ == "__main__":
     tf_graphs["image"] = image
     tf_graphs["image_noisy_placeholder"] = image_noisy_placeholder
     tf_graphs["proof_trace"] = proof_trace
+
+    return tf_graphs
+
+
+if __name__ == "__main__":
+
+    tf_graphs = create_tf_graphs()
 
     # create plot to show samples as they are generated
     _, ax = plt.subplots(2, 1, figsize=(5, 5))
