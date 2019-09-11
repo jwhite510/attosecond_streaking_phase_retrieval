@@ -30,7 +30,7 @@ def add_noise_to_reconstructed_trace(modelname, count_num):
 if __name__ == "__main__":
 
     modelname = "MLMN_noise_resistant_net_angle_1"
-    count_num = 50
+    count_num = 200
 
     retrieved_xuv_coefs_1st, noise_trace_recons_added_noise, trace_meas = add_noise_to_reconstructed_trace(modelname, count_num)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     ax.plot(spectrum.tmat_as, np.abs(gen_xuv_out_2nd["t"][0])**2, color="black")
     ax.set_title("Retrieved I(t)")
 
-    plt.savefig("./retrieve_reconstructed_{}_{}".format(count_num, modelname)+"_3")
+    plt.savefig("./retrieve_reconstructed_{}_{}".format(count_num, modelname)+"_4")
 
 
     # plot this

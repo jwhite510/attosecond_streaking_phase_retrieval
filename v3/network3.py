@@ -43,7 +43,7 @@ class PhaseNetTrain:
 
         # saver and set epoch number to run
         self.saver = tf.train.Saver()
-        self.epochs = 2000
+        self.epochs = 80
 
         # set the name of the neural net test run and save the settigns
         self.modelname = modelname
@@ -1386,6 +1386,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='MLMN_noise_resistant_net_angle_3')
+    phase_net_train = PhaseNetTrain(modelname='MLMRL_noise_resistant_net_angle_18')
     phase_net_train.supervised_learn()
 
