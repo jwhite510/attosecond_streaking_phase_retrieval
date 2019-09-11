@@ -414,6 +414,10 @@ class SupervisedRetrieval:
 
         return retrieve_output
 
+    def __del__(self):
+        self.sess.close()
+        tf.reset_default_graph()
+
 
 if __name__ == "__main__":
 
