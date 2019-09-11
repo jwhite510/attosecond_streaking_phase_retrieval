@@ -54,7 +54,7 @@ def run_retrievals_on_networks():
         # add the retrieved xuv coefs to list
         retrieved_xuv_cl.append(retrieved_xuv_coefs)
 
-    return retrieved_xuv_cl, noise_trace_recons_added_noise
+    return retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs
 
 
 
@@ -65,11 +65,12 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    retrieved_xuv_cl, noise_trace_recons_added_noise = run_retrievals_on_networks()
+    retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
 
     data = {}
     data["retrieved_xuv_cl"] = retrieved_xuv_cl
     data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
+    data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
     with open("multiple_net_retrieval_test.p", "wb") as file:
         pickle.dump(data, file)
 
