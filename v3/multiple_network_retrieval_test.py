@@ -91,17 +91,17 @@ if __name__ == "__main__":
             out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:xuv_coefs})
 
             if first_iteration:
-                E_t_vecs = np.array(out["t"])
-                E_f_vecs = np.array(out["f_cropped"])
+                E_t_vecs = np.array(out["t_photon"])
+                E_f_vecs = np.array(out["f_photon_cropped"])
                 first_iteration = False
             else:
-                E_t_vecs = np.append(E_t_vecs, out["t"], axis=0)
-                E_f_vecs = np.append(E_f_vecs, out["f_cropped"], axis=0)
+                E_t_vecs = np.append(E_t_vecs, out["t_photon"], axis=0)
+                E_f_vecs = np.append(E_f_vecs, out["f_photon_cropped"], axis=0)
 
         # get the t and f vectors for the actual (original retrieved pulse)
         out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:obj["orignal_retrieved_xuv_coefs"]})
-        E_t_vec_actual = out["t"]
-        E_f_vec_actual = out["f_cropped"]
+        E_t_vec_actual = out["t_photon"]
+        E_f_vec_actual = out["f_photon_cropped"]
 
     # plot the E_t and E_f vectors
     fig = plt.figure(figsize=(12,8))
