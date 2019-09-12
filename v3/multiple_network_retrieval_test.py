@@ -10,6 +10,20 @@ import generate_data3
 import matplotlib.pyplot as plt
 
 
+def calc_fwhm(tmat, I_t):
+    half_max = np.max(I_t)/2
+    index1 = 0
+    index2 = len(I_t) - 1
+
+    while I_t[index1] < half_max:
+        index1 += 1
+    while I_t[index2] < half_max:
+        index2 -= 1
+
+    t1 = tmat[index1]
+    t2 = tmat[index2]
+    fwhm = t2 - t1
+    return fwhm, t1, t2, half_max
 
 def run_retrievals_on_networks():
     # use one of the networks to retrieve the measured trace
@@ -113,7 +127,14 @@ if __name__ == "__main__":
 
     # actual E(t)
     ax = fig.add_subplot(gs[0,1])
-    ax.plot(spectrum.tmat_as, np.abs(E_t_vec_actual[0])**2, color="black")
+    I_t_actual = (np.abs(E_t_vec_actual)**2)[0]
+    ax.plot(spectrum.tmat_as, I_t_actual, color="black")
+    # calculate pulse duration
+    fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_actual)
+    ax.plot([t1, t2], [half_max, half_max], color="blue")
+    ax.text(0.8, 0.8, "fwhm: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+
+    # temporal phase plotting
     # axtwin = ax.twinx()
     # axtwin.plot(spectrum.tmat_as, np.unwrap(np.angle(E_t_vec_actual[0])), color="green")
     ax.set_yticks([])
@@ -122,7 +143,14 @@ if __name__ == "__main__":
     # predicted E(t)
     ax = fig.add_subplot(gs[1,1])
     avg_E_t_vecs = np.mean(E_t_vecs, axis=0)
-    ax.plot(spectrum.tmat_as, np.abs(avg_E_t_vecs)**2, color="black")
+    I_t_avg = np.abs(avg_E_t_vecs)**2
+
+
+    ax.plot(spectrum.tmat_as, I_t_avg, color="black")
+    # calculate pulse duration
+    fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_avg)
+    ax.plot([t1, t2], [half_max, half_max], color="blue")
+    ax.text(0.8, 0.8, "fwhm: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
     ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
