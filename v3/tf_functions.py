@@ -414,6 +414,8 @@ def xuv_taylor_to_E(coefficients_in):
 
     Ef = tf.constant(xuv_spectrum.spectrum.Ef, dtype=tf.complex64)
     Ef = tf.reshape(Ef, [1, -1])
+    Ef_photon = tf.constant(xuv_spectrum.spectrum.Ef_photon, dtype=tf.complex64)
+    Ef_photon = tf.reshape(Ef_photon, [1, -1])
 
     fmat_taylor = tf.constant(xuv_spectrum.spectrum.fmat-xuv_spectrum.spectrum.f0, dtype=tf.float32)
 
@@ -467,12 +469,15 @@ def xuv_taylor_to_E(coefficients_in):
 
     # apply the phase angle to Ef
     Ef_prop = Ef * tf.exp(tf.complex(imag=phasecurve, real=tf.zeros_like(phasecurve)))
+    Ef_photon_prop = Ef_photon * tf.exp(tf.complex(imag=phasecurve, real=tf.zeros_like(phasecurve)))
 
     # fourier transform for time propagated signal
     Et_prop = tf_ifft(Ef_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
+    Et_photon_prop = tf_ifft(Ef_photon_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
 
     # return the cropped E
     Ef_prop_cropped = Ef_prop[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
+    Ef_photon_prop_cropped = Ef_photon_prop[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
 
     # return cropped phase curve
     phasecurve_cropped = phasecurve[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
@@ -480,7 +485,9 @@ def xuv_taylor_to_E(coefficients_in):
     E_prop = {}
     E_prop["f"] = Ef_prop
     E_prop["f_cropped"] = Ef_prop_cropped
+    E_prop["f_photon_cropped"] = Ef_photon_prop_cropped
     E_prop["t"] = Et_prop
+    E_prop["t_photon"] = Et_photon_prop
     E_prop["phasecurve_cropped"] = phasecurve_cropped
     #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
 
