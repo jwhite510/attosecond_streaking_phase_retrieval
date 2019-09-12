@@ -117,13 +117,13 @@ if __name__ == "__main__":
     # axtwin = ax.twinx()
     # axtwin.plot(spectrum.tmat_as, np.unwrap(np.angle(E_t_vec_actual[0])), color="green")
     ax.set_yticks([])
-    ax.set_title("I(t) actual")
+    ax.set_title("I(t) (Photon) actual")
 
     # predicted E(t)
     ax = fig.add_subplot(gs[1,1])
     avg_E_t_vecs = np.mean(E_t_vecs, axis=0)
     ax.plot(spectrum.tmat_as, np.abs(avg_E_t_vecs)**2, color="black")
-    ax.set_title("mean I(t) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     axtwin.tick_params(axis='y', colors='green')
     axtwin.set_ylabel("phase")
     axtwin.yaxis.label.set_color("green")
-    ax.set_title("I(f) actual")
+    ax.set_title("I(f) (Photon) actual")
 
     # predicted E(f)
     ax = fig.add_subplot(gs[1,2])
@@ -165,11 +165,11 @@ if __name__ == "__main__":
     axtwin.yaxis.label.set_color("green")
     axtwin.tick_params(axis='y', colors='green')
 
-    ax.set_title("mean I(f) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(f) (Photon) retrieved\n (18 trained networks)")
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
-    plt.savefig("./stdev_test.png")
+    plt.savefig("./stdev_test_photon.png")
 
 
 
