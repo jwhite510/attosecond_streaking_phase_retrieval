@@ -188,7 +188,7 @@ if __name__ == "__main__":
     avg_phase_angle = np.mean(phase_angle, axis=0)
     std_phase_angle = np.std(phase_angle, axis=0)
 
-    ax.plot(spectrum.fmat_hz_cropped, np.abs(avg_I_f_vecs)**2, color="black")
+    ax.plot(spectrum.fmat_hz_cropped, avg_I_f_vecs, color="black")
     ax.set_yticks([])
     axtwin = ax.twinx()
     # axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(avg_I_f_vecs)), color="green")
