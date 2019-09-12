@@ -1,6 +1,8 @@
 import supervised_retrieval
+import tensorflow as tf
 import pickle
 import numpy as np
+import tf_functions
 from phase_parameters import params
 import measured_trace.get_trace as get_measured_trace
 import generate_data3
@@ -65,15 +67,37 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
+    # retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
 
-    data = {}
-    data["retrieved_xuv_cl"] = retrieved_xuv_cl
-    data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
-    data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
-    with open("multiple_net_retrieval_test.p", "wb") as file:
-        pickle.dump(data, file)
+    # data = {}
+    # data["retrieved_xuv_cl"] = retrieved_xuv_cl
+    # data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
+    # data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
+    # with open("multiple_net_retrieval_test.p", "wb") as file:
+    #     pickle.dump(data, file)
 
+    with open("multiple_net_retrieval_test.p", "rb") as file:
+        obj = pickle.load(file)
+
+    # create tensorflow graph
+    xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, params.xuv_phase_coefs])
+    xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+    with tf.Session() as sess:
+
+        # convert to complex E
+        first_iteration = True
+        for xuv_coefs in obj["retrieved_xuv_cl"]:
+            out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:xuv_coefs})
+
+            if first_iteration:
+                E_t_vecs = np.array(out["t"])
+                E_f_vecs = np.array(out["f_cropped"])
+                first_iteration = False
+            else:
+                E_t_vecs = np.append(E_t_vecs, out["t"], axis=0)
+                E_f_vecs = np.append(E_f_vecs, out["f_cropped"], axis=0)
+
+    # plot the E_t and E_f vectors
 
 
 
