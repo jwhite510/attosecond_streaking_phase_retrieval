@@ -1,4 +1,5 @@
 import supervised_retrieval
+from xuv_spectrum import spectrum
 import tensorflow as tf
 import pickle
 import numpy as np
@@ -97,7 +98,78 @@ if __name__ == "__main__":
                 E_t_vecs = np.append(E_t_vecs, out["t"], axis=0)
                 E_f_vecs = np.append(E_f_vecs, out["f_cropped"], axis=0)
 
+        # get the t and f vectors for the actual (original retrieved pulse)
+        out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:obj["orignal_retrieved_xuv_coefs"]})
+        E_t_vec_actual = out["t"]
+        E_f_vec_actual = out["f_cropped"]
+
     # plot the E_t and E_f vectors
+    fig = plt.figure(figsize=(12,8))
+    fig.subplots_adjust(hspace=0.3, left=0.1, right=0.9, top=0.9, bottom=0.1)
+    gs = fig.add_gridspec(2, 3)
+    ax = fig.add_subplot(gs[0,0])
+    ax.pcolormesh(params.delay_values_fs, params.K, obj["noise_trace_recons_added_noise"], cmap="jet")
+    ax.set_title("Input Trace")
+
+    # actual E(t)
+    ax = fig.add_subplot(gs[0,1])
+    ax.plot(spectrum.tmat_as, np.abs(E_t_vec_actual[0])**2, color="black")
+    # axtwin = ax.twinx()
+    # axtwin.plot(spectrum.tmat_as, np.unwrap(np.angle(E_t_vec_actual[0])), color="green")
+    ax.set_yticks([])
+    ax.set_title("I(t) actual")
+
+    # predicted E(t)
+    ax = fig.add_subplot(gs[1,1])
+    avg_E_t_vecs = np.mean(E_t_vecs, axis=0)
+    ax.plot(spectrum.tmat_as, np.abs(avg_E_t_vecs)**2, color="black")
+    ax.set_title("mean I(t) retrieved\n (18 trained networks)")
+    ax.set_xlabel("time [as]")
+    ax.set_yticks([])
+
+    # actual E(f)
+    ax = fig.add_subplot(gs[0,2])
+    ax.plot(spectrum.fmat_hz_cropped, np.abs(E_f_vec_actual[0])**2, color="black")
+    ax.set_yticks([])
+    axtwin = ax.twinx()
+    axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(E_f_vec_actual[0])), color="green")
+    axtwin.tick_params(axis='y', colors='green')
+    axtwin.set_ylabel("phase")
+    axtwin.yaxis.label.set_color("green")
+    ax.set_title("I(f) actual")
+
+    # predicted E(f)
+    ax = fig.add_subplot(gs[1,2])
+    avg_E_f_vecs = np.mean(E_f_vecs, axis=0)
+    phase_angle = np.unwrap(np.angle(E_f_vecs))
+    avg_phase_angle = np.mean(phase_angle, axis=0)
+    std_phase_angle = np.std(phase_angle, axis=0)
+
+    ax.plot(spectrum.fmat_hz_cropped, np.abs(avg_E_f_vecs)**2, color="black")
+    ax.set_yticks([])
+    axtwin = ax.twinx()
+    # axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(avg_E_f_vecs)), color="green")
+    axtwin.plot(spectrum.fmat_hz_cropped, avg_phase_angle, color="green")
+
+    # draw standard deviation lines
+    label_def = False
+    for avg_phase_angle_c, std_phase_angle_c, f_c in zip(avg_phase_angle[::20], std_phase_angle[::20], spectrum.fmat_hz_cropped[::20]):
+        # draw a line at this point
+        if not label_def:
+            axtwin.plot([f_c, f_c], [avg_phase_angle_c-(std_phase_angle_c/2), avg_phase_angle_c+(std_phase_angle_c/2)], color="black", label="standard\ndeviation")
+            label_def = True
+        else:
+            axtwin.plot([f_c, f_c], [avg_phase_angle_c-(std_phase_angle_c/2), avg_phase_angle_c+(std_phase_angle_c/2)], color="black")
+    axtwin.legend(loc=1)
+    axtwin.set_ylabel("average phase")
+    axtwin.yaxis.label.set_color("green")
+    axtwin.tick_params(axis='y', colors='green')
+
+    ax.set_title("mean I(f) retrieved\n (18 trained networks)")
+    ax.set_xlabel("frequency [Hz]")
+
+    # plt.show()
+    plt.savefig("./stdev_test.png")
 
 
 
