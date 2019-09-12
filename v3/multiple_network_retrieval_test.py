@@ -132,7 +132,7 @@ if __name__ == "__main__":
     # calculate pulse duration
     fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_actual)
     ax.plot([t1, t2], [half_max, half_max], color="blue")
-    ax.text(0.8, 0.8, "fwhm: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    ax.text(0.8, 0.8, "FWHM: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
     # temporal phase plotting
     # axtwin = ax.twinx()
@@ -142,15 +142,29 @@ if __name__ == "__main__":
 
     # predicted E(t)
     ax = fig.add_subplot(gs[1,1])
-    avg_E_t_vecs = np.mean(E_t_vecs, axis=0)
-    I_t_avg = np.abs(avg_E_t_vecs)**2
-
-
+    I_t_vecs = np.abs(E_t_vecs)**2
+    I_t_avg = np.mean(I_t_vecs, axis=0)
     ax.plot(spectrum.tmat_as, I_t_avg, color="black")
-    # calculate pulse duration
+    # calculate pulse duration for mean
     fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_avg)
     ax.plot([t1, t2], [half_max, half_max], color="blue")
-    ax.text(0.8, 0.8, "fwhm: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    ax.text(0.9, 0.8, "FWHM: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    # calculate pulse duration for all the pulses
+    pulse_durations = [] # all of the pulse durations [as]
+    for I_t_vec in I_t_vecs:
+        fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_vec)
+        pulse_durations.append(fwhm)
+
+    pulse_durations = np.array(pulse_durations)
+
+    # np.min(pulse_durations)
+    # np.max(pulse_durations)
+    # np.std(pulse_durations)
+    ax.text(0.9, 0.7, "min: %.0f as" % np.min(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    ax.text(0.9, 0.6, "max: %.0f as" % np.max(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    ax.text(0.9, 0.5, "standard dev: %.0f as" % np.std(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+
+
     ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
