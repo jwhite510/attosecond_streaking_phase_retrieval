@@ -82,14 +82,14 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    # retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
+    retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
 
-    # data = {}
-    # data["retrieved_xuv_cl"] = retrieved_xuv_cl
-    # data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
-    # data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
-    # with open("multiple_net_retrieval_test.p", "wb") as file:
-    #     pickle.dump(data, file)
+    data = {}
+    data["retrieved_xuv_cl"] = retrieved_xuv_cl
+    data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
+    data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
+    with open("multiple_net_retrieval_test.p", "wb") as file:
+        pickle.dump(data, file)
 
     with open("multiple_net_retrieval_test.p", "rb") as file:
         obj = pickle.load(file)
@@ -182,15 +182,16 @@ if __name__ == "__main__":
 
     # predicted E(f)
     ax = fig.add_subplot(gs[1,2])
-    avg_E_f_vecs = np.mean(E_f_vecs, axis=0)
+    I_f_vecs = np.abs(E_f_vecs)**2
+    avg_I_f_vecs = np.mean(I_f_vecs, axis=0)
     phase_angle = np.unwrap(np.angle(E_f_vecs))
     avg_phase_angle = np.mean(phase_angle, axis=0)
     std_phase_angle = np.std(phase_angle, axis=0)
 
-    ax.plot(spectrum.fmat_hz_cropped, np.abs(avg_E_f_vecs)**2, color="black")
+    ax.plot(spectrum.fmat_hz_cropped, np.abs(avg_I_f_vecs)**2, color="black")
     ax.set_yticks([])
     axtwin = ax.twinx()
-    # axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(avg_E_f_vecs)), color="green")
+    # axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(avg_I_f_vecs)), color="green")
     axtwin.plot(spectrum.fmat_hz_cropped, avg_phase_angle, color="green")
 
     # draw standard deviation lines
