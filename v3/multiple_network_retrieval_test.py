@@ -61,7 +61,19 @@ def run_retrievals_on_networks():
                     "MLMRL_noise_resistant_net_angle_15",
                     "MLMRL_noise_resistant_net_angle_16",
                     "MLMRL_noise_resistant_net_angle_17",
-                    "MLMRL_noise_resistant_net_angle_18"
+                    "MLMRL_noise_resistant_net_angle_18",
+                    "MLMRL_noise_resistant_net_angle_19",
+                    "MLMRL_noise_resistant_net_angle_20",
+                    "MLMRL_noise_resistant_net_angle_21",
+                    "MLMRL_noise_resistant_net_angle_22",
+                    "MLMRL_noise_resistant_net_angle_23",
+                    "MLMRL_noise_resistant_net_angle_24",
+                    "MLMRL_noise_resistant_net_angle_25",
+                    "MLMRL_noise_resistant_net_angle_26",
+                    "MLMRL_noise_resistant_net_angle_27",
+                    "MLMRL_noise_resistant_net_angle_28",
+                    "MLMRL_noise_resistant_net_angle_29",
+                    "MLMRL_noise_resistant_net_angle_30"
                     ]:
         supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(tf_model)
         retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
@@ -87,9 +99,9 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    data = run_retrievals_on_networks()
-    with open("multiple_net_retrieval_test.p", "wb") as file:
-        pickle.dump(data, file)
+    # data = run_retrievals_on_networks()
+    # with open("multiple_net_retrieval_test.p", "wb") as file:
+    #     pickle.dump(data, file)
 
     with open("multiple_net_retrieval_test.p", "rb") as file:
         obj = pickle.load(file)
@@ -165,7 +177,7 @@ if __name__ == "__main__":
     ax.text(0.9, 0.5, "standard dev: %.0f as" % np.std(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
 
-    ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(t) (Photon) retrieved\n (30 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
@@ -208,11 +220,11 @@ if __name__ == "__main__":
     axtwin.yaxis.label.set_color("green")
     axtwin.tick_params(axis='y', colors='green')
 
-    ax.set_title("mean I(f) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(f) (Photon) retrieved\n (30 trained networks)")
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
-    plt.savefig("./stdev_test_photon_measured.png")
+    plt.savefig("./stdev_test_photon_measured_30traces.png")
 
 
 
