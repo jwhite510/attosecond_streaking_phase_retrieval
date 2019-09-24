@@ -332,7 +332,8 @@ elif spectrum == 4:
     tmat_as = params['tmat'] * sc.physical_constants['atomic unit of time'][0] * 1e18 # attoseconds
     fmat = params['fmat']
     fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
-    Ef = params['Ef']
+    # using the new spectrogram equation, should only use photoon spectrum
+    Ef = params['Ef_photon']
     Ef_photon = params['Ef_photon']
     indexmin = params['indexmin']
     indexmax = params['indexmax']

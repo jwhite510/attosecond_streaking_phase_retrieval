@@ -857,7 +857,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
     # define the angle for streaking trace collection
     theta_max = np.pi/2
-    N_theta = 10
+    N_theta = 5
     angle_in = tf.constant(np.linspace(0, theta_max, N_theta), dtype=tf.float32)
     Beta_in =  1
 
@@ -944,7 +944,9 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # ------------gather values from integrated array-------------------
     # ------------------------------------------------------------------
     ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
+    A_t_values = tf.gather(A_t, delayindexes.astype(np.int))
     ir_values = tf.expand_dims(tf.expand_dims(ir_values, axis=0), axis=3)
+    A_t_values = tf.expand_dims(tf.expand_dims(A_t_values, axis=0), axis=3)
     # for the squared integral
     ir_values_2 = tf.gather(A_t_integ_t_phase_2, delayindexes.astype(np.int))
     ir_values_2 = tf.expand_dims(tf.expand_dims(ir_values_2, axis=0), axis=3)
@@ -999,7 +1001,16 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     angular_distribution = tf.reshape(angular_distribution, [1, 1, 1, -1])
     angular_distribution = tf.complex(imag=tf.zeros_like(angular_distribution), real=angular_distribution)
 
-    product = angular_distribution * xuv_time_domain_integrate * ir_phi * e_fft_tf
+    # A_t_values
+    # p_tf
+    alpha = 2*Ip
+    # dipole matrix element
+    dipole_p = p_tf + A_t_values
+    dipole_mat = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
+    dipole_mat = dipole_mat * ((dipole_p) / ((dipole_p**2 + alpha)**3))
+    dipole_mat = tf.complex(imag=dipole_mat, real=tf.zeros_like(dipole_mat))
+
+    product = angular_distribution * xuv_time_domain_integrate * dipole_mat * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
@@ -1236,17 +1247,15 @@ def phase_rmse_error_test():
 
 
 if __name__ == "__main__":
-   # phase_rmse_error_test()
+    # phase_rmse_error_test()
 
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
-    ir_E_prop = ir_from_params(ir_values_in)
-    angle_in = tf.placeholder(tf.float32, shape=[10])
-    Beta = 1
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in, Beta_in=Beta)
+    ir_E_prop = ir_from_params(ir_values_in)["E_prop"]
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1261,14 +1270,11 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
+        # plot spectrogram
+        out = sess.run(image, feed_dict=feed_dict)
+        plt.figure(2)
+        plt.title("spectrogram")
+        plt.pcolormesh(out, cmap="jet")
+        plt.savefig("./trace_with_dipole.png")
 
-        # theta_max = np.pi/2 # 90 degrees
-        for j, theta_max in enumerate(np.linspace(0.1, np.pi, 5)):
-            feed_dict[angle_in] = np.linspace(0, theta_max, 10)
-            out = sess.run(image, feed_dict=feed_dict)
-            plt.figure(j+2)
-            plt.title(r"$\theta_{max}$: " + "%.4f" % (theta_max*(180/np.pi)) + " Degrees")
-            plt.pcolormesh(out, cmap="jet")
-            plt.savefig(str(j+2)+"_angletrace_beta2.png")
-            # plt.savefig("./A123_long.png")
-        plt.show()
+        # plt.show()
