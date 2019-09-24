@@ -1317,16 +1317,16 @@ if __name__ == "__main__":
         ax.set_title("cross section")
 
         # set the smallest point of each to be same
-        cross_section_ev = set_point_to(cross_section_ev, index=100, value=100)
-        dipole_abs_k = set_point_to(dipole_abs_k, index=100, value=100)
+        cross_section_ev = set_point_to(cross_section_ev, index=100, value=0)
+        dipole_abs_k = set_point_to(dipole_abs_k, index=100, value=0)
 
 
         ax = fig.add_subplot(gs[1, 1])
-        ax.set_title("set both plots at energy=150 eV to 100")
+        ax.set_title("set both plots at energy=150 eV to 0, no log scale")
         ax.plot(phase_parameters.params.K, cross_section_ev, label="cross section")
         ax.plot(phase_parameters.params.K, dipole_abs_k, label="$K \cdot |d(p)|^2$")
         ax.legend()
-        ax.set_yscale("log")
+        # ax.set_yscale("log")
         ax.set_xlabel("energy (eV)")
 
 
