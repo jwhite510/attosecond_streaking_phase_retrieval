@@ -108,6 +108,13 @@ def normal_text(ax, pos, text, ha=None):
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
 
 
+def set_point_to(vector, index, value):
+    diff = vector[index] - value
+    vector = vector - diff
+    return vector
+
+
+
 def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
     # make graph
     fig = plt.figure(figsize=(17, 5))
@@ -1005,7 +1012,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # p_tf
     alpha = 2*Ip
     # dipole matrix element
-    dipole_p = p_tf + A_t_values
+    dipole_p = p_tf
     dipole_mat = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
     dipole_mat = dipole_mat * ((dipole_p) / ((dipole_p**2 + alpha)**3))
     dipole_mat = tf.complex(imag=dipole_mat, real=tf.zeros_like(dipole_mat))
@@ -1024,7 +1031,13 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     scaled = theta_integration - tf.reduce_min(theta_integration)
     image = scaled / tf.reduce_max(scaled)
 
-    return image
+    out = {}
+    out["image"] = image
+    out["A_t_values"] = A_t_values
+    out["p_tf"] = p_tf
+    out["dipole_mat"] = dipole_mat
+    out["K"] = K
+    return out
 
 
 
@@ -1271,10 +1284,50 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
         # plot spectrogram
-        out = sess.run(image, feed_dict=feed_dict)
+        out = sess.run(image["image"], feed_dict=feed_dict)
         plt.figure(2)
         plt.title("spectrogram")
         plt.pcolormesh(out, cmap="jet")
         plt.savefig("./trace_with_dipole.png")
 
-        # plt.show()
+        p_tf = sess.run(image["p_tf"], feed_dict=feed_dict)
+        A_t_values = sess.run(image["A_t_values"], feed_dict=feed_dict)
+        dipole_mat = sess.run(image["dipole_mat"], feed_dict=feed_dict)
+        K = image["K"]
+        fig = plt.figure(figsize=(8,8))
+        gs = fig.add_gridspec(2,2)
+        ax = fig.add_subplot(gs[0, 0])
+        fig.subplots_adjust(left=0.2, top=0.8, right=0.8, wspace=0.4, hspace=0.4)
+        dipole_abs_k = np.squeeze(K) * np.squeeze(np.abs(dipole_mat)**2)
+        ax.plot(phase_parameters.params.K, dipole_abs_k)
+        ax.set_xlabel("energy (eV)")
+        ax.set_ylabel("$K \cdot |d(p)|^2$")
+        ax.set_yscale("log")
+        ax.set_title(r" momentum: $p [a.u.]$"+"\n"+r" energy: $K [a.u]$ "+"\n"+r" dipole: $d(p) = i ( \frac{2^{2/7} \alpha^{5/4}}{\pi} ) \frac{p}{(p^{2}+\alpha)^3}$ (without A(t)) "+"\n"+r" $K \cdot |d(p)|^2$")
+
+        # plot the cross section
+        with open("cross_section_ev.p", "rb") as file:
+            cross_section_ev = pickle.load(file)
+
+        ax = fig.add_subplot(gs[0, 1])
+        ax.plot(phase_parameters.params.K, cross_section_ev)
+        ax.set_yscale("log")
+        ax.set_xlabel("energy (eV)")
+        ax.set_ylabel("cross section")
+        ax.set_title("cross section")
+
+        # set the smallest point of each to be same
+        cross_section_ev = set_point_to(cross_section_ev, index=100, value=100)
+        dipole_abs_k = set_point_to(dipole_abs_k, index=100, value=100)
+
+
+        ax = fig.add_subplot(gs[1, 1])
+        ax.set_title("set both plots at energy=150 eV to 100")
+        ax.plot(phase_parameters.params.K, cross_section_ev, label="cross section")
+        ax.plot(phase_parameters.params.K, dipole_abs_k, label="$K \cdot |d(p)|^2$")
+        ax.legend()
+        ax.set_yscale("log")
+        ax.set_xlabel("energy (eV)")
+
+
+        plt.show()
