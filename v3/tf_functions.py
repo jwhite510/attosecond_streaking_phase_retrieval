@@ -1252,14 +1252,37 @@ def phase_rmse_error_test():
         exit()
 
 
-def calculate_dipole_mat(alpha, K):
+def calculate_dipole_mat(const_fitting_factor, power_index_fitting_factor):
 
-    dipole_mat_np = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
-    dipole_mat_np = dipole_mat_np * ((p_tf) / ((p_tf**2 + alpha)**3))
+    K = phase_parameters.params.K * sc.electron_volt  # joules
+    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
+    p = np.sqrt(2 * K)
+    Ip = phase_parameters.params.Ip
+    alpha = 2*Ip
+
+    # dipole_mat_np = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
+    dipole_mat_np = const_fitting_factor
+    # dipole_mat_np = dipole_mat_np * ((p) / ((p**2 + alpha)**3))
+    dipole_mat_np = dipole_mat_np * ((p) / ((p**2 + alpha)**power_index_fitting_factor))
     dipole_mat_np = 1j * dipole_mat_np
     dipole_abs_k = np.squeeze(K) * np.squeeze(np.abs(dipole_mat_np)**2)
 
     return dipole_abs_k
+
+
+def curve_fit(cross_section, dipole_abs_k_func):
+
+    dipole_abs_k_func(1.0, 3.0)
+
+    # perform funciton fitting
+
+    import ipdb; ipdb.set_trace() # BREAKPOINT
+    print("BREAKPOINT")
+
+    return 0
+
+
+
 
 
 if __name__ == "__main__":
@@ -1308,7 +1331,7 @@ if __name__ == "__main__":
         # plt.plot(np.imag(np.squeeze(dipole_mat)))
         # plt.show()
         plt.figure(47)
-        diple_mat_np_abs_k = calculate_dipole_mat(alpha, K)
+        diple_mat_np_abs_k = calculate_dipole_mat(1.0, 1.0)
         plt.plot(phase_parameters.params.K, diple_mat_np_abs_k)
         plt.gca().set_yscale("log")
 
@@ -1348,7 +1371,7 @@ if __name__ == "__main__":
         ax.set_xlabel("energy (eV)")
 
         # generate curve fitting
-
+        curve_fit(cross_section_ev, calculate_dipole_mat)
 
 
 
