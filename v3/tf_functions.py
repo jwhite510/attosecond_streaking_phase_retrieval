@@ -1036,6 +1036,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     out["A_t_values"] = A_t_values
     out["p_tf"] = p_tf
     out["dipole_mat"] = dipole_mat
+    out["alpha"] = alpha
     out["K"] = K
     return out
 
@@ -1251,12 +1252,14 @@ def phase_rmse_error_test():
         exit()
 
 
+def calculate_dipole_mat(alpha, K):
 
+    dipole_mat_np = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
+    dipole_mat_np = dipole_mat_np * ((p_tf) / ((p_tf**2 + alpha)**3))
+    dipole_mat_np = 1j * dipole_mat_np
+    dipole_abs_k = np.squeeze(K) * np.squeeze(np.abs(dipole_mat_np)**2)
 
-
-
-
-
+    return dipole_abs_k
 
 
 if __name__ == "__main__":
@@ -1293,13 +1296,28 @@ if __name__ == "__main__":
         p_tf = sess.run(image["p_tf"], feed_dict=feed_dict)
         A_t_values = sess.run(image["A_t_values"], feed_dict=feed_dict)
         dipole_mat = sess.run(image["dipole_mat"], feed_dict=feed_dict)
+        alpha = image["alpha"]
         K = image["K"]
+
+        # calc the dipole mat without tensorflow
+
+        # should be the same
+        # plt.figure(44)
+        # plt.plot(np.imag(np.squeeze(dipole_mat_np)))
+        # plt.figure(45)
+        # plt.plot(np.imag(np.squeeze(dipole_mat)))
+        # plt.show()
+        plt.figure(47)
+        diple_mat_np_abs_k = calculate_dipole_mat(alpha, K)
+        plt.plot(phase_parameters.params.K, diple_mat_np_abs_k)
+        plt.gca().set_yscale("log")
+
+
         fig = plt.figure(figsize=(8,8))
         gs = fig.add_gridspec(2,2)
         ax = fig.add_subplot(gs[0, 0])
         fig.subplots_adjust(left=0.2, top=0.8, right=0.8, wspace=0.4, hspace=0.4)
-        dipole_abs_k = np.squeeze(K) * np.squeeze(np.abs(dipole_mat)**2)
-        ax.plot(phase_parameters.params.K, dipole_abs_k)
+        ax.plot(phase_parameters.params.K, diple_mat_np_abs_k)
         ax.set_xlabel("energy (eV)")
         ax.set_ylabel("$K \cdot |d(p)|^2$")
         ax.set_yscale("log")
@@ -1318,16 +1336,21 @@ if __name__ == "__main__":
 
         # set the smallest point of each to be same
         cross_section_ev = set_point_to(cross_section_ev, index=100, value=0)
-        dipole_abs_k = set_point_to(dipole_abs_k, index=100, value=0)
+        diple_mat_np_abs_k = set_point_to(diple_mat_np_abs_k, index=100, value=0)
 
 
         ax = fig.add_subplot(gs[1, 1])
         ax.set_title("set both plots at energy=150 eV to 0, no log scale")
         ax.plot(phase_parameters.params.K, cross_section_ev, label="cross section")
-        ax.plot(phase_parameters.params.K, dipole_abs_k, label="$K \cdot |d(p)|^2$")
+        ax.plot(phase_parameters.params.K, diple_mat_np_abs_k, label="$K \cdot |d(p)|^2$")
         ax.legend()
         # ax.set_yscale("log")
         ax.set_xlabel("energy (eV)")
+
+        # generate curve fitting
+
+
+
 
 
         plt.show()
