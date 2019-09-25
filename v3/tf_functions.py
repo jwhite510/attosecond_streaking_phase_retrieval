@@ -1272,9 +1272,25 @@ def calculate_dipole_mat(const_fitting_factor, power_index_fitting_factor):
 
 def curve_fit(cross_section, dipole_abs_k_func):
 
+    # calculate_dipole_mat(const_fitting_factor, power_index_fitting_factor):
     dipole_abs_k_func(1.0, 3.0)
 
+
+    const_fac_x = np.linspace(0.01, 10.0, 100)
+    index_fac_x = np.linspace(0.01, 10.0, 90)
+
+
+    y_grid = np.zeros((len(const_fac_x), len(index_fac_x)))
+    for i_val, const_fac_x_c in enumerate(const_fac_x):
+        for j_val, index_fac_x_c in enumerate(index_fac_x):
+
+            y = np.sum(np.abs(cross_section - dipole_abs_k_func(const_fac_x_c, index_fac_x_c)))
+            y_grid[i_val, j_val] = y
+
     # perform funciton fitting
+    plt.figure(99)
+    plt.pcolormesh(y_grid)
+    plt.show()
 
     import ipdb; ipdb.set_trace() # BREAKPOINT
     print("BREAKPOINT")
@@ -1371,7 +1387,7 @@ if __name__ == "__main__":
         ax.set_xlabel("energy (eV)")
 
         # generate curve fitting
-        curve_fit(cross_section_ev, calculate_dipole_mat)
+        const_fact, power_index = curve_fit(cross_section_ev, calculate_dipole_mat)
 
 
 
