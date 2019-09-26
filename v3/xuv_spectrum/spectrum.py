@@ -335,7 +335,7 @@ elif spectrum == 4:
     fmat = params['fmat']
     fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
     # using the new spectrogram equation, should only use photoon spectrum
-    Ef = params['Ef_photon']
+    Ef = params['Ef']
     Ef_photon = params['Ef_photon']
     cross_section = params['cross_section']
     cross_section_ev = params['cross_section_ev']

@@ -1023,6 +1023,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     dipole_interp = tf.complex(real=dipole_interp, imag=tf.zeros_like(dipole_interp))
 
     product = angular_distribution * xuv_time_domain_integrate * dipole_interp * ir_phi * e_fft_tf
+    # product = angular_distribution * xuv_time_domain_integrate * 1 * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
@@ -1273,7 +1274,9 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)["E_prop"]
+    # photon or electron spectrum
     image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_photon_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1291,9 +1294,14 @@ if __name__ == "__main__":
         # plot spectrogram
         out = sess.run(image["image"], feed_dict=feed_dict)
         plt.figure(2)
-        plt.title("spectrogram")
         plt.pcolormesh(out, cmap="jet")
-        plt.savefig("./trace_with_dipole.png")
+        # name="photon_spectrum_trace_without_dipole_term"
+        # name="electron_spectrum_trace_without_dipole_term"
+        name="photon_spectrum_trace_with_dipole_term_noK_2"
+        plt.title(name)
+        plt.savefig("./"+name+".png")
+        plt.show()
+        exit()
         plt.show()
         exit()
 
