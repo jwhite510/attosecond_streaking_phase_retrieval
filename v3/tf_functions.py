@@ -1009,54 +1009,20 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     angular_distribution = tf.reshape(angular_distribution, [1, 1, 1, -1])
     angular_distribution = tf.complex(imag=tf.zeros_like(angular_distribution), real=angular_distribution)
 
-    # A_t_values
-    # p_tf
-    alpha = 2*Ip
-    # dipole matrix element
-    dipole_p = p_tf
-    dipole_mat = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
-    dipole_mat = dipole_mat * ((dipole_p) / ((dipole_p**2 + alpha)**3))
-    dipole_mat = tf.complex(imag=dipole_mat, real=tf.zeros_like(dipole_mat))
-
     # convert electron volts to a.u
     cross_section_j = np.array(xuv_spectrum.spectrum.cross_section_ev) * sc.electron_volt  # joules
     cross_section_au = cross_section_j / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 
     # construct dipole_mat by interpolating these values from cross section
-    dipole_mat = np.zeros_like(p)
     cross_sec_interpolator = scipy.interpolate.interp1d(cross_section_au, np.array(xuv_spectrum.spectrum.cross_section))
 
     cross_sec_values =  cross_sec_interpolator(p)
+    # determine dipole values from cross section
+    dipole_interp = np.sqrt(cross_sec_values / K)
+    dipole_interp = tf.constant(dipole_interp, dtype=tf.float32)
+    dipole_interp = tf.complex(real=dipole_interp, imag=tf.zeros_like(dipole_interp))
 
-    plt.figure(32)
-    plt.plot(np.squeeze(p), np.squeeze(cross_sec_values))
-    plt.figure(33)
-    plt.plot(cross_section_au, xuv_spectrum.spectrum.cross_section)
-    plt.show()
-
-    # square root and divide the cross section by energy, then use this as the dipole moment
-
-    exit()
-
-
-
-    # cross section
-    plt.figure(1)
-    plt.plot(xuv_spectrum.spectrum.cross_section_ev, xuv_spectrum.spectrum.cross_section)
-    plt.gca().set_yscale("log")
-
-    plt.figure(2)
-    plt.plot(cross_section_au, xuv_spectrum.spectrum.cross_section)
-    plt.gca().set_yscale("log")
-
-    plt.show()
-    # interpolate to solve for dipole moment
-    exit()
-
-    import ipdb; ipdb.set_trace() # BREAKPOINT
-    print("BREAKPOINT")
-
-    product = angular_distribution * xuv_time_domain_integrate * dipole_mat * ir_phi * e_fft_tf
+    product = angular_distribution * xuv_time_domain_integrate * dipole_interp * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
@@ -1074,7 +1040,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     out["image"] = image
     out["A_t_values"] = A_t_values
     out["p_tf"] = p_tf
-    out["dipole_mat"] = dipole_mat
+    # out["dipole_mat"] = dipole_mat
     out["K"] = K
     return out
 
@@ -1328,6 +1294,8 @@ if __name__ == "__main__":
         plt.title("spectrogram")
         plt.pcolormesh(out, cmap="jet")
         plt.savefig("./trace_with_dipole.png")
+        plt.show()
+        exit()
 
         p_tf = sess.run(image["p_tf"], feed_dict=feed_dict)
         A_t_values = sess.run(image["A_t_values"], feed_dict=feed_dict)
