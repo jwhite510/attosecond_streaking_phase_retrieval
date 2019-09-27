@@ -99,7 +99,7 @@ if __name__ == "__main__":
     cross_section_p = cross_section_p / np.max(cross_section_p)
 
     # integrate
-    integral_photon = xuv_spectrum.dt * np.sum(xuv_Et_photon.reshape(1,-1) * np.exp(1j*((p**2)/2)*xuv_spectrum.tmat), axis=1) # integrate along time
+    integral_photon = xuv_spectrum.dt * np.sum(xuv_Et_photon.reshape(1,-1) * np.sqrt(cross_section_p.reshape(-1,1)) * np.exp(1j*((p**2)/2)*xuv_spectrum.tmat), axis=1) # integrate along time
     integral_photon = np.abs(integral_photon)**2
     integral_photon = integral_photon / np.max(integral_photon)
 
@@ -108,13 +108,17 @@ if __name__ == "__main__":
     integral_electron = integral_electron / np.max(integral_electron)
 
     plt.figure(3)
-    plt.plot(np.squeeze(p), integral_photon)
+    plt.plot(np.squeeze(p), integral_photon, "b")
+    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{photon}(t) \sqrt{\sigma(p)} e^{i(\frac{p^2}{2}t)} dt |^2$")
+    plt.xlabel("momentum p [a.u.]")
 
     plt.figure(4)
-    plt.plot(np.squeeze(p), integral_electron)
-    plt.plot(np.squeeze(p), cross_section_p)
-    plt.plot(np.squeeze(p), (integral_electron/cross_section_p)/np.max(integral_electron/cross_section_p))
-    plt.plot(np.squeeze(p), integral_photon, "r--")
+    plt.plot(np.squeeze(p), integral_electron, "b")
+    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{electron}(t) e^{i(\frac{p^2}{2}t)} dt |^2$")
+    plt.xlabel("momentum p [a.u.]")
+    # plt.plot(np.squeeze(p), cross_section_p)
+    # plt.plot(np.squeeze(p), (integral_electron/cross_section_p)/np.max(integral_electron/cross_section_p))
+    # plt.plot(np.squeeze(p), integral_photon, "r--")
 
 
     # plt.figure(1)
