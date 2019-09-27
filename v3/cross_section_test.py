@@ -109,12 +109,12 @@ if __name__ == "__main__":
 
     plt.figure(3)
     plt.plot(np.squeeze(p), integral_photon, "b")
-    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{photon}(t) \sqrt{\sigma(p)} e^{i(\frac{p^2}{2}t)} dt |^2$")
+    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{photon}(t) \sqrt{\sigma(p)} e^{i(\frac{p^2}{2})t} dt |^2$")
     plt.xlabel("momentum p [a.u.]")
 
     plt.figure(4)
     plt.plot(np.squeeze(p), integral_electron, "b")
-    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{electron}(t) e^{i(\frac{p^2}{2}t)} dt |^2$")
+    plt.title(r"$| \int_{-\infty}^{\infty} E_{xuv}^{electron}(t) e^{i(\frac{p^2}{2})t} dt |^2$")
     plt.xlabel("momentum p [a.u.]")
     # plt.plot(np.squeeze(p), cross_section_p)
     # plt.plot(np.squeeze(p), (integral_electron/cross_section_p)/np.max(integral_electron/cross_section_p))
