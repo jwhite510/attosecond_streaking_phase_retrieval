@@ -114,17 +114,16 @@ if __name__ == "__main__":
     # plt.gca().subplots_adjust(top=0.5)
     plt.gca().text(0.7, 0.8, r"$I_p = {} $[a.u.]".format(Ip), transform=plt.gca().transAxes)
     plt.gca().legend(loc=1, prop={'size':15})
-    plt.show()
-    plt.gcf().savefig("./3electron_photon_spectrum_Ip{}.png".format(Ip))
-    exit()
+    # plt.show()
+    # plt.gcf().savefig("./3electron_photon_spectrum_Ip{}.png".format(Ip))
 
     # ----with tensorflow----
     # calculate E(t)
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
     # photon
-    xuv_cropped_f_in = tf_functions.xuv_taylor_to_E(xuv_coefs)["f_photon_cropped"][0]
+    # xuv_cropped_f_in = tf_functions.xuv_taylor_to_E(xuv_coefs)["f_photon_cropped"][0]
     # electron
-    # xuv_cropped_f_in = tf_functions.xuv_taylor_to_E(xuv_coefs)["f_cropped"][0]
+    xuv_cropped_f_in = tf_functions.xuv_taylor_to_E(xuv_coefs)["f_cropped"][0]
     paddings_xuv = tf.constant(
         [[xuv_spectrum.indexmin, xuv_spectrum.N - xuv_spectrum.indexmax]], dtype=tf.int32)
     padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
@@ -135,9 +134,9 @@ if __name__ == "__main__":
     # integrate
 
     # no dipole
-    # product = 1 * tf.reshape(xuv_time_domain, [1,-1]) * 1 * e_fft
+    product = 1 * tf.reshape(xuv_time_domain, [1,-1]) * 1 * e_fft
     # dipole
-    product = 1 * tf.reshape(xuv_time_domain, [1,-1]) * 1 * cross_section_p_sqrt * e_fft
+    # product = 1 * tf.reshape(xuv_time_domain, [1,-1]) * 1 * cross_section_p_sqrt * e_fft
 
     integral_tf = tf.constant(xuv_spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     integral_tf = tf.square(tf.abs(integral_tf))
@@ -146,12 +145,10 @@ if __name__ == "__main__":
 
         feed_dict = { xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) }
         integral_tf_out = sess.run(integral_tf, feed_dict=feed_dict)
-        xuv_time_domain_out = sess.run(xuv_time_domain, feed_dict=feed_dict)
-        padded_xuv_f_out = sess.run(padded_xuv_f, feed_dict=feed_dict)
 
     plt.figure(6)
     plt.plot(np.squeeze(p), integral_tf_out)
-    # plt.gcf().savefig("./456_electron_no_dipole")
-    plt.gcf().savefig("./456_photon_with_dipole")
+    title_name = "567765_tf_electron_no_dipole"
+    plt.savefig(title_name)
 
     plt.show()
