@@ -1,4 +1,5 @@
 import tensorflow as tf
+import scipy.interpolate
 import xuv_spectrum.spectrum
 import ir_spectrum.ir_spectrum
 import matplotlib.pyplot as plt
@@ -1001,16 +1002,24 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     angular_distribution = tf.reshape(angular_distribution, [1, 1, 1, -1])
     angular_distribution = tf.complex(imag=tf.zeros_like(angular_distribution), real=angular_distribution)
 
-    # A_t_values
-    # p_tf
-    alpha = 2*Ip
-    # dipole matrix element
-    dipole_p = p_tf + A_t_values
-    dipole_mat = (2**(7 / 2) * alpha**(5 / 4)) / (np.pi)
-    dipole_mat = dipole_mat * ((dipole_p) / ((dipole_p**2 + alpha)**3))
-    dipole_mat = tf.complex(imag=dipole_mat, real=tf.zeros_like(dipole_mat))
+    # create interpolator for cross section
+    # hv = 0.5p^2 +Ip
+    electron_energy_ev = xuv_spectrum.spectrum.cross_section_ev-au_energy_to_ev_energy(Ip)
+    electron_au_momentum = ev_to_p(electron_energy_ev)
 
-    product = angular_distribution * xuv_time_domain_integrate * dipole_mat * ir_phi * e_fft_tf
+    interpolator = scipy.interpolate.interp1d(electron_au_momentum, xuv_spectrum.spectrum.cross_section, kind='linear')
+    cross_section_p = interpolator(np.squeeze(p))
+
+    cross_section_p_sqrt = np.sqrt(cross_section_p).reshape(-1, 1, 1, 1)
+
+    # without cross section
+    # product = 1 * xuv_time_domain_integrate * 1 * 1 * e_fft_tf
+    # with cross section
+    # product = 1 * xuv_time_domain_integrate * 1 * cross_section_p_sqrt * ir_phi * e_fft_tf
+    # all terms included
+    product = angular_distribution * xuv_time_domain_integrate * cross_section_p_sqrt * ir_phi * e_fft_tf
+
+    # product = 1 * xuv_time_domain_integrate * 1 * ir_phi * e_fft_tf
     # integrate over the xuv time
     integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
     # absolute square the matrix
@@ -1239,9 +1248,27 @@ def phase_rmse_error_test():
 
 
 
+def ev_to_p(vector):
+    """
+    ev_to_p(vector [eV])
+    return vector [a.u. momenrum]
+    """
+    vector =  np.array(vector) * sc.electron_volt # joules
+    vector = vector / sc.physical_constants['atomic unit of energy'][0]  # a.u. energy
+    vector = np.sqrt(2 * vector) # a.u. momentum
+
+    return vector
 
 
+def au_energy_to_ev_energy(vector):
+    """
+    vector[a.u. energy]
 
+    """
+    vector = np.array(vector) * sc.physical_constants['atomic unit of energy'][0]  # joules energy
+    vector = vector / sc.electron_volt # electron volts
+
+    return vector
 
 
 
@@ -1255,26 +1282,43 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)["E_prop"]
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+
+
+    # build from electron spectrum
+    # image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    # build from photon spectrum
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_photon_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-            xuv_coefs:np.array([[0.0, 1.0, 0.0, 0.0, 0.0]]),
+            xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
             ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]]),
             }
 
     with tf.Session() as sess:
-        out = sess.run(gen_xuv, feed_dict=feed_dict)
-        xuv_t = out['t'][0]
+        tf_image = sess.run(image, feed_dict=feed_dict)
+        print("np.shape(tf_image) =>", np.shape(tf_image))
         plt.figure(1)
-        plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
-        plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
-        plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
-        # plot spectrogram
-        out = sess.run(image, feed_dict=feed_dict)
-        plt.figure(2)
-        plt.title("spectrogram")
-        plt.pcolormesh(out, cmap="jet")
-        plt.savefig("./trace_with_dipole.png")
+        plt.pcolormesh(tf_image, cmap="jet", )
+        plt.title("photon spectrum without dipole term")
+        print("np.shape(tf_image) =>", np.shape(tf_image))
 
-        # plt.show()
+        plt.show()
+        exit()
+
+        # title for photon spectrum with dipole / ir_phi
+        # title_name = "photon_with_dipole_ir_phi"
+        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Photon}(t) \cdot \sqrt{\sigma(p)} \cdot e^{\Phi_G(p, t)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
+
+        # title_name = "photon_with_dipole"
+        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Photon}(t) \cdot \sqrt{\sigma(p)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
+
+        # title_name = "electron_no_dipole_ir_phi"
+        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Electron}(t) \cdot e^{\Phi_G(p, t)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
+
+        # title_name = "electron_no_dipole"
+        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Electron}(t) \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
+
+
+        # plt.savefig("./09579"+title_name)
+        plt.show()
