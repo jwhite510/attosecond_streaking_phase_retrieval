@@ -271,6 +271,8 @@ def retrieve_spectrum4(plotting=False):
 
     # convert the xuv params to atomic units
     params = {}
+    params['cross_section_ev'] = electron_volts_cs
+    params['cross_section'] = cross_section
     params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
     params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0]
     params['Ef'] = Ef_interp
@@ -333,8 +335,10 @@ elif spectrum == 4:
     fmat = params['fmat']
     fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
     # using the new spectrogram equation, should only use photoon spectrum
-    Ef = params['Ef_photon']
+    Ef = params['Ef']
     Ef_photon = params['Ef_photon']
+    cross_section = params['cross_section']
+    cross_section_ev = params['cross_section_ev']
     indexmin = params['indexmin']
     indexmax = params['indexmax']
     f0 = params['f0']
