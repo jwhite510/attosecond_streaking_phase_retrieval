@@ -78,38 +78,19 @@ if __name__ == "__main__":
 
 
     # fourier transform term
-    Ip = phase_parameters.params.Ip
-    Ip = 0.2
+    Ip = phase_parameters.params.Ip # a.u.
     # e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.tmat.reshape(1, -1))
 
     # e_fft = np.exp(-1j * (K) * xuv_spectrum.tmat.reshape(1, -1))
     # e_fft = np.exp(-1j*((p**2)/2)*xuv_spectrum.tmat)
     e_fft = np.exp(-1j*(    ((p**2)/2) + Ip )*xuv_spectrum.tmat)
 
-    # ----------------------
-    # ----------------------
-    # this (Ip) should be positive
-    # ----------------------
-    # ----------------------
-
-    # plt.figure(88)
-    # plt.plot(xuv_spectrum.cross_section_ev, xuv_spectrum.cross_section)
-    # plt.show()
-    # exit()
-
     # create interpolator for cross section
     # hv = 0.5p^2 +Ip
-    photon_energy_ev = xuv_spectrum.cross_section_ev-au_energy_to_ev_energy(Ip)
-    cross_section_au_momentum = ev_to_p(photon_energy_ev)
+    electron_energy_ev = xuv_spectrum.cross_section_ev-au_energy_to_ev_energy(Ip)
+    electron_au_momentum = ev_to_p(electron_energy_ev)
 
-    # print("np.max(p) =>", np.max(p))
-    # print("np.min(p) =>", np.min(p))
-    # print("np.max(cross_section_au_momentum) =>", np.max(cross_section_au_momentum))
-    # print("np.min(cross_section_au_momentum) =>", np.min(cross_section_au_momentum))
-    # exit()
-
-
-    interpolator = scipy.interpolate.interp1d(cross_section_au_momentum, xuv_spectrum.cross_section, kind='linear')
+    interpolator = scipy.interpolate.interp1d(electron_au_momentum, xuv_spectrum.cross_section, kind='linear')
     cross_section_p = interpolator(np.squeeze(p))
 
 
