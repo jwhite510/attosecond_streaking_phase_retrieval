@@ -1008,9 +1008,35 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     electron_au_momentum = ev_to_p(electron_energy_ev)
 
     interpolator = scipy.interpolate.interp1d(electron_au_momentum, xuv_spectrum.spectrum.cross_section, kind='linear')
-    cross_section_p = interpolator(np.squeeze(p))
 
-    cross_section_p_sqrt = np.sqrt(cross_section_p).reshape(-1, 1, 1, 1)
+
+    # iterate over these
+    # int(A_t_values.shape[0])
+
+    # np.shape(p)[0]
+    # tensorflow interpolator
+    """
+    working (maybe) tensorflow linear interpolator
+    """
+    tf_linear_interp = tfLinearInterp(electron_au_momentum, xuv_spectrum.spectrum.cross_section)
+    yval = tf_linear_interp.interp(3.975)
+    print("yval =>", yval)
+    with tf.Session() as sess:
+        yval_out = sess.run(yval)
+        print("yval_out =>", yval_out)
+        exit()
+    exit()
+    A_t_values
+
+    # cross_section_p = interpolator(p+A_t_values)
+    cross_section_p = interpolator(p)
+    cross_section_p_sqrt = np.sqrt(cross_section_p)
+
+
+    print("np.shape(p) =>", np.shape(p))
+    print("np.shape(cross_section_p) =>", np.shape(cross_section_p))
+    print("np.shape(cross_section_p_sqrt) =>", np.shape(cross_section_p_sqrt))
+    exit()
 
     # without cross section
     # product = 1 * xuv_time_domain_integrate * 1 * 1 * e_fft_tf
@@ -1269,6 +1295,43 @@ def au_energy_to_ev_energy(vector):
     vector = vector / sc.electron_volt # electron volts
 
     return vector
+
+
+class tfLinearInterp():
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.x_tf = tf.constant(x, dtype=tf.float32)
+        self.y_tf = tf.constant(y, dtype=tf.float32)
+
+        # np.min(x) => 0.0309108780936
+        # np.max(x) => 5.0749266672
+        # np.min(y) => 0.0155
+        # np.max(y) => 7.8
+
+    def interp(self, x_interp_val):
+
+        _, lowest_indexes = tf.math.top_k( -tf.abs(x_interp_val - self.x_tf) , k=2, sorted=True)
+
+        # sort so that x1 is always lower value than x2
+        x1_index = tf.math.reduce_min(lowest_indexes)
+        x2_index = tf.math.reduce_max(lowest_indexes)
+
+        # get the closest two x values
+        interp_x1 = self.x_tf[ x1_index ]
+        interp_x2 = self.x_tf[ x2_index ]
+        # get the closest two y values
+        interp_y1 = self.y_tf[ x1_index ]
+        interp_y2 = self.y_tf[ x2_index ]
+        # slope
+        line_slope = (interp_y2 - interp_y1) / (interp_x2 - interp_x1)
+        # distance from x1
+        x_diff = x_interp_val - interp_x1
+        # multiply the slope by distance
+        y_interp_val = interp_y1 + ( line_slope * x_diff )
+
+        return y_interp_val
 
 
 
