@@ -1,3 +1,4 @@
+import tensorflow_probability as tfp
 import tensorflow as tf
 import scipy.interpolate
 import xuv_spectrum.spectrum
@@ -1009,34 +1010,26 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
 
     interpolator = scipy.interpolate.interp1d(electron_au_momentum, xuv_spectrum.spectrum.cross_section, kind='linear')
 
+    # create a linear grid for the cross section
+    electron_au_momentum_x_min = np.min(electron_au_momentum)
+    electron_au_momentum_x_max = np.max(electron_au_momentum)
+    electron_au_momentum_x_vals = np.linspace(electron_au_momentum_x_min, electron_au_momentum_x_max, 100, dtype=np.float32)
+    electron_au_momentum_y_vals = interpolator(electron_au_momentum_x_vals)
+    # give linearly spaced points
 
-    # iterate over these
-    # int(A_t_values.shape[0])
+    # tf_p_plus_A_t = p + A_t_values
+    tf_p_plus_A_t = p.astype(np.float32)
 
-    # np.shape(p)[0]
-    # tensorflow interpolator
-    """
-    working (maybe) tensorflow linear interpolator
-    """
-    tf_linear_interp = tfLinearInterp(electron_au_momentum, xuv_spectrum.spectrum.cross_section)
-    yval = tf_linear_interp.interp(3.975)
-    print("yval =>", yval)
-    with tf.Session() as sess:
-        yval_out = sess.run(yval)
-        print("yval_out =>", yval_out)
-        exit()
-    exit()
-    A_t_values
+    # interpolate linear points
+    cross_section_vals = tfp.math.interp_regular_1d_grid(x=tf_p_plus_A_t, x_ref_min=electron_au_momentum_x_min.astype(np.float32), x_ref_max=electron_au_momentum_x_max.astype(np.float32), y_ref=electron_au_momentum_y_vals.astype(np.float32))
+
+    tf_cross_section_p_sqrt = tf.sqrt(cross_section_vals)
+
+    # check min and max values
 
     # cross_section_p = interpolator(p+A_t_values)
     cross_section_p = interpolator(p)
     cross_section_p_sqrt = np.sqrt(cross_section_p)
-
-
-    print("np.shape(p) =>", np.shape(p))
-    print("np.shape(cross_section_p) =>", np.shape(cross_section_p))
-    print("np.shape(cross_section_p_sqrt) =>", np.shape(cross_section_p_sqrt))
-    exit()
 
     # without cross section
     # product = 1 * xuv_time_domain_integrate * 1 * 1 * e_fft_tf
@@ -1360,28 +1353,8 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
         tf_image = sess.run(image, feed_dict=feed_dict)
-        print("np.shape(tf_image) =>", np.shape(tf_image))
         plt.figure(1)
-        plt.pcolormesh(tf_image, cmap="jet", )
-        plt.title("photon spectrum without dipole term")
-        print("np.shape(tf_image) =>", np.shape(tf_image))
-
-        plt.show()
-        exit()
-
-        # title for photon spectrum with dipole / ir_phi
-        # title_name = "photon_with_dipole_ir_phi"
-        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Photon}(t) \cdot \sqrt{\sigma(p)} \cdot e^{\Phi_G(p, t)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
-
-        # title_name = "photon_with_dipole"
-        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Photon}(t) \cdot \sqrt{\sigma(p)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
-
-        # title_name = "electron_no_dipole_ir_phi"
-        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Electron}(t) \cdot e^{\Phi_G(p, t)} \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
-
-        # title_name = "electron_no_dipole"
-        # plt.title(r"$|\int_{-\infty}^{\infty}E_{XUV}^{Electron}(t) \cdot e^{-i  (\frac{p^2}{2} + I_p) t} dt |^2$")
-
-
-        # plt.savefig("./09579"+title_name)
+        plt.pcolormesh(tf_image, cmap="jet")
+        plt.title("spectrogram")
+        plt.savefig("./scipy_interp.png")
         plt.show()
