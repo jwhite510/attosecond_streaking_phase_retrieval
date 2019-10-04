@@ -1386,6 +1386,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='MLMRL_noise_resistant_net_angle_18')
+    phase_net_train = PhaseNetTrain(modelname='MLMRL_noise_resistant_net_angle_30')
     phase_net_train.supervised_learn()
 

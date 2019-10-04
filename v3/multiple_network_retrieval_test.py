@@ -44,6 +44,7 @@ def run_retrievals_on_networks():
 
     # input the reconstructed trace to all the networks and see the variation in the output
     retrieved_xuv_cl = []
+    retrieved_ir_cl = []
     for tf_model in [ "MLMRL_noise_resistant_net_angle_1",
                     "MLMRL_noise_resistant_net_angle_2",
                     "MLMRL_noise_resistant_net_angle_3",
@@ -78,13 +79,16 @@ def run_retrievals_on_networks():
         supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(tf_model)
         retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
         retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
+        retrieved_ir_coefs = retrieve_output["ir_retrieved"]
         del supervised_retrieval_obj
 
         # add the retrieved xuv coefs to list
         retrieved_xuv_cl.append(retrieved_xuv_coefs)
+        retrieved_ir_cl.append(retrieved_ir_coefs)
 
     data = {}
     data["retrieved_xuv_cl"] = retrieved_xuv_cl
+    data["retrieved_ir_cl"] = retrieved_ir_cl
     data["measured_trace"] = measured_trace
     # data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
     # return retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs
@@ -99,9 +103,9 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    # data = run_retrievals_on_networks()
-    # with open("multiple_net_retrieval_test.p", "wb") as file:
-    #     pickle.dump(data, file)
+    data = run_retrievals_on_networks()
+    with open("multiple_net_retrieval_test.p", "wb") as file:
+        pickle.dump(data, file)
 
     with open("multiple_net_retrieval_test.p", "rb") as file:
         obj = pickle.load(file)
@@ -109,6 +113,8 @@ if __name__ == "__main__":
     # create tensorflow graph
     xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, params.xuv_phase_coefs])
     xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_in)
+
+
     with tf.Session() as sess:
 
         # convert to complex E
@@ -128,6 +134,11 @@ if __name__ == "__main__":
         # out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:obj["orignal_retrieved_xuv_coefs"]})
         # E_t_vec_actual = out["t_photon"]
         # E_f_vec_actual = out["f_photon_cropped"]
+
+        # calculate the mean retrieved ir and xuv values to calculate reconstructed trace
+        for xuv_coefs, ir_vals in zip(obj["retrieved_xuv_cl"], obj["retrieved_ir_cl"]):
+            import ipdb; ipdb.set_trace() # BREAKPOINT
+            print("BREAKPOINT")
 
     # plot the E_t and E_f vectors
     fig = plt.figure(figsize=(12,8))
