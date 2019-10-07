@@ -875,6 +875,10 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     paddings_xuv = tf.constant(
         [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
     padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
+
+    # print("np.shape(xuv_spectrum.spectrum.fmat) =>", np.shape(xuv_spectrum.spectrum.fmat))
+    # print("padded_xuv_f =>", padded_xuv_f)
+    # exit()
     # same for the IR
     paddings_ir = tf.constant(
         [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
@@ -1236,7 +1240,7 @@ def phase_rmse_error_test():
 
 
 if __name__ == "__main__":
-   # phase_rmse_error_test()
+    # phase_rmse_error_test()
 
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
@@ -1244,9 +1248,7 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
-    angle_in = tf.placeholder(tf.float32, shape=[10])
-    Beta = 1
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0], angle_in=angle_in, Beta_in=Beta)
+    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["E_prop"]["f_cropped"][0])
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1262,13 +1264,8 @@ if __name__ == "__main__":
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
 
-        # theta_max = np.pi/2 # 90 degrees
-        for j, theta_max in enumerate(np.linspace(0.1, np.pi, 5)):
-            feed_dict[angle_in] = np.linspace(0, theta_max, 10)
-            out = sess.run(image, feed_dict=feed_dict)
-            plt.figure(j+2)
-            plt.title(r"$\theta_{max}$: " + "%.4f" % (theta_max*(180/np.pi)) + " Degrees")
-            plt.pcolormesh(out, cmap="jet")
-            plt.savefig(str(j+2)+"_angletrace_beta2.png")
-            # plt.savefig("./A123_long.png")
+        out = sess.run(image, feed_dict=feed_dict)
+        plt.figure(2)
+        plt.pcolormesh(out, cmap="jet")
+
         plt.show()
