@@ -852,8 +852,7 @@ def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
     return image
 
 
-def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
-
+def streaking_trace(xuv_in, ir_in):
 
     # define the angle for streaking trace collection
     theta_max = np.pi/2
@@ -868,26 +867,10 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     # ionization potential
     Ip = phase_parameters.params.Ip
 
-    #-----------------------------------------------------------------
-    # zero pad the spectrum of ir and xuv input to match the full original f matrices
-    #-----------------------------------------------------------------
-    # [pad_before , padafter]
-    paddings_xuv = tf.constant(
-        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
-    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
-
-    # print("np.shape(xuv_spectrum.spectrum.fmat) =>", np.shape(xuv_spectrum.spectrum.fmat))
-    # print("padded_xuv_f =>", padded_xuv_f)
-    # exit()
-    # same for the IR
-    paddings_ir = tf.constant(
-        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
-        dtype=tf.int32)
-    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
     # fourier transform the padded xuv
-    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
+    xuv_time_domain = xuv_in["t"][0]
     # fourier transform the padded ir
-    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
+    ir_time_domain = ir_in["E_prop"]["t"][0]
 
 
     #------------------------------------------------------------------
@@ -899,7 +882,7 @@ def streaking_trace(xuv_cropped_f_in, ir_cropped_f_in):
     pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
     # pad the IR to match dt of xuv
     paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
-    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
+    padded_ir_2 = tf.pad(ir_in["E_prop"]["f"][0], paddings_ir_2)
     # calculate ir with matching dt in time
     ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
     # match the scale of the original
@@ -1248,7 +1231,7 @@ if __name__ == "__main__":
 
     gen_xuv = xuv_taylor_to_E(xuv_coefs)
     ir_E_prop = ir_from_params(ir_values_in)
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["E_prop"]["f_cropped"][0])
+    image = streaking_trace(xuv_in=gen_xuv, ir_in=ir_E_prop)
 
     feed_dict = {
             # xuv_coefs:np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -1267,5 +1250,6 @@ if __name__ == "__main__":
         out = sess.run(image, feed_dict=feed_dict)
         plt.figure(2)
         plt.pcolormesh(out, cmap="jet")
+        plt.savefig("2.png")
 
         plt.show()
