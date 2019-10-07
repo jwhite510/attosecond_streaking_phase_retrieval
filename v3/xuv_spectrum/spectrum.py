@@ -71,6 +71,7 @@ def my_interp(electronvolts_in, intensity_in, plotting=False):
         plt.plot(fmat[indexmin:indexmax], Ef_interp[indexmin:indexmax], color='red')
         plt.show()
 
+    # fmat [hz]
     return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
 
 def retrieve_spectrum2(plotting=False):
@@ -272,7 +273,7 @@ def retrieve_spectrum4(plotting=False):
     # convert the xuv params to atomic units
     params = {}
     params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
-    params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0]
+    params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0] # 1 / time [a.u.]
     params['Ef'] = Ef_interp
     params['Ef_photon'] = Ef_interp_photon
     params['indexmin'] = indexmin
