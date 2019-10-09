@@ -9,11 +9,16 @@ import sys
 import phase_parameters.params as phase_params
 
 
+# def open_data_file(filepath):
+
+
+
 def my_interp(electronvolts_in, intensity_in, plotting=False):
     # convert eV to joules
     joules = np.array(electronvolts_in) * sc.electron_volt  # joules
     hertz = np.array(joules / sc.h)
     Intensity = np.array(intensity_in)
+
     # define tmat and fmat
     # N = 1024
     N = int(2 * 1024)
@@ -24,34 +29,40 @@ def my_interp(electronvolts_in, intensity_in, plotting=False):
     df = 1 / (N * dt)
     fmat = df * np.arange(-N / 2, N / 2, 1)
 
-    # pad the vectors with zeros
-    hertz = np.insert(hertz, 0, hertz[0])
-    Intensity = np.insert(Intensity, 0, 0)
-    hertz = np.append(hertz, hertz[-1])
-    Intensity = np.append(Intensity, 0)
-
-    # pad the retrieved values with zeros to interpolate later
-    hertz = np.insert(hertz, 0, -6e18)
-    Intensity = np.insert(Intensity, 0, 0)
-    hertz = np.append(hertz, 6e18)
-    Intensity = np.append(Intensity, 0)
+    # get rid of any negative points if there are any
     Intensity[Intensity < 0] = 0
+
+    # set the edges to 0
+    Intensity[-1] = 0
+    Intensity[0] = 0
+
+    # for plotting later, reference the values which contain the non-zero Intensity
+    f_index_min = hertz[0]
+    f_index_max = hertz[-1]
+
+    # add zeros at the edges to match the fmat matrix
+    hertz = np.insert(hertz, 0, np.min(fmat))
+    Intensity = np.insert(Intensity, 0, 0)
+    hertz = np.append(hertz, np.max(fmat))
+    Intensity = np.append(Intensity, 0)
 
     # get the carrier frequency
     f0 = hertz[np.argmax(Intensity)]
     # square root the intensity to get electric field amplitude
     Ef = np.sqrt(Intensity)
-    # map the spectrum onto 512 points linearly
+
+    # map the spectrum onto linear fmat
     interpolator = scipy.interpolate.interp1d(hertz, Ef, kind='linear')
     Ef_interp = interpolator(fmat)
+
     # calculate signal in time
     linear_E_t = np.fft.fftshift(np.fft.ifft(np.fft.fftshift(Ef_interp)))
-    # set the indexes for cropped input
-    # indexmin = np.argmin(np.abs(fmat - 1.75e16))
-    indexmin = np.argmin(np.abs(fmat - 1.26e16))
-    # indexmax = np.argmin(np.abs(fmat - 7.99e16))
-    indexmax = np.argmin(np.abs(fmat - 9.34e16))
 
+    # set the indexes for cropped input
+    indexmin = np.argmin(np.abs(fmat - f_index_min))
+    indexmax = np.argmin(np.abs(fmat - f_index_max))
+
+    plotting = True
     if plotting:
         plt.figure(1)
         plt.plot(hertz, Intensity, color='red')
@@ -70,9 +81,22 @@ def my_interp(electronvolts_in, intensity_in, plotting=False):
         plt.plot(fmat, Ef_interp, color='red', alpha=0.5)
         plt.plot(fmat[indexmin:indexmax], Ef_interp[indexmin:indexmax], color='red')
         plt.show()
+    exit()
 
+    output = {}
+    output["hertz"] = hertz
+    output["linear_E_t"] = linear_E_t
+    output["tmat"] = tmat
+    output["fmat"] = fmat
+    output["Ef_interp"] = Ef_interp
+    output["indexmin"] = indexmin
+    output["indexmax"] = indexmax
+    output["f0"] = f0
+    output["N"] = N
+    output["dt"] = dt
+    return output
     # fmat [hz]
-    return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
+    # return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
 
 def retrieve_spectrum2(plotting=False):
     # open the file
@@ -209,7 +233,7 @@ def retrieve_spectrum4(plotting=False):
     intensity = np.array(intensity)
     intensity = intensity / np.max(intensity)
 
-    hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
+    electron_interp = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
     # calculate photon spectrum
     electron_volts_cs = []
@@ -233,16 +257,16 @@ def retrieve_spectrum4(plotting=False):
 
 
     # interpolate the photon spectrum
-    _, _, _, _, Ef_interp_photon, _, _, _, _, _= my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
+    photon_interp = my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
 
     # convert the xuv params to atomic units
     params = {}
-    params['tmat'] = tmat/sc.physical_constants['atomic unit of time'][0]
-    params['fmat'] = fmat*sc.physical_constants['atomic unit of time'][0] # 1 / time [a.u.]
-    params['Ef'] = Ef_interp
-    params['Ef_photon'] = Ef_interp_photon
-    params['indexmin'] = indexmin
-    params['indexmax'] = indexmax
+    params['tmat'] = electron_interp["tmat"]/sc.physical_constants['atomic unit of time'][0]
+    params['fmat'] = electron_interp["fmat"]*sc.physical_constants['atomic unit of time'][0] # 1 / time [a.u.]
+    params['Ef'] = electron_interp["Ef_interp"]
+    params['Ef_photon'] = photon_interp["Ef_interp"]
+    params['indexmin'] = electron_interp["indexmin"]
+    params['indexmax'] = electron_interp["indexmax"]
     params['f0'] = f0*sc.physical_constants['atomic unit of time'][0] + 0.2
     params['N'] = N
     params['dt'] = dt/sc.physical_constants['atomic unit of time'][0]
