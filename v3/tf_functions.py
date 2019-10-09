@@ -1243,6 +1243,9 @@ def calc_streaking_phase_term(photon_energy, Ip):
     # take absolute value because cant square negative
     # photon_energy = np.abs(photon_energy)
 
+    # --------------------------------------------------------
+    # ---- phase accmulated from coulomb potential -----------
+    # --------------------------------------------------------
     term1 =  2 - (1j / np.sqrt(2*( np.abs(photon_energy-Ip) )))
     # gamma function
     term1 = gamma(term1)
@@ -1251,18 +1254,29 @@ def calc_streaking_phase_term(photon_energy, Ip):
     # imaginary part
     term1 = np.imag(term1)
 
+    # --------------------------------------------------------
+    # ---- phase accunulated from ir driving laser field -----
+    # --------------------------------------------------------
+    # approximate the wavelength as the average IR wavelength
+    ir_wl_max = phase_parameters.params.ir_param_amplitudes['clambda_range'][0]
+    ir_wl_min = phase_parameters.params.ir_param_amplitudes['clambda_range'][1]
+    avg_ir_wavelength_um = (ir_wl_min + ir_wl_max) / 2
+    Tlaser_sec = ((avg_ir_wavelength_um)*1e-6 / sc.c) # seconds
+    # Tlaser_sec = (1.7*1e-6 / sc.c) # seconds
+    Tlaser_au = Tlaser_sec / sc.physical_constants["atomic unit of time"][0] # a.u
     # cycle of laser # a.u
-    Tlaser = 1.7 / (0.3 * 24.2 *10**-3)
+    # Tlaser = 1.7 / (0.3 * 24.2 *10**-3)
     x_integral_start = (5/27.2)
     dx = np.max(photon_energy-Ip) / 10000
     term2 = []
     for x_integral_end in (photon_energy-Ip):
         # calculate summation
         x = np.arange(x_integral_start, x_integral_end, dx)
-        y = 1/(( 2*x )**( 3/2 ))*(2 - np.log(x * Tlaser))
+        y = 1/(( 2*x )**( 3/2 ))*(2 - np.log(x * Tlaser_au))
         term2.append(dx * np.sum(y))
     term2 = np.array(term2)
 
+    # accumulated phase from both ir pulse and coulomb potential of atom (hydrogen)
     phi_streak = term1 + term2
 
     return phi_streak
