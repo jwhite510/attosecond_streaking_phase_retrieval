@@ -224,7 +224,7 @@ def retrieve_spectrum4(plotting=False):
             values = line.rstrip().split(",")
             values = [float(e) for e in values]
             electron_volts.append(values[0])
-            intensity.append(values[2])
+            intensity.append(values[1])
 
     # add the ionization potential to the electron volts
     electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
