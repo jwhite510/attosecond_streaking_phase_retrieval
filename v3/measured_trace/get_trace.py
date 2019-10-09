@@ -96,16 +96,12 @@ def retrieve_trace(find_f0=False):
     # normalize trace
     trace = trace / np.max(trace)
 
-    find_f0 = True
-    if find_f0:
-        f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay_vals, energy=energy_vals, plotting=True)
-        print(f0)  # in seconds
-        print(lam0)# 1.6788377648000736e-06
+    f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay_vals, energy=energy_vals, plotting=True)
 
-    return delay_vals, energy_vals, trace
+    return delay_vals, energy_vals, trace, lam0
 
 
-delay, energy, trace = retrieve_trace()
+delay, energy, trace, lam0 = retrieve_trace()
 
 
 if __name__ == "__main__":
