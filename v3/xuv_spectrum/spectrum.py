@@ -138,9 +138,9 @@ def retrieve_spectrum(plotting=False):
     params['Ef_photon'] = photon_interp["Ef_interp"]
     params['indexmin'] = electron_interp["indexmin"]
     params['indexmax'] = electron_interp["indexmax"]
-    params['f0'] = f0*sc.physical_constants['atomic unit of time'][0] + 0.2
-    params['N'] = N
-    params['dt'] = dt/sc.physical_constants['atomic unit of time'][0]
+    params['f0'] = electron_interp["f0"]*sc.physical_constants['atomic unit of time'][0] + 0.2
+    params['N'] = electron_interp["N"]
+    params['dt'] = electron_interp["dt"]/sc.physical_constants['atomic unit of time'][0]
 
     return params
 
