@@ -9,11 +9,20 @@ import sys
 import phase_parameters.params as phase_params
 
 
-# def open_data_file(filepath):
+def open_data_file(filepath):
+    x = []
+    y = []
+    with open(filepath, 'r') as file:
+        for line in file.readlines():
+            values = line.rstrip().split(",")
+            values = [float(e) for e in values]
+            x.append(values[0])
+            y.append(values[1])
+    return x, y
 
 
 
-def my_interp(electronvolts_in, intensity_in, plotting=False):
+def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=False):
     # convert eV to joules
     joules = np.array(electronvolts_in) * sc.electron_volt  # joules
     hertz = np.array(joules / sc.h)
@@ -62,7 +71,6 @@ def my_interp(electronvolts_in, intensity_in, plotting=False):
     indexmin = np.argmin(np.abs(fmat - f_index_min))
     indexmax = np.argmin(np.abs(fmat - f_index_max))
 
-    plotting = True
     if plotting:
         plt.figure(1)
         plt.plot(hertz, Intensity, color='red')
@@ -81,7 +89,6 @@ def my_interp(electronvolts_in, intensity_in, plotting=False):
         plt.plot(fmat, Ef_interp, color='red', alpha=0.5)
         plt.plot(fmat[indexmin:indexmax], Ef_interp[indexmin:indexmax], color='red')
         plt.show()
-    exit()
 
     output = {}
     output["hertz"] = hertz
@@ -217,15 +224,8 @@ def retrieve_spectrum3(plotting=False):
     return params
 
 def retrieve_spectrum4(plotting=False):
-    electron_volts = []
-    intensity = []
-    with open(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv', 'r') as file:
-        for line in file.readlines():
-            values = line.rstrip().split(",")
-            values = [float(e) for e in values]
-            electron_volts.append(values[0])
-            intensity.append(values[1])
 
+    electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv')
     # add the ionization potential to the electron volts
     electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
 
@@ -233,17 +233,10 @@ def retrieve_spectrum4(plotting=False):
     intensity = np.array(intensity)
     intensity = intensity / np.max(intensity)
 
-    electron_interp = my_interp(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
+    electron_interp = interp_measured_data_to_linear(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
-    # calculate photon spectrum
-    electron_volts_cs = []
-    cross_section = []
-    with open(os.path.dirname(__file__)+'/sample4/HeliumCrossSection.csv', 'r') as file:
-        for line in file.readlines():
-            values = line.rstrip().split(",")
-            values = [float(e) for e in values]
-            cross_section.append(values[1])
-            electron_volts_cs.append(values[0])
+    # open the cross section
+    electron_volts_cs, cross_section = open_data_file(os.path.dirname(__file__)+'/sample4/HeliumCrossSection.csv')
 
     # interpolate the cross section to match the electron spectrum
     interpolator = scipy.interpolate.interp1d(electron_volts_cs, cross_section, kind='linear')
@@ -255,9 +248,8 @@ def retrieve_spectrum4(plotting=False):
     # normalize photon spec intensity
     photon_spec_I = photon_spec_I / np.max(photon_spec_I)
 
-
     # interpolate the photon spectrum
-    photon_interp = my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
+    photon_interp = interp_measured_data_to_linear(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
 
     # convert the xuv params to atomic units
     params = {}
