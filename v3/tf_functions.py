@@ -472,24 +472,8 @@ def xuv_taylor_to_E(coefficients_in):
     Ef_prop = Ef * tf.exp(tf.complex(imag=phasecurve, real=tf.zeros_like(phasecurve)))
     Ef_photon_prop = Ef_photon * tf.exp(tf.complex(imag=phasecurve, real=tf.zeros_like(phasecurve)))
 
-
-    # ------------------------
-    # additional ir phase term
-    # Ep - Ip (a.u) ----------
-    # ------------------------
-
-    # Ep (photon energy)
-    # Ip
-    Ip = phase_parameters.params.Ip # a.u. energy
-    # xuv_spectrum.spectrum.fmat # a.u. (frequency)
-    E_photon_au = hz_to_au_energy(xuv_spectrum.spectrum.fmat_hz) # atomic units of energy
-    # calc_streaking_phase_term(E_photon_au - Ip)
-    phi_streak = calc_streaking_phase_term(E_photon_au, Ip)
-    streaking_phase_term = phi_streak.astype(np.float32)
-    streaking_phase_term_exp = tf.exp(tf.complex(imag=streaking_phase_term, real=tf.zeros_like(streaking_phase_term)))
-
     # fourier transform for time propagated signal
-    Et_prop = tf_ifft(Ef_prop * streaking_phase_term_exp, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
+    # Et_prop = tf_ifft(Ef_prop * streaking_phase_term_exp, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
     Et_photon_prop = tf_ifft(Ef_photon_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
 
     # return the cropped E
@@ -500,11 +484,10 @@ def xuv_taylor_to_E(coefficients_in):
     phasecurve_cropped = phasecurve[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
 
     E_prop = {}
-    E_prop["streaking_phase_term_exp"] = streaking_phase_term_exp
+    # E_prop["streaking_phase_term_exp"] = streaking_phase_term_exp
     E_prop["f"] = Ef_prop
     E_prop["f_cropped"] = Ef_prop_cropped
     E_prop["f_photon_cropped"] = Ef_photon_prop_cropped
-    E_prop["t"] = Et_prop
     E_prop["t_photon"] = Et_photon_prop
     E_prop["phasecurve_cropped"] = phasecurve_cropped
     #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
@@ -883,10 +866,18 @@ def streaking_trace(xuv_in, ir_in):
     # the A^2 term in the integral
 
     # ionization potential
-    Ip = phase_parameters.params.Ip
+    Ip = phase_parameters.params.Ip # a.u. energy
 
-    # fourier transform the padded xuv
-    xuv_time_domain = xuv_in["t"][0]
+    # Ep (photon energy)
+    E_photon_au = hz_to_au_energy(xuv_spectrum.spectrum.fmat_hz) # atomic units of energy
+    # ir_wavelength_um = ir_in["scaled_values"]["clambda"]
+    phi_streak = calc_streaking_phase_term(E_photon_au, Ip)
+    streaking_phase_term = phi_streak.astype(np.float32)
+    streaking_phase_term_exp = tf.exp(tf.complex(imag=streaking_phase_term, real=tf.zeros_like(streaking_phase_term)))
+
+    # apply angle from dipole term (hydrogen only) and phase from streaking
+    Et_prop = tf_ifft(xuv_in["f"] * streaking_phase_term_exp, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
+    xuv_time_domain = Et_prop[0]
     # fourier transform the padded ir
     ir_time_domain = ir_in["E_prop"]["t"][0]
 
@@ -1238,6 +1229,78 @@ def hz_to_au_energy(vector_hz):
     return vector_energy_au
 
 
+def calc_streaking_phase_term_tf(ir_wavelength_um, photon_energy, Ip):
+
+    """
+    this function was made to calculate the streaking phase term as a function of wavelength, which
+    with variable wavelength, this function must be included in the tensorflow graph.
+    Doing this, I ran into the problem of the dx for integration along the ir delay term
+    """
+
+    # take absolute value because cant square negative
+    # photon_energy = np.abs(photon_energy)
+
+
+    # cycle of laser # a.u
+    # Tlaser = 1.7 / (0.3 * 24.2 *10**-3)
+
+    # wavelength [m] / [m/s] # convert to a.u
+
+    Tlaser_sec = (ir_wavelength_um*1e-6 / sc.c) # seconds
+    # Tlaser_sec = (1.7*1e-6 / sc.c) # seconds
+    Tlaser_au = Tlaser_sec / sc.physical_constants["atomic unit of time"][0] # a.u
+
+
+    # positive values for (photon_energy-Ip)
+    positive_energy_vals = ( photon_energy-Ip )[(photon_energy-Ip)>0]
+
+    # multiply triangle by this
+    # move this term to calculating the streaking trace
+    side_length = len(positive_energy_vals)
+    triangle = tf.contrib.distributions.fill_triangular(np.ones(int(side_length*(side_length+1)/2)).astype(np.float32),upper=True)
+
+    y = 1/(( 2*positive_energy_vals )**( 3/2 ))*(2 - tf.log(positive_energy_vals * Tlaser_au))
+
+    y_vals_triangle = triangle*tf.reshape(y, [-1,1])
+
+    # integrate along energy
+    d_E = positive_energy_vals[1] - positive_energy_vals[0]
+    y_integrate = d_E * tf.reduce_sum(y_vals_triangle, axis=0)
+
+    negative_frequency_zeros = tf.zeros([len(photon_energy-Ip)-len(positive_energy_vals)])
+
+    integral_values = tf.concat([negative_frequency_zeros, y_integrate], axis=0)
+    term2 = integral_values
+
+    term1 =  2 - (1j / np.sqrt(2*( positive_energy_vals )))
+    # gamma function
+    term1 = gamma(term1)
+    # natural log
+    term1 = np.log(term1)
+    # imaginary part
+    term1 = np.imag(term1)
+    term1_concat = tf.concat([negative_frequency_zeros, term1], axis=0)
+    phi_streak = term1_concat + term2
+
+
+    with tf.Session() as sess:
+        out = sess.run(phi_streak, feed_dict={ir_wavelength_um:[1.7]})
+    # print("out =>", out)
+
+    plt.figure(354)
+    plt.plot(photon_energy, out, label="tensorflow intergal")
+    plt.title("tensorflow")
+
+    calc_streaking_phase_term_numpy(photon_energy, Ip)
+
+    plt.gca().legend()
+    plt.show()
+    exit()
+
+    return phi_streak
+
+
+
 def calc_streaking_phase_term(photon_energy, Ip):
 
     # take absolute value because cant square negative
@@ -1251,15 +1314,27 @@ def calc_streaking_phase_term(photon_energy, Ip):
     # imaginary part
     term1 = np.imag(term1)
 
+
+    # approximate the wavelength as the average IR wavelength
+    ir_wl_max = phase_parameters.params.ir_param_amplitudes['clambda_range'][0]
+    ir_wl_min = phase_parameters.params.ir_param_amplitudes['clambda_range'][1]
+    avg_ir_wavelength_um = (ir_wl_min + ir_wl_max) / 2
+
+
+    Tlaser_sec = ((avg_ir_wavelength_um)*1e-6 / sc.c) # seconds
+    # Tlaser_sec = (1.7*1e-6 / sc.c) # seconds
+    Tlaser_au = Tlaser_sec / sc.physical_constants["atomic unit of time"][0] # a.u
+
     # cycle of laser # a.u
-    Tlaser = 1.7 / (0.3 * 24.2 *10**-3)
+    # Tlaser = 1.7 / (0.3 * 24.2 *10**-3)
+
     x_integral_start = (5/27.2)
     dx = np.max(photon_energy-Ip) / 10000
     term2 = []
     for x_integral_end in (photon_energy-Ip):
         # calculate summation
         x = np.arange(x_integral_start, x_integral_end, dx)
-        y = 1/(( 2*x )**( 3/2 ))*(2 - np.log(x * Tlaser))
+        y = 1/(( 2*x )**( 3/2 ))*(2 - np.log(x * Tlaser_au))
         term2.append(dx * np.sum(y))
     term2 = np.array(term2)
 
@@ -1291,28 +1366,15 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
         out = sess.run(gen_xuv, feed_dict=feed_dict)
-        xuv_t = out['t'][0]
+        xuv_t = out['t_photon'][0]
         plt.figure(1)
         plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
         plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
         plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
 
-
-        Ef = out["f"]
-        streaking_phase_term_exp = out["streaking_phase_term_exp"]
-
-        # plot Ef with phase term
-        fig = plt.figure()
-        fig, ax = plt.subplots(1,1)
-        ax.plot(xuv_spectrum.spectrum.fmat_hz,np.abs((Ef[0]*streaking_phase_term_exp))**2)
-        # ax.plot(xuv_spectrum.spectrum.fmat_hz,np.abs((Ef[0]*1))**2)
-        axtwin = ax.twinx()
-        axtwin.plot(xuv_spectrum.spectrum.fmat_hz,np.unwrap(np.angle(Ef[0]*streaking_phase_term_exp)))
-        # axtwin.plot(xuv_spectrum.spectrum.fmat_hz,np.unwrap(np.angle(Ef[0]*1)))
-
         out = sess.run(image, feed_dict=feed_dict)
         plt.figure(2)
         plt.pcolormesh(out, cmap="jet")
-        plt.savefig("aer.png")
+        plt.savefig("7654_trace_without.png")
 
         plt.show()
