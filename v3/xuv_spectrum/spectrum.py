@@ -221,14 +221,6 @@ def retrieve_spectrum4(plotting=False):
             cross_section.append(values[1])
             electron_volts_cs.append(values[0])
 
-    # append the cross section values because the inteprolation is out of range
-    cs_append_value = float(cross_section[-1])
-    d_ev = electron_volts_cs[-1] - electron_volts_cs[-2]
-    for _ in range(15):
-        ev_append = electron_volts_cs[-1] + d_ev
-        cross_section.append(cs_append_value)
-        electron_volts_cs.append(ev_append)
-
     # interpolate the cross section to match the electron spectrum
     interpolator = scipy.interpolate.interp1d(electron_volts_cs, cross_section, kind='linear')
     cross_sec_interp = interpolator(electron_volts)
@@ -242,33 +234,6 @@ def retrieve_spectrum4(plotting=False):
 
     # interpolate the photon spectrum
     _, _, _, _, Ef_interp_photon, _, _, _, _, _= my_interp(electronvolts_in=electron_volts, intensity_in=photon_spec_I, plotting=plotting)
-
-    # plt.figure(10)
-    # plt.plot(electron_volts_cs, cross_section)
-    # plt.title("cross section")
-
-    # plt.figure(11)
-    # plt.plot(electron_volts, intensity)
-    # plt.title("intensity")
-
-    # plt.figure(12)
-    # plt.plot(electron_volts, cross_sec_interp)
-    # plt.title("interpolated cross cross section")
-
-    # plt.figure(13)
-    # plt.plot(electron_volts, photon_spec_I)
-    # plt.title("photon spectrum")
-
-    # plt.figure(14)
-    # plt.plot(fmat, Ef_interp)
-    # plt.title("linear photon spectrum")
-
-    # plt.figure(15)
-    # plt.plot(fmat, Ef_interp_photon)
-    # plt.title("linear photon spectrum")
-
-    # plt.show()
-    # exit()
 
     # convert the xuv params to atomic units
     params = {}
