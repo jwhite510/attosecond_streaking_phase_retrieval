@@ -20,8 +20,6 @@ def open_data_file(filepath):
             y.append(values[1])
     return x, y
 
-
-
 def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=False):
     # convert eV to joules
     joules = np.array(electronvolts_in) * sc.electron_volt  # joules
@@ -105,10 +103,7 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
     # fmat [hz]
     # return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
 
-
-
 def retrieve_spectrum(plotting=False):
-
     electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv')
     # add the ionization potential to the electron volts
     electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
@@ -150,7 +145,6 @@ def retrieve_spectrum(plotting=False):
     return params
 
 
-
 params = retrieve_spectrum()
 tmat = params['tmat']
 tmat_as = params['tmat'] * sc.physical_constants['atomic unit of time'][0] * 1e18 # attoseconds
@@ -168,15 +162,8 @@ fmat_hz_cropped = fmat_hz[indexmin: indexmax]
 
 if __name__ == "__main__":
 
-    # spectrum 2
-    # params = retrieve_spectrum2(plotting=True)
-
     # spectrum 3
-    params = retrieve_spectrum3(plotting=True)
-
-
-
-
+    params = retrieve_spectrum(plotting=True)
 
 
 
