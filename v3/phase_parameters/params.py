@@ -134,6 +134,7 @@ if __name__ == "__main__":
     ax.set_title("5nd order")
     ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_5[0]), label="photon", color="blue")
     ax.legend()
+    fig.savefig("./xuv_pulses.png")
 
 
 
@@ -176,6 +177,7 @@ if __name__ == "__main__":
     ax = fig.add_subplot(gs[1,1])
     ax.pcolormesh(delay_values_fs, K, strace_out_maxpulse, cmap="jet")
     ax.set_xlabel("time [fs]")
+    fig.savefig("./ir_pulse_time.png")
 
 
 
@@ -194,6 +196,7 @@ if __name__ == "__main__":
     gs = fig.add_gridspec(2, 2)
     ax = fig.add_subplot(gs[0:2,0:2])
     ax.pcolormesh(delay_values_fs, K, strace_out, cmap="jet")
+    fig.savefig("./strace.png")
 
 
 

@@ -31,7 +31,7 @@ tmat_indexes = np.arange(int(-N / 2), int(N / 2), 1)
 df = 1 / (dt * N)
 fmat = df * np.arange(-N / 2, N / 2, 1)
 
-tmat_fs = np.array(tmat)*fs
+tmat_fs = np.array(tmat)*(1e15)
 
 # convert units to AU
 df = df * sc.physical_constants['atomic unit of time'][0]
