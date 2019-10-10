@@ -27,10 +27,9 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
     Intensity = np.array(intensity_in)
 
     # define tmat and fmat
-    # N = 1024
-    N = int(2 * 1024)
-    tmax = 1600e-18
-    # tmax = 800e-18
+    N = phase_params.xuv_pulse["N"]
+    tmax = phase_params.xuv_pulse["tmax"]
+
     dt = 2 * tmax / N
     tmat = dt * np.arange(-N / 2, N / 2, 1)
     df = 1 / (N * dt)

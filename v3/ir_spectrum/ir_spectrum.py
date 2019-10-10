@@ -1,5 +1,7 @@
 import scipy.constants as sc
 import numpy as np
+import phase_parameters.params
+
 
 
 
@@ -12,10 +14,11 @@ atts = 1e-18
 
 
 # pulse params
-N = 128
-tmax = 50e-15
-start_index = 64
-end_index = 84
+ir = phase_parameters.params.ir_pulse
+N = ir["N"]
+tmax = ir["tmax"]
+start_index = ir["start_index"]
+end_index = ir["end_index"]
 
 
 # discretize time matrix

@@ -96,7 +96,7 @@ def retrieve_trace(find_f0=False):
     # normalize trace
     trace = trace / np.max(trace)
 
-    f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay_vals, energy=energy_vals, plotting=True)
+    f0, lam0 = find_central_frequency_from_trace(trace=trace, delay=delay_vals, energy=energy_vals, plotting=False)
 
     return delay_vals, energy_vals, trace, lam0
 

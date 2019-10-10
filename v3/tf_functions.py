@@ -14,328 +14,11 @@ import pickle
 import imageio
 
 
-class TestGraphs:
-
-    def __init__(self):
-        self.sess = tf.Session()
-
-        # initialize graphs
-        # xuv creation
-        self.xuv_coefs_in = tf.placeholder(tf.float32, shape=[None, phase_parameters.params.xuv_phase_coefs])
-        self.xuv_E_prop = xuv_taylor_to_E(self.xuv_coefs_in)
-
-        self.ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-        self.ir_E_prop = ir_from_params(self.ir_values_in)["E_prop"]
-        # image1, _ = streaking_trace_old(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
-        # construct streaking image
-        self.image2 = streaking_traceA(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
-        self.image2_2 = streaking_trace(xuv_cropped_f_in=self.xuv_E_prop["f_cropped"][0], ir_cropped_f_in=self.ir_E_prop["f_cropped"][0])
-
-        # construct proof trace
-        self.proof2 = proof_trace(self.image2_2)
-
-        self.autocorrelateion2 = autocorrelate(self.image2)
-
-
-    def test_coef_scale(self):
-        pass
-
-
-    def plot_xuv_trace(self, feed_dict_in):
-
-        feed_dict = {
-            self.xuv_coefs_in: feed_dict_in["xuv_coefs_in"],
-            self.ir_values_in: feed_dict_in["ir_values_in"]
-        }
-
-
-        f_cropped_fmat = xuv_spectrum.spectrum.fmat_cropped
-        tmat_xuv = xuv_spectrum.spectrum.tmat_as
-        xuv_out = self.sess.run(self.xuv_E_prop, feed_dict=feed_dict)
-        trace = self.sess.run(self.image2_2, feed_dict=feed_dict)
-        proof = self.sess.run(self.proof2["proof"], feed_dict=feed_dict)
-        fig = plt.figure(figsize=(10,10))
-        gs = fig.add_gridspec(2,2)
-
-        # xuv (t)
-        ax_xuv = fig.add_subplot(gs[0,0])
-        ax_xuv.plot(tmat_xuv, np.real(xuv_out["t"][0]), color="blue")
-        ax_xuv.set_xlabel("attoseconds")
-        ax_xuv.set_title("Real $E(t)$")
-        ax_xuv.set_yticks([])
-
-        # xuv I(t)
-        ax_ir = fig.add_subplot(gs[0,1])
-        ax_ir.plot(tmat_xuv, np.abs(xuv_out["t"][0])**2, color="black")
-        ax_ir.set_xlabel("attoseconds")
-        ax_ir.set_title("$I(t)$")
-        ax_ir.set_yticks([])
-
-        # show xuv coef values
-        for ax in [ax_ir, ax_xuv]:
-            vpos = 0.9
-            for value, type in zip(feed_dict_in["xuv_coefs_in"].reshape(-1), ["1st", "2nd", "3rd", "4th", "5th"]):
-                normal_text(ax, (0.75, vpos), type, ha="center")
-                normal_text(ax, (0.9, vpos), "%.2f" % value, ha="center")
-                vpos -= 0.05
-
-        # spectrum
-        ax_xuvf = fig.add_subplot(gs[1,0])
-        ax_xuvf.plot(xuv_spectrum.spectrum.fmat_hz_cropped, np.abs(xuv_out["f_cropped"][0])**2, color="black")
-        ax_xuvf.set_yticks([])
-        ax_xuvf.set_xlabel("Hz")
-        ax_xuv_phase = ax_xuvf.twinx()
-        ax_xuv_phase.plot(xuv_spectrum.spectrum.fmat_hz_cropped, np.unwrap(np.angle(xuv_out["f_cropped"][0])), color="green")
-        ax_xuv_phase.tick_params(axis="y", colors="green")
-
-        # trace
-        ax = fig.add_subplot(gs[1,1])
-        ax.pcolormesh(phase_parameters.params.delay_values_fs,phase_parameters.params.K, trace, cmap="jet")
-        ax.yaxis.tick_right()
-        ax.set_xlabel(r"$\tau$")
-        ax.set_ylabel("eV")
-        fig.savefig("./5.png")
-        exit(0)
-
-    def __del__(self):
-        self.sess.close()
-
-
 def normal_text(ax, pos, text, ha=None):
-
     if ha is not None:
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes, ha=ha)
     else:
         ax.text(pos[0], pos[1], text, backgroundcolor="white", transform=ax.transAxes)
-
-
-def animate_trace(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2_2):
-    # make graph
-    fig = plt.figure(figsize=(17, 5))
-    fig.subplots_adjust(wspace=0.4, left=0.05, right=0.95)
-    gs = fig.add_gridspec(2, 4)
-    plt.ion()
-
-    # create axes
-    axes = {}
-    axes["xuv_Et"] = fig.add_subplot(gs[0, 0])
-    axes["xuv_It"] = fig.add_subplot(gs[1, 0])
-    axes["xuv_f"] = fig.add_subplot(gs[0, 1])
-    axes["xuv_f_phase"] = axes["xuv_f"].twinx()
-    axes["trace"] = fig.add_subplot(gs[0:2, 2])
-    axes["trace_meas"] = fig.add_subplot(gs[0:2, 3])
-    # plot the measured trace
-    delay, energy, measured_trace = unsupervised_retrieval.get_measured_trace()
-    axes["trace_meas"].pcolormesh(delay * 1e15, energy, measured_trace, cmap="jet")
-    axes["trace_meas"].set_title("measured trace")
-
-    # calculate feed dicts
-    feed_dicts = []
-    step = 0.2
-    gdd_vals = -1 * np.arange(0, 5.0 + step, step)
-    for val in gdd_vals:
-        feed_dict_i = {
-            xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        }
-        feed_dicts.append(feed_dict_i)
-
-    gif_images = []
-
-    for feed_dict in feed_dicts:
-        # generate output
-        xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
-        out_2 = sess.run(image2_2, feed_dict=feed_dict)
-        # plot output
-        axes["xuv_Et"].cla()
-        axes["xuv_Et"].plot(np.real(xuv_out["t"][0]), color="blue")
-        axes["xuv_Et"].set_title("$E(t)$")
-        axes["xuv_Et"].set_xticks([])
-        axes["xuv_Et"].set_ylim(-0.05, 0.05)
-
-        axes["xuv_It"].cla()
-        xuv_time_fs = xuv_spectrum.spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
-        I_t = np.abs(xuv_out["t"][0]) ** 2
-        axes["xuv_It"].plot(xuv_time_fs,
-                            I_t, color="black")
-
-        # calc fwhm
-        halfmaxI = np.max(I_t) / 2
-        I2_I = np.abs(I_t - halfmaxI)
-        sorted = np.argsort(I2_I)
-        index1 = sorted[0]
-        index2 = find_second_minima(sorted, index1)
-        fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
-        axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]], [halfmaxI, halfmaxI], color="red", linewidth=2)
-        axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
-                            color="red",
-                            backgroundcolor="white")
-        axes["xuv_It"].set_xlabel("time [as]")
-        axes["xuv_It"].set_title("$I(t)$")
-        axes["xuv_It"].set_ylim(0, 1.1 * np.max(I_t))
-
-        axes["xuv_f"].cla()
-        xuv_f_hz = xuv_spectrum.spectrum.fmat_cropped / sc.physical_constants['atomic unit of time'][0]
-        xuv_f_hz = xuv_f_hz * 1e-17
-        axes["xuv_f"].plot(xuv_f_hz, np.abs(xuv_out["f_cropped"][0]) ** 2, color="black")
-        axes["xuv_f"].set_title("XUV spectral phase")
-        axes["xuv_f"].set_xlabel("frequency [$10^{17}$Hz]")
-        axes["xuv_f_phase"].cla()
-        axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
-        axes["xuv_f_phase"].tick_params(axis='y', colors='green')
-        axes["xuv_f_phase"].set_ylim(-20, 20)
-
-        axes["trace"].cla()
-        axes["trace"].pcolormesh(
-            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
-            phase_parameters.params.K,
-            out_2, cmap="jet")
-        axes["trace"].set_xlabel("Delay [fs]")
-        axes["trace"].set_ylabel("Energy [eV]")
-
-        textdraw = "_XUV Phase_"
-        for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
-            textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
-        axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
-
-        plt.pause(0.001)
-        fig.canvas.draw()
-        image_draw = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
-        image_draw = image_draw.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        gif_images.append(image_draw)
-
-    print("making gif")
-    imageio.mimsave('./A2_2.gif', gif_images, fps=10)
-
-
-def compare_A_A2_animate(sess, xuv_coefs_in, ir_values_in, xuv_E_prop, image2, image2_2):
-    # ===============================================
-    # =======testing trace difference A/A^2==========
-    # ===============================================
-    # # make graph
-    fig = plt.figure(figsize=(17, 10))
-    fig.subplots_adjust(wspace=0.4, left=0.05, right=0.95, hspace=0.4)
-    gs = fig.add_gridspec(4, 8)
-    plt.ion()
-    cb = None
-
-    # create axes
-    axes = {}
-    axes["xuv_Et"] = fig.add_subplot(gs[0:2, 0:2])
-    axes["xuv_It"] = fig.add_subplot(gs[2:, 0:2])
-    axes["xuv_f"] = fig.add_subplot(gs[0:2, 2:4])
-    axes["xuv_f_phase"] = axes["xuv_f"].twinx()
-    axes["trace_A2"] = fig.add_subplot(gs[0:2, 4:6])
-    axes["trace_A"] = fig.add_subplot(gs[0:2, 6:])
-    axes["trace_diff"] = fig.add_subplot(gs[2:4, 5:7])
-
-    # calculate feed dicts
-    feed_dicts = []
-    step = 0.4
-    gdd_vals = np.arange(-3.0, 3.0 + step, step)
-    for val in gdd_vals:
-        feed_dict_i = {
-            xuv_coefs_in: np.array([[0.0, val, 0.0, 0.0, 0.0]]),
-            ir_values_in: np.array([[1.0, 0.0, 0.0, 0.0]])
-        }
-        feed_dicts.append(feed_dict_i)
-
-    gif_images = []
-
-    for feed_dict in feed_dicts:
-        # generate output
-        xuv_out = sess.run(xuv_E_prop, feed_dict=feed_dict)
-        out_A = sess.run(image2, feed_dict=feed_dict)
-        out_A2 = sess.run(image2_2, feed_dict=feed_dict)
-        # plot output
-        axes["xuv_Et"].cla()
-        axes["xuv_Et"].plot(np.real(xuv_out["t"][0]), color="blue")
-        axes["xuv_Et"].set_title("$E(t)$")
-        axes["xuv_Et"].set_xticks([])
-        axes["xuv_Et"].set_ylim(-0.05, 0.05)
-
-        axes["xuv_It"].cla()
-        xuv_time_fs = xuv_spectrum.spectrum.tmat * sc.physical_constants['atomic unit of time'][0] * 1e18
-        I_t = np.abs(xuv_out["t"][0]) ** 2
-        axes["xuv_It"].plot(xuv_time_fs,
-                            I_t, color="black")
-
-        # calc fwhm
-        halfmaxI = np.max(I_t) / 2
-        I2_I = np.abs(I_t - halfmaxI)
-        sorted = np.argsort(I2_I)
-        index1 = sorted[0]
-        index2 = find_second_minima(sorted, index1)
-        fwhm = np.abs(xuv_time_fs[index1] - xuv_time_fs[index2])
-        axes["xuv_It"].plot([xuv_time_fs[index1], xuv_time_fs[index2]], [halfmaxI, halfmaxI], color="red",
-                            linewidth=2)
-        axes["xuv_It"].text(0.7, 0.8, "FWHM [as]: " + str(round(fwhm, 2)), transform=axes["xuv_It"].transAxes,
-                            color="red",
-                            backgroundcolor="white")
-        axes["xuv_It"].set_xlabel("time [as]")
-        axes["xuv_It"].set_title("$I(t)$")
-        axes["xuv_It"].set_ylim(0, 0.002)
-
-        axes["xuv_f"].cla()
-        xuv_f_hz = xuv_spectrum.spectrum.fmat_cropped / sc.physical_constants['atomic unit of time'][0]
-        xuv_f_hz = xuv_f_hz * 1e-17
-        axes["xuv_f"].plot(xuv_f_hz, np.abs(xuv_out["f_cropped"][0]) ** 2, color="black")
-        axes["xuv_f"].set_title("XUV spectral phase")
-        axes["xuv_f"].set_xlabel("frequency [$10^{17}$Hz]")
-        axes["xuv_f_phase"].cla()
-        axes["xuv_f_phase"].plot(xuv_f_hz, xuv_out["phasecurve_cropped"][0], color="green")
-        axes["xuv_f_phase"].tick_params(axis='y', colors='green')
-        axes["xuv_f_phase"].set_ylim(-40, 40)
-
-        axes["trace_A2"].cla()
-        axes["trace_A2"].pcolormesh(
-            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
-            phase_parameters.params.K,
-            out_A2, cmap="jet")
-        axes["trace_A2"].set_xlabel("Delay [fs]")
-        axes["trace_A2"].set_ylabel("Energy [eV]")
-        axes["trace_A2"].set_title(r"$\int \frac{1}{2} A(t)^2_L$")
-        axes["trace_A2"].set_yticks([])
-
-        axes["trace_A"].cla()
-        axes["trace_A"].pcolormesh(
-            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
-            phase_parameters.params.K,
-            out_A, cmap="jet")
-        axes["trace_A"].set_xlabel("Delay [fs]")
-        axes["trace_A"].set_ylabel("Energy [eV]")
-        axes["trace_A"].set_title(r"without $\int \frac{1}{2} A(t)^2_L$(before)")
-
-        axes["trace_diff"].cla()
-        diff_im = np.abs(out_A - out_A2)
-        # for setting the colorbar
-        diff_im[0, 0] = 0.2
-        diff_im[0, 1] = 0.0
-        im = axes["trace_diff"].pcolormesh(
-            phase_parameters.params.delay_values * sc.physical_constants['atomic unit of time'][0] * 1e15,
-            phase_parameters.params.K,
-            diff_im, cmap="jet")
-        if cb is None:
-            cb = fig.colorbar(im, ax=axes["trace_diff"])
-
-        axes["trace_diff"].set_xlabel("Delay [fs]")
-        axes["trace_diff"].set_ylabel("Energy [eV]")
-        axes["trace_diff"].set_title("$|Trace_1 - Trace_2|$")
-
-        textdraw = "_XUV Phase_"
-        for type, phasecoef in zip(["1", "2", "3", "4", "5"], feed_dict[xuv_coefs_in][0]):
-            textdraw += "\n" + "$\phi$" + type + " : " + '%.2f' % phasecoef
-        axes["xuv_f_phase"].text(0.5, -1.0, textdraw, ha="center", transform=axes["xuv_f_phase"].transAxes)
-
-        plt.pause(0.001)
-        fig.canvas.draw()
-        image_draw = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
-        image_draw = image_draw.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        gif_images.append(image_draw)
-
-    print("making gif")
-    imageio.mimsave('./A2diff2.gif', gif_images, fps=10)
-
 
 def find_second_minima(sorted, index1):
     # function for finding the second minima in fwhm calculation
@@ -343,13 +26,10 @@ def find_second_minima(sorted, index1):
         if np.abs(i - index1) > j + 1:
             return i
 
-
 def autocorrelate(trace):
-
     correlate = tf.expand_dims(trace, axis=1) * tf.expand_dims(trace, axis=2)
     summation = tf.reduce_sum(correlate, axis=0)
     return summation
-
 
 def proof_trace(trace):
     freq = tf_fft(tensor=tf.complex(real=trace, imag=tf.zeros_like(trace)),
@@ -384,9 +64,7 @@ def proof_trace(trace):
 
     return nodes
 
-
 def tf_ifft(tensor, shift, axis=0):
-
     shifted = tf.manip.roll(tensor, shift=shift, axis=axis)
     # fft
     time_domain_not_shifted = tf.ifft(shifted)
@@ -395,9 +73,7 @@ def tf_ifft(tensor, shift, axis=0):
 
     return time_domain
 
-
 def tf_fft(tensor, shift, axis=0):
-
     shifted = tf.manip.roll(tensor, shift=shift, axis=axis)
     # fft
     freq_domain_not_shifted = tf.fft(shifted)
@@ -406,12 +82,11 @@ def tf_fft(tensor, shift, axis=0):
 
     return freq_domain
 
-
 def xuv_taylor_to_E(coefficients_in):
-
     assert int(coefficients_in.shape[1]) == phase_parameters.params.xuv_phase_coefs
 
     amplitude = phase_parameters.params.amplitude
+    coef_amp = phase_parameters.params.xuv_pulse["coef_phase_amplitude"]
 
     Ef = tf.constant(xuv_spectrum.spectrum.Ef, dtype=tf.complex64)
     Ef = tf.reshape(Ef, [1, -1])
@@ -452,7 +127,7 @@ def xuv_taylor_to_E(coefficients_in):
 
     # for sample 3
     # ++++ force the linear phase term to always be 0
-    scaler_2 = tf.constant(np.array([0.0, 1.3, 0.15, 0.03, 0.01]).reshape(1,-1,1), dtype=tf.float32)
+    scaler_2 = tf.constant(coef_amp.reshape(1,-1,1), dtype=tf.float32)
 
 
 
@@ -511,9 +186,7 @@ def xuv_taylor_to_E(coefficients_in):
 
     return E_prop
 
-
 def ir_from_params(ir_param_values):
-
     amplitudes = phase_parameters.params.ir_param_amplitudes
 
     # construct tf nodes for middle and half range of inputs
@@ -598,280 +271,7 @@ def ir_from_params(ir_param_values):
 
     return out
 
-
-def streaking_trace_old(xuv_cropped_f_in, ir_cropped_f_in):
-
-    Ip = phase_parameters.params.Ip
-
-    global p
-    global tau_index
-    global tau_values
-    global p_values
-    global k_values
-    global padded_xuv_f
-    global xuv_time_domain
-    global padded_ir_f
-    global ir_time_domain
-    global eV_values
-
-
-
-
-    # define constants
-    # xuv_fmat = tf.constant(xuv.fmat, dtype=tf.float32)
-    # ir_fmat = tf.constant(ir.fmat, dtype=tf.float32)
-
-    # zero pad the spectrum of ir and xuv input to match the full fmat
-    # [pad_before , padafter]
-    paddings_xuv = tf.constant([[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
-    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
-
-    # same for the IR
-    paddings_ir = tf.constant([[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]], dtype=tf.int32)
-    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
-
-    # fourier transform the padded xuv
-    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
-
-    # fourier transform the padded ir
-    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
-
-    # zero pad the ir in frequency space to match dt of xuv
-    assert (1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt)) - math.ceil((1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt))) < 0.000000001
-    N_new = math.ceil(1 / (ir_spectrum.ir_spectrum.df * xuv_spectrum.spectrum.dt))
-    f_pad_2 = ir_spectrum.ir_spectrum.df * np.arange(-N_new / 2, N_new / 2, 1)
-    t_pad_2 = xuv_spectrum.spectrum.dt * np.arange(-N_new / 2, N_new / 2, 1)
-    N_current = ir_spectrum.ir_spectrum.N
-    pad_2 = (N_new - N_current) / 2
-    assert int(pad_2) - pad_2 == 0
-    paddings_ir_2 = tf.constant([[int(pad_2), int(pad_2)]], dtype=tf.int32)
-    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
-
-    # calculate ir with matching dt in time
-    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_new / 2))
-
-    # match the scale of the original
-    scale_factor = tf.constant(N_new / ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
-
-    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
-
-    # integrate ir pulse
-    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
-    flipped1 = tf.reverse(A_t, axis=[0])
-    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
-    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
-
-    # find middle index point
-    middle = int(N_new / 2)
-    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - xuv_spectrum.spectrum.N / 2
-    middle_indexes = np.array([middle] * xuv_spectrum.spectrum.N) + rangevals
-
-    # maximum add to zero before would be out of bounds
-    max_steps = int(N_new / 2 - xuv_spectrum.spectrum.N / 2)
-
-    # use this dt to scale the image size along tau axis
-    #dtau_index = 84  # to match measured
-    dtau_index = 180 # to match measured
-    # dtau_index = 75
-
-    N_tau = int(max_steps / dtau_index)
-
-
-    if N_tau % 2 != 0:
-        N_tau += -1
-
-    N_tau = 29
-
-    tau_index = dtau_index * np.arange(-N_tau, N_tau, 1, dtype=int)
-
-    # Number of points must be even
-    # assert N_tau % 2 == 0
-    # assert type(dtau_index) == int
-    # assert abs(tau_index[0]) < max_steps
-
-    indexes = middle_indexes.reshape(-1, 1) + tau_index.reshape(1, -1)
-    tau_values = tau_index * xuv_spectrum.spectrum.dt  # atomic units
-
-    #print(tau_values*sc.physical_constants['atomic unit of time'][0])
-    #exit(0)
-
-    # gather values from integrated array
-    ir_values = tf.gather(A_t_integ_t_phase, indexes.astype(np.int))
-    ir_values = tf.expand_dims(ir_values, axis=0)
-
-    # create momentum vector
-    #p = np.linspace(3, 6.5, 200).reshape(-1, 1, 1) # previously
-    #p = np.linspace(1.917, 5.0719, 200).reshape(-1, 1, 1)
-    # p = np.linspace(1.8, 5.5, 235).reshape(-1, 1, 1)
-    # p_values = np.squeeze(p)  # atomic units
-    # K = (0.5 * p ** 2)
-
-    # set dK = 1eV
-    K = np.arange(50, 351, 1) # eV
-    eV_values = np.array(K)
-    # convert K to atomic units
-    K = K * sc.electron_volt  # joules
-    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    K = K.reshape(-1, 1, 1)
-    p = np.sqrt(2 * K).reshape(-1, 1, 1)
-    k_values = np.squeeze(K) # atomic untis
-    p_values = np.squeeze(p)  # atomic units
-
-    # convert to tensorflow
-    p_tf = tf.constant(p, dtype=tf.float32)
-    K_tf = tf.constant(K, dtype=tf.float32)
-
-    # 3d ir mat
-    p_A_t_integ_t_phase3d = p_tf * ir_values
-    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
-
-    # add fourier transform term
-    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
-    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
-
-    # add xuv to integrate over
-    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
-
-    # multiply elements together
-    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
-
-    # integrate over the xuv time
-    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
-
-    # absolute square the matrix
-    image_not_scaled = tf.square(tf.abs(integration))
-
-    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
-    image = scaled / tf.reduce_max(scaled)
-
-    parameters = {}
-    parameters["p"] = p
-    parameters["tau_index"] = tau_index
-    parameters["tau_values"] = tau_values
-    parameters["p_values"] = p_values
-    parameters["k_values"] = k_values
-    parameters["padded_xuv_f"] = padded_xuv_f
-    parameters["xuv_time_domain"] = xuv_time_domain
-    parameters["padded_ir_f"] = padded_ir_f
-    parameters["ir_time_domain"] = ir_time_domain
-    parameters["eV_values"] = eV_values
-
-    return image, parameters
-
-
-def streaking_traceA(xuv_cropped_f_in, ir_cropped_f_in):
-
-    # this is the second version of streaking trace generator which
-    # accepts pre set delay values
-
-
-
-    # ionization potential
-    Ip = phase_parameters.params.Ip
-
-    #-----------------------------------------------------------------
-    # zero pad the spectrum of ir and xuv input to match the full original f matrices
-    #-----------------------------------------------------------------
-    # [pad_before , padafter]
-    paddings_xuv = tf.constant(
-        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
-    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
-    # same for the IR
-    paddings_ir = tf.constant(
-        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
-        dtype=tf.int32)
-    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
-    # fourier transform the padded xuv
-    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
-    # fourier transform the padded ir
-    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
-
-
-    #------------------------------------------------------------------
-    #------ zero pad ir in frequency space to match xuv timestep-------
-    #------------------------------------------------------------------
-    # calculate N required to match timestep
-    N_req = int(1 / (xuv_spectrum.spectrum.dt * ir_spectrum.ir_spectrum.df))
-    # this much needs to be padded to each side
-    pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
-    # pad the IR to match dt of xuv
-    paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
-    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
-    # calculate ir with matching dt in time
-    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
-    # match the scale of the original
-    scale_factor = tf.constant(N_req/ ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
-    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
-
-
-    #------------------------------------------------------------------
-    # ---------------------integrate ir pulse--------------------------
-    #------------------------------------------------------------------
-    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
-    flipped1 = tf.reverse(A_t, axis=[0])
-    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
-    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
-
-
-    # ------------------------------------------------------------------
-    # ---------------------make ir t axis-------------------------------
-    # ------------------------------------------------------------------
-    ir_taxis = xuv_spectrum.spectrum.dt * np.arange(-N_req/2, N_req/2, 1)
-
-
-
-    # ------------------------------------------------------------------
-    # ---------------------find indexes of tau values-------------------
-    # ------------------------------------------------------------------
-    center_indexes = []
-    for delay_value in phase_parameters.params.delay_values:
-        index = np.argmin(np.abs(delay_value - ir_taxis))
-        center_indexes.append(index)
-    center_indexes = np.array(center_indexes)
-    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - int((xuv_spectrum.spectrum.N/2))
-    delayindexes = center_indexes.reshape(1, -1) + rangevals.reshape(-1, 1)
-
-
-    # ------------------------------------------------------------------
-    # ------------gather values from integrated array-------------------
-    # ------------------------------------------------------------------
-    ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
-    ir_values = tf.expand_dims(ir_values, axis=0)
-
-
-
-    #------------------------------------------------------------------
-    #-------------------construct streaking trace----------------------
-    #------------------------------------------------------------------
-    # convert K to atomic units
-    K = phase_parameters.params.K * sc.electron_volt  # joules
-    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    K = K.reshape(-1, 1, 1)
-    p = np.sqrt(2 * K).reshape(-1, 1, 1)
-    # convert to tensorflow
-    p_tf = tf.constant(p, dtype=tf.float32)
-    # 3d ir mat
-    p_A_t_integ_t_phase3d = p_tf * ir_values
-    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
-    # add fourier transform term
-    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
-    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
-    # add xuv to integrate over
-    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
-    # multiply elements together
-    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
-    # integrate over the xuv time
-    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
-    # absolute square the matrix
-    image_not_scaled = tf.square(tf.abs(integration))
-    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
-    image = scaled / tf.reduce_max(scaled)
-
-    return image
-
-
 def streaking_trace(xuv_in, ir_in):
-
     # define the angle for streaking trace collection
     theta_max = np.pi/2
     N_theta = 10
@@ -1020,226 +420,12 @@ def streaking_trace(xuv_in, ir_in):
 
     return image
 
-
-
-def streaking_trace_no_angle(xuv_cropped_f_in, ir_cropped_f_in):
-    # this is the second version of streaking trace generator which also includes
-    # the A^2 term in the integral
-
-    # ionization potential
-    Ip = phase_parameters.params.Ip
-
-    #-----------------------------------------------------------------
-    # zero pad the spectrum of ir and xuv input to match the full original f matrices
-    #-----------------------------------------------------------------
-    # [pad_before , padafter]
-    paddings_xuv = tf.constant(
-        [[xuv_spectrum.spectrum.indexmin, xuv_spectrum.spectrum.N - xuv_spectrum.spectrum.indexmax]], dtype=tf.int32)
-    padded_xuv_f = tf.pad(xuv_cropped_f_in, paddings_xuv)
-    # same for the IR
-    paddings_ir = tf.constant(
-        [[ir_spectrum.ir_spectrum.start_index, ir_spectrum.ir_spectrum.N - ir_spectrum.ir_spectrum.end_index]],
-        dtype=tf.int32)
-    padded_ir_f = tf.pad(ir_cropped_f_in, paddings_ir)
-    # fourier transform the padded xuv
-    xuv_time_domain = tf_ifft(tensor=padded_xuv_f, shift=int(xuv_spectrum.spectrum.N / 2))
-    # fourier transform the padded ir
-    ir_time_domain = tf_ifft(tensor=padded_ir_f, shift=int(ir_spectrum.ir_spectrum.N / 2))
-
-
-    #------------------------------------------------------------------
-    #------ zero pad ir in frequency space to match xuv timestep-------
-    #------------------------------------------------------------------
-    # calculate N required to match timestep
-    N_req = int(1 / (xuv_spectrum.spectrum.dt * ir_spectrum.ir_spectrum.df))
-    # this much needs to be padded to each side
-    pad_2 = int((N_req - ir_spectrum.ir_spectrum.N) / 2)
-    # pad the IR to match dt of xuv
-    paddings_ir_2 = tf.constant([[pad_2, pad_2]], dtype=tf.int32)
-    padded_ir_2 = tf.pad(padded_ir_f, paddings_ir_2)
-    # calculate ir with matching dt in time
-    ir_t_matched_dt = tf_ifft(tensor=padded_ir_2, shift=int(N_req / 2))
-    # match the scale of the original
-    scale_factor = tf.constant(N_req/ ir_spectrum.ir_spectrum.N, dtype=tf.complex64)
-    ir_t_matched_dt_scaled = ir_t_matched_dt * scale_factor
-
-
-    #------------------------------------------------------------------
-    # ---------------------integrate ir pulse--------------------------
-    #------------------------------------------------------------------
-    A_t = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(tf.real(ir_t_matched_dt_scaled))
-
-    # integrate A_L(t)
-    flipped1 = tf.reverse(A_t, axis=[0])
-    flipped_integral = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1, axis=0)
-    A_t_integ_t_phase = tf.reverse(flipped_integral, axis=[0])
-
-    # integrate A_L(t)^2
-    flipped1_2 = tf.reverse(A_t**2, axis=[0])
-    flipped_integral_2 = tf.constant(-1.0 * xuv_spectrum.spectrum.dt, dtype=tf.float32) * tf.cumsum(flipped1_2, axis=0)
-    A_t_integ_t_phase_2 = tf.reverse(flipped_integral_2, axis=[0])
-
-
-
-    # ------------------------------------------------------------------
-    # ---------------------make ir t axis-------------------------------
-    # ------------------------------------------------------------------
-    ir_taxis = xuv_spectrum.spectrum.dt * np.arange(-N_req/2, N_req/2, 1)
-
-
-
-    # ------------------------------------------------------------------
-    # ---------------------find indexes of tau values-------------------
-    # ------------------------------------------------------------------
-    center_indexes = []
-    delay_vals_au = phase_parameters.params.delay_values/sc.physical_constants['atomic unit of time'][0]
-    for delay_value in delay_vals_au:
-        index = np.argmin(np.abs(delay_value - ir_taxis))
-        center_indexes.append(index)
-    center_indexes = np.array(center_indexes)
-    rangevals = np.array(range(xuv_spectrum.spectrum.N)) - int((xuv_spectrum.spectrum.N/2))
-    delayindexes = center_indexes.reshape(1, -1) + rangevals.reshape(-1, 1)
-
-
-    # ------------------------------------------------------------------
-    # ------------gather values from integrated array-------------------
-    # ------------------------------------------------------------------
-    ir_values = tf.gather(A_t_integ_t_phase, delayindexes.astype(np.int))
-    ir_values = tf.expand_dims(ir_values, axis=0)
-    # for the squared integral
-    ir_values_2 = tf.gather(A_t_integ_t_phase_2, delayindexes.astype(np.int))
-    ir_values_2 = tf.expand_dims(ir_values_2, axis=0)
-
-
-
-    #------------------------------------------------------------------
-    #-------------------construct streaking trace----------------------
-    #------------------------------------------------------------------
-    # convert K to atomic units
-    K = phase_parameters.params.K * sc.electron_volt  # joules
-    K = K / sc.physical_constants['atomic unit of energy'][0]  # a.u.
-    K = K.reshape(-1, 1, 1)
-    p = np.sqrt(2 * K).reshape(-1, 1, 1)
-    # convert to tensorflow
-    p_tf = tf.constant(p, dtype=tf.float32)
-    # 3d ir mat
-    p_A_t_integ_t_phase3d = p_tf * ir_values + 0.5 * ir_values_2
-    ir_phi = tf.exp(tf.complex(imag=(p_A_t_integ_t_phase3d), real=tf.zeros_like(p_A_t_integ_t_phase3d)))
-    # add fourier transform term
-    e_fft = np.exp(-1j * (K + Ip) * xuv_spectrum.spectrum.tmat.reshape(1, -1, 1))
-    e_fft_tf = tf.constant(e_fft, dtype=tf.complex64)
-    # add xuv to integrate over
-    xuv_time_domain_integrate = tf.reshape(xuv_time_domain, [1, -1, 1])
-    # multiply elements together
-    product = xuv_time_domain_integrate * ir_phi * e_fft_tf
-    # integrate over the xuv time
-    integration = tf.constant(xuv_spectrum.spectrum.dt, dtype=tf.complex64) * tf.reduce_sum(product, axis=1)
-    # absolute square the matrix
-    image_not_scaled = tf.square(tf.abs(integration))
-    scaled = image_not_scaled - tf.reduce_min(image_not_scaled)
-    image = scaled / tf.reduce_max(scaled)
-
-    return image
-
-def phase_rmse_error_test():
-    # calculate transform limited trace
-    # view generated xuv pulse
-    xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
-    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-
-    gen_xuv = xuv_taylor_to_E(xuv_coefs)
-    ir_E_prop = ir_from_params(ir_values_in)["E_prop"]
-
-    image = streaking_trace(xuv_cropped_f_in=gen_xuv["f_cropped"][0], ir_cropped_f_in=ir_E_prop["f_cropped"][0])
-
-    feed_dict = {ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])}
-    with tf.Session() as sess:
-        # feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 1.0]])
-        feed_dict[xuv_coefs] = np.array([[0.0, 1.0, 0.0, 0.0, 0.0]])
-        gen_trace = sess.run(image, feed_dict=feed_dict)
-        xuv_out = sess.run(gen_xuv, feed_dict=feed_dict)["t"][0]
-
-        # calculate transform limited trace
-        feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]])
-        tf_limited_trace = sess.run(image, feed_dict=feed_dict)
-        tf_limited_xuv_out = sess.run(gen_xuv, feed_dict=feed_dict)["t"][0]
-
-        rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
-
-        fig = plt.figure(figsize=(10,10))
-        gs = fig.add_gridspec(2,2)
-        ax = fig.add_subplot(gs[0,0])
-        ax.pcolormesh(gen_trace, cmap="jet")
-        ax.set_title("trace with dispersion")
-
-        ax = fig.add_subplot(gs[1,0])
-        ax.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_out)**2, color="black")
-        ax.set_title("I(t) with dispersion")
-
-        ax = fig.add_subplot(gs[0,1])
-        ax.pcolormesh(tf_limited_trace, cmap="jet")
-        ax.set_title("transform limited trace")
-        ax.text(0.3, 0.7, "rmse: %.10f" % rmse_trace, transform=ax.transAxes, bbox=dict(facecolor='white'))
-
-        ax = fig.add_subplot(gs[1,1])
-        ax.plot(xuv_spectrum.spectrum.tmat, np.abs(tf_limited_xuv_out)**2, color="black")
-        ax.set_title("I(t) transform limited")
-
-
-
-
-
-        plt.show()
-        exit()
-
-        dispersion_values = np.linspace(-1.0, 1.0, 300)
-        order2_rmse = []
-        for order2 in dispersion_values:
-            feed_dict[xuv_coefs] = np.array([[0.0, order2, 0.0, 0.0, 0.0]])
-            gen_trace = sess.run(image, feed_dict=feed_dict)
-            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
-            order2_rmse.append(rmse_trace)
-        order3_rmse = []
-        for order3 in dispersion_values:
-            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, order3, 0.0, 0.0]])
-            gen_trace = sess.run(image, feed_dict=feed_dict)
-            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
-            order3_rmse.append(rmse_trace)
-        order4_rmse = []
-        for order4 in dispersion_values:
-            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, order4, 0.0]])
-            gen_trace = sess.run(image, feed_dict=feed_dict)
-            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
-            order4_rmse.append(rmse_trace)
-        order5_rmse = []
-        for order5 in dispersion_values:
-            feed_dict[xuv_coefs] = np.array([[0.0, 0.0, 0.0, 0.0, order5]])
-            gen_trace = sess.run(image, feed_dict=feed_dict)
-            rmse_trace = (1/len(gen_trace.reshape(-1))) * np.sum((gen_trace.reshape(-1) - tf_limited_trace.reshape(-1))**2)
-            order5_rmse.append(rmse_trace)
-
-        plt.figure(1)
-        plt.plot(dispersion_values, order2_rmse, label="order 2 RMSE")
-        plt.plot(dispersion_values, order3_rmse, label="order 3 RMSE")
-        plt.plot(dispersion_values, order4_rmse, label="order 4 RMSE")
-        plt.plot(dispersion_values, order5_rmse, label="order 5 RMSE")
-        plt.xlabel("Normalized/scaled Dispersion Coefficient")
-        plt.ylabel("RMSE compared to transform limited trace")
-        # plt.yscale("log")
-        plt.legend()
-        # plt.show()
-        plt.savefig("./dispersion_rmse.png")
-        exit()
-
-
 def hz_to_au_energy(vector_hz):
     vector_joules = vector_hz * sc.h # joules
     vector_energy_au = vector_joules / sc.physical_constants["atomic unit of energy"][0] # a.u. energy
     return vector_energy_au
 
-
 def calc_streaking_phase_term(photon_energy, Ip):
-
     # take absolute value because cant square negative
     # photon_energy = np.abs(photon_energy)
 
@@ -1280,10 +466,6 @@ def calc_streaking_phase_term(photon_energy, Ip):
     phi_streak = term1 + term2
 
     return phi_streak
-
-
-
-
 
 
 if __name__ == "__main__":
