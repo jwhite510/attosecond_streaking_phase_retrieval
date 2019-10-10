@@ -12,6 +12,7 @@ import phase_parameters.params
 import pickle
 # import unsupervised_retrieval
 import imageio
+ir_spec = ir_spectrum.ir_spectrum
 
 
 def normal_text(ax, pos, text, ha=None):

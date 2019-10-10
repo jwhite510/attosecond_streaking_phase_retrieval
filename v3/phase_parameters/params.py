@@ -6,14 +6,11 @@ import sys
 import tensorflow as tf
 current_path = os.path.dirname(__file__)
 sys.path.append(os.path.join(current_path+".."))
-import xuv_spectrum.spectrum
-import ir_spectrum.ir_spectrum
-exit()
-
-
 import matplotlib.pyplot as plt
 import measured_trace.get_trace as measured_trace
 import tf_functions
+# import ir_spectrum.ir_spectrum
+import xuv_spectrum.spectrum
 
 
 central_wavelength = measured_trace.lam0*1e6 # [um] micrometer
@@ -153,15 +150,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(8,7))
     gs = fig.add_gridspec(2, 4)
     ax = fig.add_subplot(gs[0,0])
-    import ipdb; ipdb.set_trace() # BREAKPOINT
-    print("BREAKPOINT")
-    ax.plot(ir_spectrum.ir_spectrum.tmat)
-
-
-
-    import ipdb; ipdb.set_trace() # BREAKPOINT
-    print("BREAKPOINT")
-
+    ax.plot(tf_functions.ir_spec.tmat, ir_out_t)
 
 
 
