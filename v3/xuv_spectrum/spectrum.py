@@ -6,7 +6,7 @@ import numpy as np
 import scipy.interpolate
 import os
 import sys
-import phase_parameters.params as phase_params
+import phase_parameters.params
 
 
 def open_data_file(filepath):
@@ -27,8 +27,8 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
     Intensity = np.array(intensity_in)
 
     # define tmat and fmat
-    N = phase_params.xuv_pulse["N"]
-    tmax = phase_params.xuv_pulse["tmax"]
+    N = phase_parameters.params.xuv_pulse["N"]
+    tmax = phase_parameters.params.xuv_pulse["tmax"]
 
     dt = 2 * tmax / N
     tmat = dt * np.arange(-N / 2, N / 2, 1)
@@ -105,7 +105,7 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
 def retrieve_spectrum(plotting=False):
     electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv')
     # add the ionization potential to the electron volts
-    electron_volts = [e+phase_params.Ip_eV for e in electron_volts]
+    electron_volts = [e+phase_parameters.params.Ip_eV for e in electron_volts]
 
     # normalize intensity
     intensity = np.array(intensity)

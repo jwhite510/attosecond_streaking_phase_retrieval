@@ -6,10 +6,14 @@ import sys
 import tensorflow as tf
 current_path = os.path.dirname(__file__)
 sys.path.append(os.path.join(current_path+".."))
+import xuv_spectrum.spectrum
+import ir_spectrum.ir_spectrum
+exit()
+
+
 import matplotlib.pyplot as plt
 import measured_trace.get_trace as measured_trace
 import tf_functions
-import xuv_spectrum.spectrum
 
 
 central_wavelength = measured_trace.lam0*1e6 # [um] micrometer
@@ -66,31 +70,36 @@ amplitude=20.0
 if __name__ == "__main__":
 
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
-    xuv_gen = tf_functions.xuv_taylor_to_E(xuv_coefs)
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
 
+    gen_xuv = tf_functions.xuv_taylor_to_E(xuv_coefs)
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
+    strace = tf_functions.streaking_trace(xuv_in=gen_xuv, ir_in=ir_E_prop)
+
+    # xuv pulse
     with tf.Session() as sess:
 
         # 2nd order
         feed_dict = {xuv_coefs:np.array([[0.0,1.0,0.0,0.0,0.0]])}
-        xuv_photon_out_2 = sess.run(xuv_gen["t_photon"], feed_dict=feed_dict)
-        xuv_electron_out_2 = sess.run(xuv_gen["t"], feed_dict=feed_dict)
+        xuv_photon_out_2 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_2 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
 
         # 3rd order
         feed_dict = {xuv_coefs:np.array([[0.0,0.0,1.0,0.0,0.0]])}
-        xuv_photon_out_3 = sess.run(xuv_gen["t_photon"], feed_dict=feed_dict)
-        xuv_electron_out_3 = sess.run(xuv_gen["t"], feed_dict=feed_dict)
+        xuv_photon_out_3 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_3 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
 
         # 4th order
         feed_dict = {xuv_coefs:np.array([[0.0,0.0,0.0,1.0,0.0]])}
-        xuv_photon_out_4 = sess.run(xuv_gen["t_photon"], feed_dict=feed_dict)
-        xuv_electron_out_4 = sess.run(xuv_gen["t"], feed_dict=feed_dict)
+        xuv_photon_out_4 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_4 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
 
         # 5th order
         feed_dict = {xuv_coefs:np.array([[0.0,0.0,0.0,0.0,1.0]])}
-        xuv_photon_out_5 = sess.run(xuv_gen["t_photon"], feed_dict=feed_dict)
-        xuv_electron_out_5 = sess.run(xuv_gen["t"], feed_dict=feed_dict)
+        xuv_photon_out_5 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_5 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
 
-    fig = plt.figure(figsize=(9,7))
+    fig = plt.figure(figsize=(8,7))
     gs = fig.add_gridspec(2, 4)
 
     ax = fig.add_subplot(gs[0,0])
@@ -128,6 +137,49 @@ if __name__ == "__main__":
     ax.set_title("5nd order")
     ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_5[0]), label="photon", color="blue")
     ax.legend()
+
+
+
+    # ir pulse
+    with tf.Session() as sess:
+        feed_dict = {
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+                }
+        ir_out = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out = sess.run(strace, feed_dict=feed_dict)
+    ir_out_t = ir_out["E_prop"]["t"][0]
+
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 4)
+    ax = fig.add_subplot(gs[0,0])
+    import ipdb; ipdb.set_trace() # BREAKPOINT
+    print("BREAKPOINT")
+    ax.plot(ir_spectrum.ir_spectrum.tmat)
+
+
+
+    import ipdb; ipdb.set_trace() # BREAKPOINT
+    print("BREAKPOINT")
+
+
+
+
+    # streaking trace
+    with tf.Session() as sess:
+        feed_dict = {
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+                }
+        strace_out = sess.run(strace, feed_dict=feed_dict)
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[0:2,0:2])
+    ax.pcolormesh(delay_values_fs, K, strace_out, cmap="jet")
+
+
+
+
 
 
     plt.show()
