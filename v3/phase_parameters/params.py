@@ -46,7 +46,7 @@ threshold_max_index = (2*1024) - 100
 ir_pulse = {}
 # pulse params
 ir_pulse["N"] = 128
-ir_pulse["tmax"] = 50e-15
+ir_pulse["tmax"] = 50e-15 # femtosecond
 ir_pulse["start_index"] = 64
 ir_pulse["end_index"] = 84
 
@@ -140,17 +140,46 @@ if __name__ == "__main__":
     # ir pulse
     with tf.Session() as sess:
         feed_dict = {
+                # minimum pulse duration
                 xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
-                ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+                ir_values_in:np.array([[0.0, 0.0, -1.0, 0.0]])
                 }
-        ir_out = sess.run(ir_E_prop, feed_dict=feed_dict)
-        strace_out = sess.run(strace, feed_dict=feed_dict)
-    ir_out_t = ir_out["E_prop"]["t"][0]
+        ir_out_minpulse = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_minpulse = sess.run(strace, feed_dict=feed_dict)
+        feed_dict = {
+                # max pulse duration
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
+                }
+        ir_out_maxpulse = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_maxpulse = sess.run(strace, feed_dict=feed_dict)
 
+
+    # ir pulse / streaking trace pulse duration
     fig = plt.figure(figsize=(8,7))
-    gs = fig.add_gridspec(2, 4)
+    gs = fig.add_gridspec(2, 2)
+
+    # for the minimum pulse duration
     ax = fig.add_subplot(gs[0,0])
-    ax.plot(tf_functions.ir_spec.tmat, ir_out_t)
+    ax.plot(tf_functions.ir_spec.tmat_fs, ir_out_minpulse["E_prop"]["t"][0])
+    ax.set_title("Shortest (IR) Pulse Duration")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,0])
+    ax.pcolormesh(delay_values_fs, K, strace_out_minpulse, cmap="jet")
+    ax.set_xlabel("time [fs]")
+
+    # for the maxiumum pulse duration
+    ax = fig.add_subplot(gs[0,1])
+    ax.plot(tf_functions.ir_spec.tmat_fs, ir_out_maxpulse["E_prop"]["t"][0])
+    ax.set_title("Longest (IR) Pulse Duration")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,1])
+    ax.pcolormesh(delay_values_fs, K, strace_out_maxpulse, cmap="jet")
+    ax.set_xlabel("time [fs]")
+
+
+
+    # streaking trace minimum and max wavelength / intensity
 
 
 
