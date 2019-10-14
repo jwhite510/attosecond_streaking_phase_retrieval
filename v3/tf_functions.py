@@ -12,7 +12,6 @@ import phase_parameters.params
 import pickle
 # import unsupervised_retrieval
 import imageio
-ir_spec = ir_spectrum.ir_spectrum
 
 
 def normal_text(ax, pos, text, ha=None):
@@ -468,10 +467,182 @@ def calc_streaking_phase_term(photon_energy, Ip):
 
     return phi_streak
 
+def parameters_test():
+    xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
+    ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
 
-if __name__ == "__main__":
-    # phase_rmse_error_test()
+    gen_xuv = xuv_taylor_to_E(xuv_coefs)
+    ir_E_prop = ir_from_params(ir_values_in)
+    strace = streaking_trace(xuv_in=gen_xuv, ir_in=ir_E_prop)
 
+    # xuv pulse
+    with tf.Session() as sess:
+
+        # 2nd order
+        feed_dict = {xuv_coefs:np.array([[0.0,1.0,0.0,0.0,0.0]])}
+        xuv_photon_out_2 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_2 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
+
+        # 3rd order
+        feed_dict = {xuv_coefs:np.array([[0.0,0.0,1.0,0.0,0.0]])}
+        xuv_photon_out_3 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_3 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
+
+        # 4th order
+        feed_dict = {xuv_coefs:np.array([[0.0,0.0,0.0,1.0,0.0]])}
+        xuv_photon_out_4 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_4 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
+
+        # 5th order
+        feed_dict = {xuv_coefs:np.array([[0.0,0.0,0.0,0.0,1.0]])}
+        xuv_photon_out_5 = sess.run(gen_xuv["t_photon"], feed_dict=feed_dict)
+        xuv_electron_out_5 = sess.run(gen_xuv["t"], feed_dict=feed_dict)
+
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 4)
+
+    ax = fig.add_subplot(gs[0,0])
+    ax.set_title("2nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_electron_out_2[0]), label="electron", color="purple")
+    ax.legend()
+    ax = fig.add_subplot(gs[1,0])
+    ax.set_title("2nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_2[0]), label="photon", color="blue")
+    ax.legend()
+
+    ax = fig.add_subplot(gs[0,1])
+    ax.set_title("3nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_electron_out_3[0]), label="electron", color="purple")
+    ax.legend()
+    ax = fig.add_subplot(gs[1,1])
+    ax.set_title("3nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_3[0]), label="photon", color="blue")
+    ax.legend()
+
+    ax = fig.add_subplot(gs[0,2])
+    ax.set_title("4nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_electron_out_4[0]), label="electron", color="purple")
+    ax.legend()
+    ax = fig.add_subplot(gs[1,2])
+    ax.set_title("4nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_4[0]), label="photon", color="blue")
+    ax.legend()
+
+    ax = fig.add_subplot(gs[0,3])
+    ax.set_title("5nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_electron_out_5[0]), label="electron", color="purple")
+    ax.legend()
+    ax = fig.add_subplot(gs[1,3])
+    ax.set_title("5nd order")
+    ax.plot(xuv_spectrum.spectrum.tmat_as,np.real(xuv_photon_out_5[0]), label="photon", color="blue")
+    ax.legend()
+    fig.savefig("./xuv_pulses.png")
+
+
+
+    # ir pulse
+    with tf.Session() as sess:
+        feed_dict = {
+                # minimum pulse duration
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, -1.0, 0.0]])
+                }
+        ir_out_minpulse = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_minpulse = sess.run(strace, feed_dict=feed_dict)
+        feed_dict = {
+                # max pulse duration
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 1.0, 0.0]])
+                }
+        ir_out_maxpulse = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_maxpulse = sess.run(strace, feed_dict=feed_dict)
+
+
+    # ir pulse / streaking trace pulse duration
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 2)
+
+    # for the minimum pulse duration
+    ax = fig.add_subplot(gs[0,0])
+    ax.plot(ir_spectrum.ir_spectrum.tmat_fs, ir_out_minpulse["E_prop"]["t"][0])
+    ax.set_title("Shortest (IR) Pulse Duration")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,0])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_minpulse, cmap="jet")
+    ax.set_xlabel("time [fs]")
+
+    # for the maxiumum pulse duration
+    ax = fig.add_subplot(gs[0,1])
+    ax.plot(ir_spectrum.ir_spectrum.tmat_fs, ir_out_maxpulse["E_prop"]["t"][0])
+    ax.set_title("Longest (IR) Pulse Duration")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,1])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_maxpulse, cmap="jet")
+    ax.set_xlabel("time [fs]")
+    fig.savefig("./ir_pulse_time.png")
+
+
+    # --------------------
+    # streaking trace minimum and max wavelength / intensity
+    # --------------------
+    # ir pulse
+    with tf.Session() as sess:
+        feed_dict = {
+                # minimum intensity
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, -1.0]])
+                }
+        ir_out_min_intensity = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_min_intensity = sess.run(strace, feed_dict=feed_dict)
+        feed_dict = {
+                # max intensity
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, 1.0]])
+                }
+        ir_out_max_intensity = sess.run(ir_E_prop, feed_dict=feed_dict)
+        strace_out_max_intensity = sess.run(strace, feed_dict=feed_dict)
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 2)
+
+    # for the minimum intensity
+    ax = fig.add_subplot(gs[0,0])
+    ax.plot(ir_spectrum.ir_spectrum.tmat_fs, ir_out_min_intensity["E_prop"]["t"][0])
+    ax.set_title("Lowest (IR) Intensity")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,0])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_min_intensity, cmap="jet")
+    ax.set_xlabel("time [fs]")
+
+    # for the maxiumum intensity
+    ax = fig.add_subplot(gs[0,1])
+    ax.plot(ir_spectrum.ir_spectrum.tmat_fs, ir_out_max_intensity["E_prop"]["t"][0])
+    ax.set_title("Highest (IR) Intensity")
+    # streaking trace
+    ax = fig.add_subplot(gs[1,1])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_max_intensity, cmap="jet")
+    ax.set_xlabel("time [fs]")
+    fig.savefig("./ir_pulse_time.png")
+
+
+
+
+    # streaking trace
+    with tf.Session() as sess:
+        feed_dict = {
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+                }
+        strace_out = sess.run(strace, feed_dict=feed_dict)
+    fig = plt.figure(figsize=(8,7))
+    gs = fig.add_gridspec(2, 2)
+    ax = fig.add_subplot(gs[0:2,0:2])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out, cmap="jet")
+    fig.savefig("./strace.png")
+
+
+    plt.show()
+
+def show_tfl_streaking_phase():
     # view generated xuv pulse
     xuv_coefs = tf.placeholder(tf.float32, shape=[None, 5])
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
@@ -513,3 +684,14 @@ if __name__ == "__main__":
         plt.savefig("aer.png")
 
         plt.show()
+
+
+
+if __name__ == "__main__":
+
+    # show the phase introduced to a transform limited attosecond pulse
+    # by the streaking process
+    # show_tfl_streaking_phase()
+
+    # show test parameter space
+    parameters_test()
