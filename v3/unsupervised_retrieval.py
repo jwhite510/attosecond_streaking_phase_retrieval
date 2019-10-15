@@ -340,8 +340,7 @@ def get_fake_measured_trace(counts, plotting, run_name=None):
     ir_E_prop = tf_functions.ir_from_params(ir_values_in)
 
     # construct streaking image
-    image = tf_functions.streaking_trace(xuv_in=xuv_E_prop,
-                                         ir_in=ir_E_prop)
+    image = tf_functions.streaking_trace(xuv_in=xuv_E_prop, ir_in=ir_E_prop)
     proof_trace = tf_functions.proof_trace(image)
     autocorelation = tf_functions.autocorrelate(image)
 

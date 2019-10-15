@@ -268,8 +268,7 @@ if __name__ == "__main__":
     ir_E_prop = tf_functions.ir_from_params(ir_values_in)["E_prop"]
 
     # construct streaking image
-    image = tf_functions.streaking_trace(xuv_cropped_f_in=xuv_E_prop["f_cropped"][0],
-                                         ir_cropped_f_in=ir_E_prop["f_cropped"][0])
+    image = tf_functions.streaking_trace(xuv_in=xuv_E_prop, ir_in=ir_E_prop)
     # make placeholder for image
     image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 98])
     proof_trace = tf_functions.proof_trace(image_noisy_placeholder)["proof"]
