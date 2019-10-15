@@ -5,7 +5,7 @@ import phase_parameters.params
 
 def save_arrays(arr_x, arr_y, name):
     mat = np.append(arr_x.reshape(-1,1), arr_y.reshape(-1,1), axis=1)
-    np.savetxt(name, mat, fmt="%.2f", delimiter=",")
+    np.savetxt(name, mat, fmt="%.8f", delimiter=",")
 
 
 if __name__ == "__main__":

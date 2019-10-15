@@ -28,7 +28,7 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
 
     # define tmat and fmat
     N = phase_parameters.params.xuv_pulse["N"]
-    tmax = phase_parameters.params.xuv_pulse["tmax"]
+    tmax = phase_parameters.params.xuv_pulse["tmax"] # seconds
 
     dt = 2 * tmax / N
     tmat = dt * np.arange(-N / 2, N / 2, 1)
@@ -149,6 +149,7 @@ tmat = params['tmat']
 tmat_as = params['tmat'] * sc.physical_constants['atomic unit of time'][0] * 1e18 # attoseconds
 fmat = params['fmat']
 fmat_hz = params['fmat'] / sc.physical_constants['atomic unit of time'][0] # hz
+fmat_ev = (fmat_hz * sc.h) / sc.electron_volt # electron volts
 Ef = params['Ef']
 Ef_photon = params['Ef_photon']
 indexmin = params['indexmin']
@@ -158,6 +159,7 @@ N = params['N']
 dt = params['dt']
 fmat_cropped = fmat[indexmin: indexmax]
 fmat_hz_cropped = fmat_hz[indexmin: indexmax]
+fmat_ev_cropped = fmat_ev[indexmin: indexmax]
 
 if __name__ == "__main__":
 

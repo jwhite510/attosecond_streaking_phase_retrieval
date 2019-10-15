@@ -28,7 +28,7 @@ Ip = Ip_eV * sc.electron_volt  # joules
 Ip = Ip / sc.physical_constants['atomic unit of energy'][0]  # a.u.
 delay_values = measured_trace.delay # femtosecond
 delay_values_fs = delay_values * 1e15
-K = measured_trace.energy
+K = measured_trace.energy # electorn volts
 
 # threshold scaler for the generated pulses
 threshold_scaler = 0.03
