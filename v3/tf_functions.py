@@ -8,7 +8,8 @@ from scipy.special import gamma
 import scipy.constants as sc
 import math
 import phase_parameters.params
-# import generate_data3
+import measured_trace.get_trace
+import generate_data3
 import pickle
 # import unsupervised_retrieval
 import imageio
@@ -630,14 +631,68 @@ def parameters_test():
     with tf.Session() as sess:
         feed_dict = {
                 xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
-                ir_values_in:np.array([[0.0, 0.0, 0.0, 0.0]])
+                ir_values_in:np.array([[0.0, 0.0, 0.0, 1.0]])
                 }
-        strace_out = sess.run(strace, feed_dict=feed_dict)
+        strace_out_max_intensity = sess.run(strace, feed_dict=feed_dict)
+        feed_dict = {
+                xuv_coefs:np.array([[0.0,0.0,0.0,0.0,0.0]]),
+                ir_values_in:np.array([[0.0, 0.0, 0.0, -1.0]])
+                }
+        strace_out_min_intensity = sess.run(strace, feed_dict=feed_dict)
+
+
     fig = plt.figure(figsize=(8,7))
-    gs = fig.add_gridspec(2, 2)
-    ax = fig.add_subplot(gs[0:2,0:2])
-    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out, cmap="jet")
-    fig.savefig("./strace.png")
+    gs = fig.add_gridspec(2, 3)
+    ax = fig.add_subplot(gs[0:1,1:2])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace.get_trace.trace, cmap="jet")
+    ax.set_title("measured trace")
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    # measured trace
+    ax = fig.add_subplot(gs[1:2,1:2])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, measured_trace.get_trace.trace, cmap="jet", label="measured trace")
+    ax.set_title("measured trace")
+    ax.set_yticks([])
+
+
+    # minmum signal level
+    strace_out_min_count_min_intensity = generate_data3.add_shot_noise(strace_out_min_intensity, phase_parameters.params.counts_min)
+    ax = fig.add_subplot(gs[0:1,0:1])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_min_count_min_intensity, cmap="jet", label="measured trace")
+    ax.set_title("minimum count ({})\nminimum IR Intensity".format(phase_parameters.params.counts_min))
+    ax.set_xticks([])
+
+
+    # maximum signal level
+    strace_out_max_count_min_intensity = generate_data3.add_shot_noise(strace_out_min_intensity, phase_parameters.params.counts_max)
+    ax = fig.add_subplot(gs[1:2,0:1])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_max_count_min_intensity, cmap="jet", label="measured trace")
+    ax.set_title("maximum count ({})\nminimum IR Intensity".format(phase_parameters.params.counts_max))
+
+
+    # minmum signal level
+    strace_out_min_count_max_intensity = generate_data3.add_shot_noise(strace_out_max_intensity, phase_parameters.params.counts_min)
+    ax = fig.add_subplot(gs[0:1,2:3])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_min_count_max_intensity, cmap="jet", label="measured trace")
+    ax.set_title("minimum count ({})\nmaximum IR Intensity".format(phase_parameters.params.counts_min))
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
+    # maximum signal level
+    strace_out_max_count_max_intensity = generate_data3.add_shot_noise(strace_out_max_intensity, phase_parameters.params.counts_max)
+    ax = fig.add_subplot(gs[1:2,2:3])
+    ax.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, strace_out_max_count_max_intensity, cmap="jet", label="measured trace")
+    ax.set_title("maximum count ({})\nmaximum IR Intensity".format(phase_parameters.params.counts_max))
+    ax.set_yticks([])
+
+
+    fig.savefig("./measured_trace_compared_with_noise.png")
+
+
+    # compare measured trace with noise minimum and maximum
+
 
 
     plt.show()

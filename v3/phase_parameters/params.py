@@ -30,6 +30,9 @@ delay_values = measured_trace.delay # femtosecond
 delay_values_fs = delay_values * 1e15
 K = measured_trace.energy # electorn volts
 
+# minimum and maximum noise level for training data construction
+counts_min, counts_max = 10, 100
+
 # threshold scaler for the generated pulses
 threshold_scaler = 0.03
 
