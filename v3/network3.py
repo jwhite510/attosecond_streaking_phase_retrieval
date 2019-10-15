@@ -791,62 +791,6 @@ def avg_pooling_layer(input_x, pool_size_val,  stride_val, pad=False):
     else:
         return tf.layers.average_pooling2d(input_x, pool_size=[pool_size_val[0], pool_size_val[1]], strides=[stride_val[0], stride_val[1]], padding="VALID")
 
-def gan_network(input):
-    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
-    output_length = xuv_phase_coefs - 1 + 4     # remove 1 for no linear phase...
-                                                # add 4 for ir params
-
-
-    with tf.variable_scope("gan"):
-        hidden1 = tf.layers.dense(inputs=input, units=128)
-
-        alpha = 0.01
-        hidden1 = tf.maximum(alpha * hidden1, hidden1)
-
-        hidden2 = tf.layers.dense(inputs=hidden1, units=128)
-
-        hidden2 = tf.maximum(alpha * hidden2, hidden2)
-
-        # output of neural net between -1 and 1
-        output = tf.layers.dense(hidden2, units=output_length, activation=tf.nn.tanh)
-
-        # scaling factor between 0 and 1
-        s_out = tf.layers.dense(hidden2, units=1, activation=tf.nn.sigmoid)
-
-        # output : [---xuv_coefs-- --ir_params--]
-        # represent taylor series coefficients
-        xuv_out = output[:, 0:xuv_phase_coefs - 1]
-        ir_out = output[:, xuv_phase_coefs - 1:]
-
-        # append 0 to the xuv output because 0 linear phase
-        samples_in = tf.shape(xuv_out)[0]
-        zeros_vec = tf.fill([samples_in, 1], 0.0)
-        xuv_out_nolin = tf.concat([zeros_vec, xuv_out], axis=1)
-
-        # normalize the xuv output
-        summation = tf.reduce_sum(tf.abs(xuv_out_nolin), axis=1)
-        quotient = (1 / s_out) * summation
-        xuv_coefs_normalized = xuv_out_nolin / quotient
-
-        # create label with coefs and params
-        coefs_params_label = tf.concat([xuv_coefs_normalized, ir_out], axis=1)
-
-        # generate complex fields from these coefs
-        xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_normalized)
-        ir_E_prop = tf_functions.ir_from_params(ir_out)["E_prop"]
-
-        # concat these vectors to make a label
-        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
-
-        outputs = {}
-        outputs["xuv_ir_field_label"] = xuv_ir_field_label
-        outputs["coefs_params_label"] = coefs_params_label
-        outputs["ir_E_prop"] = ir_E_prop
-        outputs["xuv_E_prop"] = xuv_E_prop
-
-
-        return outputs
-
 def part1_purple(input):
     conv1 = convolutional_layer_nopadding(input, shape=[21, 8, 1, 20], activate='relu', stride=[1, 1])
     # print("conv1", conv1)
@@ -948,112 +892,19 @@ def noise_resistant_phase_retrieval_net(input):
 
         return phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred
 
-def phase_retrieval_net(input):
-    K_values = phase_parameters.params.K
-    tau_values = phase_parameters.params.delay_values
-
-    xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
-    total_coefs_params_length = int(xuv_phase_coefs + 4)
-
-    # define phase retrieval neural network
-    with tf.variable_scope("phase"):
-
-        # # dense network
-        # x_image_flat = tf.reshape(input, [-1, len(K_values)*len(tau_values)])
-        # dense1 = normal_full_layer(x_image_flat, 1024)
-        # # dense layer 1
-        # full_layer_one = normal_full_layer(dense1, 1024)
-
-
-        # convolutional layers
-        # # shape = [sizex, sizey, channels, filters/features]
-        # convo_1 = convolutional_layer(x_image, shape=[4, 4, 1, 32], activate='none', stride=[2, 2])
-        # convo_2 = convolutional_layer(convo_1, shape=[2, 2, 32, 32], activate='none', stride=[2, 2])
-        # convo_3 = convolutional_layer(convo_2, shape=[1, 1, 32, 32], activate='leaky', stride=[1, 1])
-
-
-        # convolutional network
-        # input image
-        x_image = tf.reshape(input, [-1, len(K_values), len(tau_values), 1])
-
-        # six convolutional layers
-        multires_filters = [11, 7, 5, 3]
-
-        multires_layer_1 = multires_layer(input=x_image, input_channels=1, filter_sizes=multires_filters, stride=2)
-
-        # use this to pass output forward
-        # fwd_1 = tf.contrib.layers.flatten(multires_layer_1)
-
-        multires_layer_2 = multires_layer(input=multires_layer_1, input_channels=4,
-                                          filter_sizes=multires_filters, stride=2)
-
-        multires_layer_3 = multires_layer(input=multires_layer_2, input_channels=16,
-                                          filter_sizes=multires_filters, stride=2)
-
-        convo_3_flat = tf.contrib.layers.flatten(multires_layer_3)
-        full_layer_one = normal_full_layer(convo_3_flat, 512)
-        #full_layer_one = normal_full_layer(convo_3_flat, 2)
-        #print("layer needs to be set to 1024!!")
-
-        # dropout
-        hold_prob = tf.placeholder_with_default(1.0, shape=())
-        dropout_layer = tf.nn.dropout(full_layer_one, keep_prob=hold_prob)
-
-        # neural net output coefficients
-        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
-        # predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
-
-        xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
-        ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
-
-        # generate fields from coefficients
-        xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
-        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)["E_prop"]
-
-        # generate a label from the complex fields
-        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
-
-
-        phase_net_output = {}
-        phase_net_output["xuv_ir_field_label"] = xuv_ir_field_label
-        phase_net_output["ir_E_prop"] = ir_E_prop
-        phase_net_output["xuv_E_prop"] = xuv_E_prop
-        phase_net_output["predicted_coefficients_params"] = predicted_coefficients_params
-
-        return phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred
-
 def setup_neural_net():
     K_values = phase_parameters.params.K
     tau_values = phase_parameters.params.delay_values
-
     xuv_phase_coefs = phase_parameters.params.xuv_phase_coefs
-
-    print('Setting up multires layer network with more conv weights')
 
     # define the label for supervised learning of phase retrieval net
     total_coefs_params_length = int(xuv_phase_coefs + 4)
 
-    # define GAN network
-    gan_input = tf.placeholder(tf.float32, shape=[1, 100])
-
-    # GAN output is used to create XUV field and streaking trace
-    gan_output = gan_network(input=gan_input)
-
-    # use the fields to generate streaking trace
     # sample size of one required as of now
-    x = tf_functions.streaking_trace(xuv_cropped_f_in=gan_output["xuv_E_prop"]["f_cropped"][0],
-                                        ir_cropped_f_in=gan_output["ir_E_prop"]["f_cropped"][0])
-    x_flat = tf.reshape(x, [1, -1])
-    # this placeholder accepts either an input as placeholder (supervised learning)
     # or it will default to the GAN generated fields as input
-    x_in = tf.placeholder_with_default(x_flat, shape=(None, int(len(K_values) * len(tau_values))))
-
+    x_in = tf.placeholder(tf.float32, shape=(None, int(len(K_values) * len(tau_values))))
 
     phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = noise_resistant_phase_retrieval_net(input=x_in)
-
-
-    # pass image through phase retrieval network
-    # phase_net_output, hold_prob, xuv_coefs_pred, ir_params_pred = phase_retrieval_net(input=x_in)
 
 
     # create label for supervised learning
@@ -1061,9 +912,7 @@ def setup_neural_net():
     supervised_label_fields = create_fields_label_from_coefs_params(actual_coefs_params)
 
     # generate the reconstructed trace
-    reconstructed_trace = tf_functions.streaking_trace(
-                    xuv_cropped_f_in=phase_net_output["xuv_E_prop"]["f_cropped"][0],
-                    ir_cropped_f_in=phase_net_output["ir_E_prop"]["f_cropped"][0])
+    reconstructed_trace = tf_functions.streaking_trace( xuv_in=phase_net_output["xuv_E_prop"], ir_in=phase_net_output["ir_E_prop"])
 
     # generate proof trace
     reconstructed_proof = tf_functions.proof_trace(reconstructed_trace)
@@ -1089,21 +938,6 @@ def setup_neural_net():
     # ..............define loss functions....................
     #........................................................
     #........................................................
-
-
-
-
-    # #........................................................
-    # # .............GAN NETWORK LOSS FUNCTIONS................
-    # #........................................................
-    # # maximize loss between complex fields
-    # gan_fields_loss = (1/tf.losses.mean_squared_error(labels=gan_output["xuv_ir_field_label"],
-    #                                                    predictions=phase_net_output["xuv_ir_field_label"]))
-    # gan_LR = tf.placeholder(tf.float32, shape=[])
-    # gan_optimizer = tf.train.AdamOptimizer(learning_rate=gan_LR)
-    # gan_network_train = gan_optimizer.minimize(gan_fields_loss, var_list=gan_net_vars)
-
-
 
 
     # ........................................................
@@ -1386,6 +1220,6 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='MLMRL_noise_resistant_net_angle_18')
+    phase_net_train = PhaseNetTrain(modelname='AAOV_01')
     phase_net_train.supervised_learn()
 
