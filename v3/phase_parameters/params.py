@@ -43,7 +43,7 @@ threshold_max_index = (2*1024) - 100
 ir_pulse = {}
 # pulse params
 ir_pulse["N"] = 128
-ir_pulse["tmax"] = 50e-15 # femtosecond
+ir_pulse["tmax"] = 50e-15 # second
 ir_pulse["start_index"] = 64
 ir_pulse["end_index"] = 84
 
