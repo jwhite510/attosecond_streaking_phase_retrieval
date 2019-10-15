@@ -50,6 +50,9 @@ class PhaseNetTrain:
 
         print('starting ' + self.modelname)
 
+        if not os.path.exists('./models/'):
+            os.mkdir('./models/')
+
         shutil.copyfile('./network3.py', './models/network3_{}.py'.format(self.modelname))
 
         # create figures for showing results
@@ -308,8 +311,8 @@ class PhaseNetTrain:
         self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5], set='test_data_2',
                               axes=self.axes["testplot2"], figure=self.axes["testfig2"])
 
-        plt.show()
-        plt.pause(0.001)
+        # plt.show()
+        # plt.pause(0.001)
 
     def plot_predictions(self, x_in, y_in, indexes, set, axes, figure):
         # def plot_predictions(x_in, y_in, indexes, axes, figure, epoch, set, net_name, nn_nodes, sess):
@@ -335,7 +338,7 @@ class PhaseNetTrain:
             predicted_xuv_field = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],
                                     feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
 
-            predicted_ir_field = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],
+            predicted_ir_field = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["E_prop"]["f_cropped"],
                                     feed_dict={self.nn_nodes["general"]["x_in"]: x_in[index].reshape(1, -1)})
 
             actual_xuv_field = actual_xuv_field.reshape(-1)
@@ -416,7 +419,7 @@ class PhaseNetTrain:
     def retrieve_experimental(self):
 
 
-        ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["f_cropped"],feed_dict=self.measured_feed_dict)[0]
+        ir_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["ir_E_prop"]["E_prop"]["f_cropped"],feed_dict=self.measured_feed_dict)[0]
         xuv_f = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f_cropped"],feed_dict=self.measured_feed_dict)[0]
         xuv_f_phase = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["phasecurve_cropped"],feed_dict=self.measured_feed_dict)[0]
         xuv_f_full = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"]["f"],feed_dict=self.measured_feed_dict)[0]
@@ -878,10 +881,10 @@ def noise_resistant_phase_retrieval_net(input):
 
         # generate fields from coefficients
         xuv_E_prop = tf_functions.xuv_taylor_to_E(xuv_coefs_pred)
-        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)["E_prop"]
+        ir_E_prop = tf_functions.ir_from_params(ir_params_pred)
 
         # generate a label from the complex fields
-        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["f_cropped"])
+        xuv_ir_field_label = concat_fields(xuv=xuv_E_prop["f_cropped"], ir=ir_E_prop["E_prop"]["f_cropped"])
 
 
         phase_net_output = {}
