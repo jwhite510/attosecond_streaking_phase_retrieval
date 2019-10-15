@@ -265,7 +265,7 @@ if __name__ == "__main__":
 
     # initialize IR generator
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
-    ir_E_prop = tf_functions.ir_from_params(ir_values_in)["E_prop"]
+    ir_E_prop = tf_functions.ir_from_params(ir_values_in)
 
     # construct streaking image
     image = tf_functions.streaking_trace(xuv_in=xuv_E_prop, ir_in=ir_E_prop)
