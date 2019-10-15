@@ -79,7 +79,7 @@ def plot_opened_file(xuv_coefs, ir_params, trace, sess, tf_graphs):
 
     xuv_t = sess.run(tf_graphs["xuv_E_prop"]["t"], feed_dict={tf_graphs["xuv_coefs_in"]: xuv_coefs.reshape(1, -1)})
 
-    ir_t = sess.run(tf_graphs["ir_E_prop"]["t"], feed_dict={tf_graphs["ir_values_in"]: ir_params.reshape(1, -1)})
+    ir_t = sess.run(tf_graphs["ir_E_prop"]["E_prop"]["t"], feed_dict={tf_graphs["ir_values_in"]: ir_params.reshape(1, -1)})
 
     # plot xuv
     ax = fig.add_subplot(gs[0, 0])
