@@ -165,6 +165,7 @@ def xuv_taylor_to_E(coefficients_in):
 
     # fourier transform for time propagated signal
     Et_prop = tf_ifft(Ef_prop * streaking_phase_term_exp, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
+    Et_prop_no_streakingphase = tf_ifft(Ef_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
     Et_photon_prop = tf_ifft(Ef_photon_prop, shift=int(xuv_spectrum.spectrum.N/2), axis=1)
 
     # return the cropped E
@@ -175,11 +176,12 @@ def xuv_taylor_to_E(coefficients_in):
     phasecurve_cropped = phasecurve[:, xuv_spectrum.spectrum.indexmin: xuv_spectrum.spectrum.indexmax]
 
     E_prop = {}
-    E_prop["streaking_phase_term_exp"] = streaking_phase_term_exp
+    E_prop["streaking_phase_term"] = tf.constant(streaking_phase_term)
     E_prop["f"] = Ef_prop
     E_prop["f_cropped"] = Ef_prop_cropped
     E_prop["f_photon_cropped"] = Ef_photon_prop_cropped
     E_prop["t"] = Et_prop
+    E_prop["t_no_streakingphase"] = Et_prop_no_streakingphase
     E_prop["t_photon"] = Et_photon_prop
     E_prop["phasecurve_cropped"] = phasecurve_cropped
     #E_prop["coefs_divided_by_int"] = coefs_divided_by_int
@@ -286,7 +288,13 @@ def streaking_trace(xuv_in, ir_in):
     Ip = phase_parameters.params.Ip
 
     # fourier transform the padded xuv
+    # with sphase
     xuv_time_domain = xuv_in["t"][0]
+
+    # without sphase
+    # xuv_time_domain = xuv_in["t_no_streakingphase"][0]
+
+
     # fourier transform the padded ir
     ir_time_domain = ir_in["E_prop"]["t"][0]
 
@@ -658,30 +666,41 @@ def show_tfl_streaking_phase():
             }
 
     with tf.Session() as sess:
+
+
         out = sess.run(gen_xuv, feed_dict=feed_dict)
-        xuv_t = out['t'][0]
-        plt.figure(1)
-        plt.plot(xuv_spectrum.spectrum.tmat, np.real(xuv_t), color="blue")
-        plt.plot(xuv_spectrum.spectrum.tmat, np.imag(xuv_t), color="red")
-        plt.plot(xuv_spectrum.spectrum.tmat, np.abs(xuv_t), color="black")
-
-
-        Ef = out["f"]
-        streaking_phase_term_exp = out["streaking_phase_term_exp"]
-
+        # this should change as the streaking phase term increases
         # plot Ef with phase term
-        fig = plt.figure()
-        fig, ax = plt.subplots(1,1)
-        ax.plot(xuv_spectrum.spectrum.fmat_hz,np.abs((Ef[0]*streaking_phase_term_exp))**2)
-        # ax.plot(xuv_spectrum.spectrum.fmat_hz,np.abs((Ef[0]*1))**2)
-        axtwin = ax.twinx()
-        axtwin.plot(xuv_spectrum.spectrum.fmat_hz,np.unwrap(np.angle(Ef[0]*streaking_phase_term_exp)))
-        # axtwin.plot(xuv_spectrum.spectrum.fmat_hz,np.unwrap(np.angle(Ef[0]*1)))
-
-        out = sess.run(image, feed_dict=feed_dict)
+        Ef = out["f"]
+        streaking_phase_term = out["streaking_phase_term"]
         plt.figure(2)
-        plt.pcolormesh(out, cmap="jet")
-        plt.savefig("aer.png")
+        plt.plot(xuv_spectrum.spectrum.fmat_ev,np.abs(Ef[0])**2, color="black")
+        plt.xlim(phase_parameters.params.K[0], phase_parameters.params.K[-1])
+        axtwin = plt.gca().twinx()
+        axtwin.plot(xuv_spectrum.spectrum.fmat_ev, streaking_phase_term, color="green", label="streaking phase")
+        plt.gca().legend()
+        plt.xlabel("Energy [eV]")
+        plt.title("Spectrum")
+        import makecsv
+        e_0 = makecsv.e_0
+        f0 = str(int(e_0 + phase_parameters.params.Ip))
+        plt.savefig(f0+"_spectrum.png")
+
+
+        # ********************
+        # ****plot the trace**
+        # ********************
+        out = sess.run(image, feed_dict=feed_dict)
+        plt.figure(3)
+        plt.pcolormesh(phase_parameters.params.delay_values_fs, phase_parameters.params.K, out, cmap="jet")
+        plt.xlabel("Delay [fs]")
+        plt.ylabel("Eenergy [eV]")
+
+        plt.title("trace with streaking phase term")
+        plt.savefig(f0+"_trace_withsterm.png")
+
+        # plt.title("trace without streaking phase term")
+        # plt.savefig(f0+"_trace_nosterm.png")
 
         plt.show()
 
@@ -691,7 +710,7 @@ if __name__ == "__main__":
 
     # show the phase introduced to a transform limited attosecond pulse
     # by the streaking process
-    # show_tfl_streaking_phase()
+    show_tfl_streaking_phase()
 
     # show test parameter space
-    parameters_test()
+    # parameters_test()

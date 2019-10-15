@@ -73,7 +73,8 @@ def retrieve_trace(find_f0=False):
 
 
     energy_vals = []
-    with open(os.path.dirname(__file__)+"/sample4/energy.csv", "r") as file:
+    # with open(os.path.dirname(__file__)+"/sample4/energy.csv", "r") as file:
+    with open(os.path.dirname(__file__)+"/sample4/energy_gen.csv", "r") as file:
         for line in file.readlines():
             line = line.rstrip()
             energy_vals.append(float(line))

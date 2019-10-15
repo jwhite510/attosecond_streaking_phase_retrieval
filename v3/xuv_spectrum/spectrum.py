@@ -103,7 +103,8 @@ def interp_measured_data_to_linear(electronvolts_in, intensity_in, plotting=Fals
     # return hertz, linear_E_t, tmat, fmat, Ef_interp, indexmin, indexmax, f0, N, dt
 
 def retrieve_spectrum(plotting=False):
-    electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv')
+    # electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron.csv')
+    electron_volts, intensity = open_data_file(os.path.dirname(__file__)+'/sample4/spectrum4_electron_gen.csv')
     # add the ionization potential to the electron volts
     electron_volts = [e+phase_parameters.params.Ip_eV for e in electron_volts]
 
@@ -114,7 +115,7 @@ def retrieve_spectrum(plotting=False):
     electron_interp = interp_measured_data_to_linear(electronvolts_in=electron_volts, intensity_in=intensity, plotting=plotting)
 
     # open the cross section
-    electron_volts_cs, cross_section = open_data_file(os.path.dirname(__file__)+'/sample4/HeliumCrossSection.csv')
+    electron_volts_cs, cross_section = open_data_file(os.path.dirname(__file__)+'/sample4/HeliumCrossSection_gen.csv')
 
     # interpolate the cross section to match the electron spectrum
     interpolator = scipy.interpolate.interp1d(electron_volts_cs, cross_section, kind='linear')
