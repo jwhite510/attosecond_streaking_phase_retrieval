@@ -274,7 +274,9 @@ def ir_from_params(ir_param_values):
 
 def streaking_trace(xuv_in, ir_in):
     # define the angle for streaking trace collection
-    theta_max = np.pi/2
+    degrees_max = 107
+    theta_max = degrees_max * (np.pi / 180)
+    # theta_max = np.pi/2
     N_theta = 10
     angle_in = tf.constant(np.linspace(0, theta_max, N_theta), dtype=tf.float32)
     Beta_in =  1
