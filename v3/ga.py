@@ -69,6 +69,7 @@ class GeneticAlgorithm():
         self.pop = self.toolbox.create_population(n=pop_size)
         # evaluate and assign fitness numbers
         fitnesses = [self.toolbox.evaluate(p) for p in self.pop]
+        print("evaluating fitnesses")
         for ind, fit in zip(self.pop, fitnesses):
             ind.fitness.values = fit,
 
