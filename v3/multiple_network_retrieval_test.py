@@ -429,10 +429,6 @@ def noise_test(test_run, net_model):
             del genetic_algorithm
             tf.reset_default_graph()
 
-
-            import ipdb; ipdb.set_trace() # BREAKPOINT
-            print("BREAKPOINT")
-
             # get RMSE of retrieved phase curve
             # nn_result["nn_phase_rmse"] = calculate_rmse(
             #            nn_result["nn_retrieved_phase"]["cropped"], measured_trace_phase)
