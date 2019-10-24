@@ -147,7 +147,7 @@ def measured_retrieval(networks_in):
     ax.text(0.9, 0.5, "standard dev: %.0f as" % np.std(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
 
-    ax.set_title("mean I(t) (Photon) retrieved\n (30 trained networks)")
+    ax.set_title("mean I(t) (Photon) retrieved\n (10 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
@@ -190,7 +190,7 @@ def measured_retrieval(networks_in):
     axtwin.yaxis.label.set_color("green")
     axtwin.tick_params(axis='y', colors='green')
 
-    ax.set_title("mean I(f) (Photon) retrieved\n (30 trained networks)")
+    ax.set_title("mean I(f) (Photon) retrieved\n (10 trained networks)")
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
@@ -310,7 +310,7 @@ def simulated_retrieval(networks_in):
     ax.text(0.9, 0.5, "standard dev: %.0f as" % np.std(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
 
-    ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(t) (Photon) retrieved\n (10 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
@@ -353,7 +353,7 @@ def simulated_retrieval(networks_in):
     axtwin.yaxis.label.set_color("green")
     axtwin.tick_params(axis='y', colors='green')
 
-    ax.set_title("mean I(f) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(f) (Photon) retrieved\n (10 trained networks)")
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
@@ -1119,16 +1119,23 @@ if __name__ == "__main__":
     reconstruction of the measured trace (then having known xuv coefficients) and performing
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
-    # networks_in = ["small_samples_1",
-                    # "small_samples_2",
-                    # "small_samples_3",
-                    # "small_samples_4"]
-    # measured_retrieval(networks_in)
-    # simulated_retrieval(networks_in)
+    networks_in = ["BBOV_01",
+                    "BBOV_02",
+                    "BBOV_03",
+                    "BBOV_04",
+                    "BBOV_05",
+                    "BBOV_06",
+                    "BBOV_07",
+                    "BBOV_08",
+                    "BBOV_09",
+                    "BBOV_10",
+                    ]
+    measured_retrieval(networks_in)
+    simulated_retrieval(networks_in)
 
 
     # run a noise test
-    noise_test(test_run="noise_test_1", net_model="BBOV_03")
+    # noise_test(test_run="noise_test_1", net_model="BBOV_03")
 
 
 
