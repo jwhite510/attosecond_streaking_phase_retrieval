@@ -408,9 +408,15 @@ class SupervisedRetrieval:
         # return self.sess.run(self.nn_nodes["general"]["phase_net_output"]["xuv_E_prop"], feed_dict=self.feed_dict)
         trace_recons = self.sess.run(self.nn_nodes["general"]["reconstructed_trace"], feed_dict=self.feed_dict)
         xuv_retrieved = self.sess.run(self.nn_nodes["general"]["xuv_coefs_pred"], feed_dict=self.feed_dict)
+        ir_params_pred = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["predicted_coefficients_params"], feed_dict=self.feed_dict)[:, params.xuv_phase_coefs:]
+        predicted_coefficients_params = self.sess.run(self.nn_nodes["general"]["phase_net_output"]["predicted_coefficients_params"], feed_dict=self.feed_dict)
+
+
         retrieve_output = {}
         retrieve_output["trace_recons"] = trace_recons
         retrieve_output["xuv_retrieved"] = xuv_retrieved
+        retrieve_output["ir_params_pred"] = ir_params_pred
+        retrieve_output["predicted_coefficients_params"] = predicted_coefficients_params
 
         return retrieve_output
 
