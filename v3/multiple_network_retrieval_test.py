@@ -45,7 +45,7 @@ def run_retrievals_on_networks():
 
     # corrresponds to the no noise trace
     smallest_error_index = obj["smallest_error_index"]
-    trace, label = net_test1.open_data_index(smallest_error_index+0, type="train")
+    trace, label = net_test1.open_data_index(smallest_error_index+0, data_type="train")
     trace = trace.reshape(len(params.K), len(params.delay_values_fs))
     # make this the closest from training set instead
     orignal_retrieved_xuv_coefs = label[:, 0:params.xuv_phase_coefs]

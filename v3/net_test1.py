@@ -67,12 +67,12 @@ def get_closest_params(retrieved):
 
     return obj
 
-def open_data_index(index, type=None):
+def open_data_index(index, data_type=None):
     # open the trace corresponding to this error number
-    if type is not None:
-        if type=="train":
+    if data_type is not None:
+        if data_type=="train":
             hdf5_file = tables.open_file('train3.hdf5', mode="r")
-        elif type=="test"
+        elif data_type=="test":
             hdf5_file = tables.open_file('test3.hdf5', mode="r")
         else:
             raise ValueError("not test or train")
