@@ -540,10 +540,10 @@ def convert_ir_params(ir_params):
     # index:
     # "phase", "clambda", "pulseduration", "I"
     # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
-    # phase_tens = tf.cos(ir_values_scaled["phase"]) # take the cosine of the angle
+    phase_tens = tf.cos(ir_values_scaled["phase"]) + tf.sin(ir_values_scaled["phase"]) # take the cosine of the angle
     # phase_tens = tf.reshape(phase_tens, [-1, 1])
 
-    phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
+    # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
 
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
@@ -932,7 +932,7 @@ def noise_resistant_phase_retrieval_net(input):
         dropout_layer = tf.nn.dropout(fc5, keep_prob=hold_prob)
 
         # output layer
-        predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
+        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
         xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
         ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
 
@@ -1195,13 +1195,13 @@ def setup_neural_net():
             phase_true = tf_functions.ir_from_params(supervised_label_fields["ir_params_actual"])["scaled_values"]["phase"]
 
             ir_loss_individual["phase_cos_rad"] = tf.losses.mean_squared_error(
-                labels=tf.cos(phase_true),
-                predictions=tf.cos(phase_pred))
+                labels=tf.cos(phase_true)+tf.sin(phase_true),
+                predictions=tf.cos(phase_pred)+tf.sin(phase_pred))
 
             # this is the old cost function that doesnt make any sense
-            ir_loss_individual["phase_cos_old"] = tf.losses.mean_squared_error(
-                labels=tf.cos(supervised_label_fields["ir_params_actual"][:,i]),
-                predictions=tf.cos(ir_params_pred[:,i]))
+            # ir_loss_individual["phase_cos_old"] = tf.losses.mean_squared_error(
+                # labels=tf.cos(supervised_label_fields["ir_params_actual"][:,i]),
+                # predictions=tf.cos(ir_params_pred[:,i]))
 
         ir_loss_individual[key] = ir_param_loss
 
