@@ -9,10 +9,12 @@ from phase_parameters import params
 import measured_trace.get_trace as get_measured_trace
 import generate_data3
 import matplotlib.pyplot as plt
-import network3
+# import network3
+import importlib
 
 
-def get_closest_params(retrieved):
+def get_closest_params(retrieved, network_in):
+    network3 = importlib.import_module("models.network3_"+network_in)
 
     ir_values_in = tf.placeholder(tf.float32, shape=[None, 4])
     ir_label = network3.convert_ir_params(ir_values_in)
@@ -93,7 +95,7 @@ if __name__ == "__main__":
     measured_retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
 
     # get the most similar trace from training data
-    obj = get_closest_params(measured_retrieve_output)
+    obj = get_closest_params(measured_retrieve_output, "EEFOV_increaseI_1")
     with open("closest_trace_training_data.p", "wb") as file:
         pickle.dump(obj, file)
     # open the closest trace

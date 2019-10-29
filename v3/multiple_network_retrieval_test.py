@@ -29,14 +29,15 @@ def calc_fwhm(tmat, I_t):
 def run_retrievals_on_networks():
     # use one of the networks to retrieve the measured trace
     measured_trace = get_measured_trace.trace
-    supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval("MLMRL_noise_resistant_net_angle_18")
+    network_name = "EEFOV_increaseI_1"
+    supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(network_name)
     retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
     # get the reconstruction of the measured trace with known xuv xuv coefficients
     reconstructed_trace = retrieve_output["trace_recons"]
     orignal_retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
 
     # get the most similar trace from training data
-    obj = net_test1.get_closest_params(retrieve_output)
+    obj = net_test1.get_closest_params(retrieve_output, network_name)
     with open("closest_trace_training_data.p", "wb") as file:
         pickle.dump(obj, file)
     # open the closest trace
@@ -62,24 +63,26 @@ def run_retrievals_on_networks():
 
     # input the reconstructed trace to all the networks and see the variation in the output
     retrieved_xuv_cl = []
-    for tf_model in [ "MLMRL_noise_resistant_net_angle_1",
-                    "MLMRL_noise_resistant_net_angle_2",
-                    "MLMRL_noise_resistant_net_angle_3",
-                    "MLMRL_noise_resistant_net_angle_4",
-                    "MLMRL_noise_resistant_net_angle_5",
-                    "MLMRL_noise_resistant_net_angle_6",
-                    "MLMRL_noise_resistant_net_angle_7",
-                    "MLMRL_noise_resistant_net_angle_8",
-                    "MLMRL_noise_resistant_net_angle_9",
-                    "MLMRL_noise_resistant_net_angle_10",
-                    "MLMRL_noise_resistant_net_angle_11",
-                    "MLMRL_noise_resistant_net_angle_12",
-                    "MLMRL_noise_resistant_net_angle_13",
-                    "MLMRL_noise_resistant_net_angle_14",
-                    "MLMRL_noise_resistant_net_angle_15",
-                    "MLMRL_noise_resistant_net_angle_16",
-                    "MLMRL_noise_resistant_net_angle_17",
-                    "MLMRL_noise_resistant_net_angle_18"
+    for tf_model in [   "EEFOV_increaseI_1",
+                        "EEFOV_increaseI_2",
+                        "EEFOV_increaseI_3",
+                        "EEFOV_increaseI_4",
+                        "EEFOV_increaseI_5",
+                        "EEFOV_increaseI_6",
+                        "EEFOV_increaseI_7",
+                        "EEFOV_increaseI_8",
+                        "EEFOV_increaseI_9",
+                        "EEFOV_increaseI_10",
+                        "EEFOV_increaseI_11",
+                        "EEFOV_increaseI_12",
+                        "EEFOV_increaseI_13",
+                        "EEFOV_increaseI_14",
+                        "EEFOV_increaseI_15",
+                        "EEFOV_increaseI_16",
+                        "EEFOV_increaseI_17",
+                        "EEFOV_increaseI_18",
+                        "EEFOV_increaseI_19",
+                        "EEFOV_increaseI_20",
                     ]:
         supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(tf_model)
         retrieve_output = supervised_retrieval_obj.retrieve(noise_trace_recons_added_noise)
@@ -183,7 +186,7 @@ if __name__ == "__main__":
     ax.text(0.9, 0.5, "standard dev: %.0f as" % np.std(pulse_durations), backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
 
-    ax.set_title("mean I(t) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(t) (Photon) retrieved\n (20 trained networks)")
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
@@ -226,11 +229,11 @@ if __name__ == "__main__":
     axtwin.yaxis.label.set_color("green")
     axtwin.tick_params(axis='y', colors='green')
 
-    ax.set_title("mean I(f) (Photon) retrieved\n (18 trained networks)")
+    ax.set_title("mean I(f) (Photon) retrieved\n (20 trained networks)")
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
-    plt.savefig("./stdev_test_photon.png")
+    plt.savefig("./stdev_test_photon_closest_training_5.png")
 
 
 
