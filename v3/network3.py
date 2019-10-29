@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tf_functions
 import numpy as np
+import sys
 import scipy.constants as sc
 import tables
 import shutil
@@ -539,8 +540,11 @@ def convert_ir_params(ir_params):
     # index:
     # "phase", "clambda", "pulseduration", "I"
     # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
-    phase_tens = tf.cos(ir_values_scaled["phase"]) # take the cosine of the angle
-    phase_tens = tf.reshape(phase_tens, [-1, 1])
+    # phase_tens = tf.cos(ir_values_scaled["phase"]) # take the cosine of the angle
+    # phase_tens = tf.reshape(phase_tens, [-1, 1])
+
+    phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
+
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
     ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
 
@@ -928,7 +932,7 @@ def noise_resistant_phase_retrieval_net(input):
         dropout_layer = tf.nn.dropout(fc5, keep_prob=hold_prob)
 
         # output layer
-        predicted_coefficients_params = normal_full_layer(dropout_layer, total_coefs_params_length)
+        predicted_coefficients_params = tf.nn.tanh(normal_full_layer(dropout_layer, total_coefs_params_length))
         xuv_coefs_pred = tf.placeholder_with_default(predicted_coefficients_params[:, 0:phase_parameters.params.xuv_phase_coefs], shape=[None, 5])
         ir_params_pred = predicted_coefficients_params[:, phase_parameters.params.xuv_phase_coefs:]
 
@@ -1386,6 +1390,7 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
     return bootstrap_loss, bootstrap_indexes_ph
 
 if __name__ == "__main__":
-    phase_net_train = PhaseNetTrain(modelname='MLMRL_noise_resistant_net_angle_18')
+    phase_net_train = PhaseNetTrain(modelname=sys.argv[1])
+    # phase_net_train = PhaseNetTrain(modelname='test_test')
     phase_net_train.supervised_learn()
 
