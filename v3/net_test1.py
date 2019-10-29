@@ -67,9 +67,18 @@ def get_closest_params(retrieved):
 
     return obj
 
-def open_train_data_index(index):
+def open_data_index(index, type=None):
     # open the trace corresponding to this error number
-    hdf5_file = tables.open_file('train3.hdf5', mode="r")
+    if type is not None:
+        if type=="train":
+            hdf5_file = tables.open_file('train3.hdf5', mode="r")
+        elif type=="test"
+            hdf5_file = tables.open_file('test3.hdf5', mode="r")
+        else:
+            raise ValueError("not test or train")
+    else:
+        hdf5_file = tables.open_file('train3.hdf5', mode="r")
+
     xuv_coefs = hdf5_file.root.xuv_coefs[index:index + 1, :]
     ir_params = hdf5_file.root.ir_params[index:index + 1, :]
     appended_label_batch = np.append(xuv_coefs, ir_params, 1)
@@ -103,7 +112,7 @@ if __name__ == "__main__":
     # take the error of the retrieved phase from the sample in the training data and the retrieved parameters from the initial retrieval
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+0)
+    trace, label = open_data_index(smallest_error_index+0)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(1)
     plt.pcolormesh(trace)
@@ -111,7 +120,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+1)
+    trace, label = open_data_index(smallest_error_index+1)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(2)
     plt.pcolormesh(trace)
@@ -119,7 +128,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+2)
+    trace, label = open_data_index(smallest_error_index+2)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(3)
     plt.pcolormesh(trace)
@@ -127,7 +136,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+3)
+    trace, label = open_data_index(smallest_error_index+3)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(4)
     plt.pcolormesh(trace)
@@ -135,7 +144,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+4)
+    trace, label = open_data_index(smallest_error_index+4)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(5)
     plt.pcolormesh(trace)
@@ -143,7 +152,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+5)
+    trace, label = open_data_index(smallest_error_index+5)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(6)
     plt.pcolormesh(trace)
@@ -151,7 +160,7 @@ if __name__ == "__main__":
 
 
     # use this for retrieval
-    trace, label = open_train_data_index(smallest_error_index+6)
+    trace, label = open_data_index(smallest_error_index+6)
     trace = trace.reshape(len(params.K), len(params.delay_values))
     plt.figure(7)
     plt.pcolormesh(trace)

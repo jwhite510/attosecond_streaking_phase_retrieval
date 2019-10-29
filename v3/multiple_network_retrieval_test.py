@@ -31,23 +31,23 @@ def run_retrievals_on_networks():
     measured_trace = get_measured_trace.trace
     supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval("MLMRL_noise_resistant_net_angle_18")
     retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
-
     # get the reconstruction of the measured trace with known xuv xuv coefficients
     reconstructed_trace = retrieve_output["trace_recons"]
     orignal_retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
 
     # get the most similar trace from training data
-    # obj = net_test1.get_closest_params(retrieve_output)
-    # with open("closest_trace_training_data.p", "wb") as file:
-        # pickle.dump(obj, file)
+    obj = net_test1.get_closest_params(retrieve_output)
+    with open("closest_trace_training_data.p", "wb") as file:
+        pickle.dump(obj, file)
     # open the closest trace
     with open("closest_trace_training_data.p", "rb") as file:
         obj = pickle.load(file)
 
     # corrresponds to the no noise trace
     smallest_error_index = obj["smallest_error_index"]
-    trace, label = net_test1.open_train_data_index(smallest_error_index+0)
+    trace, label = net_test1.open_data_index(smallest_error_index+0, type="train")
     trace = trace.reshape(len(params.K), len(params.delay_values_fs))
+    # make this the closest from training set instead
     orignal_retrieved_xuv_coefs = label[:, 0:params.xuv_phase_coefs]
     reconstructed_trace = trace
 
