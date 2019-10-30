@@ -5,6 +5,7 @@ import tensorflow as tf
 import pickle
 import numpy as np
 import tf_functions
+import sys
 from phase_parameters import params
 import measured_trace.get_trace as get_measured_trace
 import generate_data3
@@ -26,7 +27,7 @@ def calc_fwhm(tmat, I_t):
     fwhm = t2 - t1
     return fwhm, t1, t2, half_max
 
-def run_retrievals_on_networks():
+def run_retrievals_on_networks(iter):
     # use one of the networks to retrieve the measured trace
     measured_trace = get_measured_trace.trace
     network_name = "EEFOV_increaseI_1"
@@ -37,16 +38,23 @@ def run_retrievals_on_networks():
     orignal_retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
 
     # get the most similar trace from training data
-    obj = net_test1.get_closest_params(retrieve_output, network_name)
-    with open("closest_trace_training_data.p", "wb") as file:
-        pickle.dump(obj, file)
+    # obj = net_test1.get_closest_params(retrieve_output, network_name)
+
+    # with open("closest_trace_training_data.p", "wb") as file:
+        # pickle.dump(obj, file)
     # open the closest trace
     with open("closest_trace_training_data.p", "rb") as file:
         obj = pickle.load(file)
 
-    # corrresponds to the no noise trace
     smallest_error_index = obj["smallest_error_index"]
+    # plot to see what they look like
+    # ir_data = obj["smallest_error_data"][params.xuv_phase_coefs:]
+    # xuv_data = obj["smallest_error_data"][:params.xuv_phase_coefs]
+    # retrieve_output["xuv_retrieved"]
+    # retrieve_output["ir_params_pred"]
+
     trace, label = net_test1.open_data_index(smallest_error_index+0, data_type="train")
+
     trace = trace.reshape(len(params.K), len(params.delay_values_fs))
     # make this the closest from training set instead
     orignal_retrieved_xuv_coefs = label[:, 0:params.xuv_phase_coefs]
@@ -103,7 +111,8 @@ if __name__ == "__main__":
     multiple retrievals with many trained networks to look at the variation in retrieval
     """
 
-    retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks()
+
+    retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs = run_retrievals_on_networks(sys.argv[1])
 
     data = {}
     data["retrieved_xuv_cl"] = retrieved_xuv_cl
@@ -233,7 +242,7 @@ if __name__ == "__main__":
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
-    plt.savefig("./stdev_test_photon_closest_training_5.png")
+    plt.savefig("./stdev_test_photon_closest_training_C_train"+sys.argv[1]+".png")
 
 
 
