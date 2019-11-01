@@ -298,15 +298,15 @@ class PhaseNetTrain:
 
         # def update_plots(data_obj, sess, nn_nodes, modelname, epoch, axes):
         batch_x_train, batch_y_train = self.get_data.evaluate_on_train_data(samples=500)
-        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 1, 2], set='train_data_1',
+        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[0, 10, 20], set='train_data_1',
                               axes=self.axes["trainplot1"], figure=self.axes["trainfig1"])
-        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[3, 4, 5], set='train_data_2',
+        self.plot_predictions(x_in=batch_x_train, y_in=batch_y_train, indexes=[30, 40, 50], set='train_data_2',
                               axes=self.axes["trainplot2"], figure=self.axes["trainfig2"])
 
         batch_x_test, batch_y_test = self.get_data.evaluate_on_test_data()
-        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 1, 2], set='test_data_1',
+        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[0, 10, 20], set='test_data_1',
                               axes=self.axes["testplot1"], figure=self.axes["testfig1"])
-        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[3, 4, 5], set='test_data_2',
+        self.plot_predictions(x_in=batch_x_test, y_in=batch_y_test, indexes=[30, 40, 50], set='test_data_2',
                               axes=self.axes["testplot2"], figure=self.axes["testfig2"])
 
         plt.show()
