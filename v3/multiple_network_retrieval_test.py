@@ -30,12 +30,12 @@ def calc_fwhm(tmat, I_t):
 def run_retrievals_on_networks(iter):
     # use one of the networks to retrieve the measured trace
     measured_trace = get_measured_trace.trace
-    network_name = "EEFOV_increaseI_1"
-    supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(network_name)
-    retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
+    # network_name = "EEFOV_increaseI_1"
+    # supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(network_name)
+    # retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
     # get the reconstruction of the measured trace with known xuv xuv coefficients
-    reconstructed_trace = retrieve_output["trace_recons"]
-    orignal_retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
+    # reconstructed_trace = retrieve_output["trace_recons"]
+    # orignal_retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
 
     # get the most similar trace from training data
     # obj = net_test1.get_closest_params(retrieve_output, network_name)
@@ -43,31 +43,31 @@ def run_retrievals_on_networks(iter):
     # with open("closest_trace_training_data.p", "wb") as file:
         # pickle.dump(obj, file)
     # open the closest trace
-    with open("closest_trace_training_data.p", "rb") as file:
-        obj = pickle.load(file)
+    # with open("closest_trace_training_data.p", "rb") as file:
+        # obj = pickle.load(file)
 
-    smallest_error_index = obj["smallest_error_index"]
+    # smallest_error_index = obj["smallest_error_index"]
     # plot to see what they look like
     # ir_data = obj["smallest_error_data"][params.xuv_phase_coefs:]
     # xuv_data = obj["smallest_error_data"][:params.xuv_phase_coefs]
     # retrieve_output["xuv_retrieved"]
     # retrieve_output["ir_params_pred"]
 
-    trace, label = net_test1.open_data_index(smallest_error_index+0, data_type="train")
+    # trace, label = net_test1.open_data_index(smallest_error_index+0, data_type="train")
 
-    trace = trace.reshape(len(params.K), len(params.delay_values_fs))
+    # trace = trace.reshape(len(params.K), len(params.delay_values_fs))
     # make this the closest from training set instead
-    orignal_retrieved_xuv_coefs = label[:, 0:params.xuv_phase_coefs]
-    reconstructed_trace = trace
+    # orignal_retrieved_xuv_coefs = label[:, 0:params.xuv_phase_coefs]
+    # reconstructed_trace = trace
 
     # use trace from training data set rather than retrieved
 
     # add noise to reconstructed trace
-    count_num = 50
-    noise_trace_recons_added_noise = generate_data3.add_shot_noise(reconstructed_trace, count_num)
+    # count_num = 50
+    # noise_trace_recons_added_noise = generate_data3.add_shot_noise(reconstructed_trace, count_num)
 
     # delete the tensorflow graph
-    del supervised_retrieval_obj
+    # del supervised_retrieval_obj
 
     # input the reconstructed trace to all the networks and see the variation in the output
     retrieved_xuv_cl = []
@@ -93,14 +93,14 @@ def run_retrievals_on_networks(iter):
                         "EEFOV_increaseI_20",
                     ]:
         supervised_retrieval_obj = supervised_retrieval.SupervisedRetrieval(tf_model)
-        retrieve_output = supervised_retrieval_obj.retrieve(noise_trace_recons_added_noise)
+        retrieve_output = supervised_retrieval_obj.retrieve(measured_trace)
         retrieved_xuv_coefs = retrieve_output["xuv_retrieved"]
         del supervised_retrieval_obj
 
         # add the retrieved xuv coefs to list
         retrieved_xuv_cl.append(retrieved_xuv_coefs)
 
-    return retrieved_xuv_cl, noise_trace_recons_added_noise, orignal_retrieved_xuv_coefs
+    return retrieved_xuv_cl, measured_trace, 0
 
 
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     data = {}
     data["retrieved_xuv_cl"] = retrieved_xuv_cl
     data["noise_trace_recons_added_noise"] = noise_trace_recons_added_noise
-    data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
+    # data["orignal_retrieved_xuv_coefs"] = orignal_retrieved_xuv_coefs
     with open("multiple_net_retrieval_test.p", "wb") as file:
         pickle.dump(data, file)
 
@@ -143,9 +143,9 @@ if __name__ == "__main__":
                 E_f_vecs = np.append(E_f_vecs, out["f_photon_cropped"], axis=0)
 
         # get the t and f vectors for the actual (original retrieved pulse)
-        out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:obj["orignal_retrieved_xuv_coefs"]})
-        E_t_vec_actual = out["t_photon"]
-        E_f_vec_actual = out["f_photon_cropped"]
+        # out = sess.run(xuv_E_prop, feed_dict={xuv_coefs_in:obj["orignal_retrieved_xuv_coefs"]})
+        # E_t_vec_actual = out["t_photon"]
+        # E_f_vec_actual = out["f_photon_cropped"]
 
     # plot the E_t and E_f vectors
     fig = plt.figure(figsize=(12,8))
@@ -155,20 +155,20 @@ if __name__ == "__main__":
     ax.pcolormesh(params.delay_values_fs, params.K, obj["noise_trace_recons_added_noise"], cmap="jet")
     ax.set_title("Input Trace")
 
-    # actual E(t)
-    ax = fig.add_subplot(gs[0,1])
-    I_t_actual = (np.abs(E_t_vec_actual)**2)[0]
-    ax.plot(spectrum.tmat_as, I_t_actual, color="black")
-    # calculate pulse duration
-    fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_actual)
-    ax.plot([t1, t2], [half_max, half_max], color="blue")
-    ax.text(0.8, 0.8, "FWHM: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
+    # # actual E(t)
+    # ax = fig.add_subplot(gs[0,1])
+    # I_t_actual = (np.abs(E_t_vec_actual)**2)[0]
+    # ax.plot(spectrum.tmat_as, I_t_actual, color="black")
+    # # calculate pulse duration
+    # fwhm, t1, t2, half_max = calc_fwhm(spectrum.tmat_as, I_t_actual)
+    # ax.plot([t1, t2], [half_max, half_max], color="blue")
+    # ax.text(0.8, 0.8, "FWHM: %.0f as" % fwhm, backgroundcolor="cyan", transform=ax.transAxes, ha="center")
 
-    # temporal phase plotting
-    # axtwin = ax.twinx()
-    # axtwin.plot(spectrum.tmat_as, np.unwrap(np.angle(E_t_vec_actual[0])), color="green")
-    ax.set_yticks([])
-    ax.set_title("I(t) (Photon) actual")
+    # # temporal phase plotting
+    # # axtwin = ax.twinx()
+    # # axtwin.plot(spectrum.tmat_as, np.unwrap(np.angle(E_t_vec_actual[0])), color="green")
+    # ax.set_yticks([])
+    # ax.set_title("I(t) (Photon) actual")
 
     # predicted E(t)
     ax = fig.add_subplot(gs[1,1])
@@ -199,16 +199,16 @@ if __name__ == "__main__":
     ax.set_xlabel("time [as]")
     ax.set_yticks([])
 
-    # actual E(f)
-    ax = fig.add_subplot(gs[0,2])
-    ax.plot(spectrum.fmat_hz_cropped, np.abs(E_f_vec_actual[0])**2, color="black")
-    ax.set_yticks([])
-    axtwin = ax.twinx()
-    axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(E_f_vec_actual[0])), color="green")
-    axtwin.tick_params(axis='y', colors='green')
-    axtwin.set_ylabel("phase")
-    axtwin.yaxis.label.set_color("green")
-    ax.set_title("I(f) (Photon) actual")
+    # # actual E(f)
+    # ax = fig.add_subplot(gs[0,2])
+    # ax.plot(spectrum.fmat_hz_cropped, np.abs(E_f_vec_actual[0])**2, color="black")
+    # ax.set_yticks([])
+    # axtwin = ax.twinx()
+    # axtwin.plot(spectrum.fmat_hz_cropped, np.unwrap(np.angle(E_f_vec_actual[0])), color="green")
+    # axtwin.tick_params(axis='y', colors='green')
+    # axtwin.set_ylabel("phase")
+    # axtwin.yaxis.label.set_color("green")
+    # ax.set_title("I(f) (Photon) actual")
 
     # predicted E(f)
     ax = fig.add_subplot(gs[1,2])
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     ax.set_xlabel("frequency [Hz]")
 
     # plt.show()
-    plt.savefig("./stdev_test_photon_closest_training_C_train"+sys.argv[1]+".png")
+    plt.savefig("./stdev_test_photon_closest_training_E_measuredtrace"+sys.argv[1]+".png")
 
 
 
