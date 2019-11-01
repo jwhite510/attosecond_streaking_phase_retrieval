@@ -540,7 +540,11 @@ def convert_ir_params(ir_params):
     # index:
     # "phase", "clambda", "pulseduration", "I"
     # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
-    phase_tens = tf.cos(ir_values_scaled["phase"]) + tf.sin(ir_values_scaled["phase"]) # take the cosine of the angle
+
+    # the angle that is not between 0 and 2pi
+    # ir_values_scaled["phase"]
+    phase_tens = take_norm_angle(ir_values_scaled["phase"])
+    # phase_tens = tf.cos(ir_values_scaled["phase"]) + tf.sin(ir_values_scaled["phase"]) # take the cosine of the angle
     phase_tens = tf.reshape(phase_tens, [-1, 1])
 
     # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
@@ -1194,9 +1198,13 @@ def setup_neural_net():
             phase_pred = tf_functions.ir_from_params(ir_params_pred)["scaled_values"]["phase"]
             phase_true = tf_functions.ir_from_params(supervised_label_fields["ir_params_actual"])["scaled_values"]["phase"]
 
-            ir_loss_individual["phase_cos_rad"] = tf.losses.mean_squared_error(
-                labels=tf.cos(phase_true)+tf.sin(phase_true),
-                predictions=tf.cos(phase_pred)+tf.sin(phase_pred))
+            # ir_loss_individual["phase_cos_rad"] = tf.losses.mean_squared_error(
+                # labels=tf.cos(phase_true)+tf.sin(phase_true),
+                # predictions=tf.cos(phase_pred)+tf.sin(phase_pred))
+
+            ir_loss_individual["rad_angle"] = tf.losses.mean_squared_error(
+                labels=take_norm_angle(phase_true),
+                predictions=take_norm_angle(phase_pred))
 
             # this is the old cost function that doesnt make any sense
             # ir_loss_individual["phase_cos_old"] = tf.losses.mean_squared_error(
@@ -1388,6 +1396,13 @@ def calc_bootstrap_error(recons_trace_in, input_trace_in):
         labels=input_values, predictions=recons_values
     )
     return bootstrap_loss, bootstrap_indexes_ph
+
+def take_norm_angle(angle_in):
+    cnum = tf.exp(tf.complex(imag=angle_in, real=tf.zeros_like(angle_in)))
+    angle_norm = tf.math.angle(cnum)
+    return angle_norm
+
+
 
 if __name__ == "__main__":
     phase_net_train = PhaseNetTrain(modelname=sys.argv[1])
