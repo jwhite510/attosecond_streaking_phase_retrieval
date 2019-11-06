@@ -543,20 +543,18 @@ def convert_ir_params(ir_params):
 
     # the angle that is not between 0 and 2pi
     # ir_values_scaled["phase"]
-    phase_tens = take_norm_angle(ir_values_scaled["phase"])
-    # phase_tens = tf.cos(ir_values_scaled["phase"]) + tf.sin(ir_values_scaled["phase"]) # take the cosine of the angle
-    phase_tens = tf.reshape(phase_tens, [-1, 1])
+    cos_angle, sin_angle = divide_to_cos_sin(ir_values_scaled["phase"])
 
-    # phase_tens = tf.reshape(ir_params[:,0], [-1, 1])
-
+    cos_angle = tf.reshape(cos_angle, [-1, 1])
+    sin_angle = tf.reshape(sin_angle, [-1, 1])
     intensity_tens = tf.reshape(ir_params[:,3], [-1, 1])
-    ir_p_I = tf.concat([phase_tens, intensity_tens], axis=1)
-
-    # also concat the pulse duration term
     pulse_duration_tens = tf.reshape(ir_params[:,2], [-1, 1])
-    ir_p_I_tau = tf.concat([ir_p_I, pulse_duration_tens], axis=1)
 
-    return ir_p_I_tau
+    label = tf.concat([cos_angle, sin_angle], axis=1)
+    label = tf.concat([label, intensity_tens], axis=1)
+    label = tf.concat([label, pulse_duration_tens], axis=1)
+
+    return label
 
 def convert_regular_trace_to_proof(regular_trace):
     image_noisy_placeholder = tf.placeholder(tf.float32, shape=[301, 38])
@@ -1202,9 +1200,13 @@ def setup_neural_net():
                 # labels=tf.cos(phase_true)+tf.sin(phase_true),
                 # predictions=tf.cos(phase_pred)+tf.sin(phase_pred))
 
-            ir_loss_individual["rad_angle"] = tf.losses.mean_squared_error(
-                labels=take_norm_angle(phase_true),
-                predictions=take_norm_angle(phase_pred))
+            ir_loss_individual["phase_cos"] = tf.losses.mean_squared_error(
+                labels=tf.cos(phase_true),
+                predictions=tf.cos(phase_pred))
+
+            ir_loss_individual["phase_sin"] = tf.losses.mean_squared_error(
+                labels=tf.sin(phase_true),
+                predictions=tf.sin(phase_pred))
 
             # this is the old cost function that doesnt make any sense
             # ir_loss_individual["phase_cos_old"] = tf.losses.mean_squared_error(
@@ -1401,6 +1403,14 @@ def take_norm_angle(angle_in):
     cnum = tf.exp(tf.complex(imag=angle_in, real=tf.zeros_like(angle_in)))
     angle_norm = tf.math.angle(cnum)
     return angle_norm
+
+def divide_to_cos_sin(angle_in):
+
+    cos_angle = tf.cos(angle_in)
+    sin_angle = tf.sin(angle_in)
+
+    return cos_angle, sin_angle
+
 
 
 
